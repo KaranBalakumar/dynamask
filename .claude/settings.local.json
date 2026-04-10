@@ -17,7 +17,8 @@
       "Bash(python3 -c \" import sys, json lines = sys.stdin.readlines\\(\\) for line in lines[-30:]: try: obj = json.loads\\(line\\) role = obj.get\\('role', ''\\) if role in \\('user', 'assistant'\\): content = obj.get\\('content', ''\\) if isinstance\\(content, list\\): for c in content: if isinstance\\(c, dict\\): if c.get\\('type'\\) == 'text': print\\(f'[{role}]: {c[\\\\\"text\\\\\"][:500]}'\\) elif c.get\\('type'\\) == 'tool_use': print\\(f'[{role} tool_use]: {c[\\\\\"name\\\\\"]} - {json.dumps\\(c.get\\(\\\\\"input\\\\\",{}\\)\\)[:300]}'\\) elif c.get\\('type'\\) == 'tool_result': print\\(f'[{role} tool_result]: {str\\(c.get\\(\\\\\"content\\\\\",\\\\\"\\\\\"\\)\\)[:300]}'\\) elif isinstance\\(content, str\\): print\\(f'[{role}]: {content[:500]}'\\) except: pass \")",
       "Bash(python3:*)",
       "Bash(wc:*)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(wait)"
     ]
   }
 }

@@ -38,11 +38,20 @@ class DifferentiablePreintegrator(nn.Module):
     def forward(self, gyro, accel, dt, sigma2_g, sigma2_a, mask):
         # PyPose SO3 ops are sensitive to mixed dtypes under AMP.
         # Run preintegration math in fp32 for stability and compatibility.
-        gyro = gyro.float()
-        accel = accel.float()
-        dt = dt.float()
-        sigma2_g = sigma2_g.float()
-        sigma2_a = sigma2_a.float()
+        gyro = torch.nan_to_num(gyro.float(), nan=0.0, posinf=0.0, neginf=0.0)
+        accel = torch.nan_to_num(accel.float(), nan=0.0, posinf=0.0, neginf=0.0)
+        dt = torch.nan_to_num(dt.float(), nan=0.0, posinf=0.0, neginf=0.0)
+        sigma2_g = torch.nan_to_num(sigma2_g.float(), nan=1e-4, posinf=1.0, neginf=1e-6)
+        sigma2_a = torch.nan_to_num(sigma2_a.float(), nan=1e-4, posinf=1.0, neginf=1e-6)
+        mask = mask.bool()
+
+        # Keep integration inputs in a physically plausible range to prevent
+        # Exp/log singularities when mixed-precision activations spike.
+        gyro = gyro.clamp(min=-200.0, max=200.0)
+        accel = accel.clamp(min=-500.0, max=500.0)
+        dt = dt.clamp(min=0.0, max=0.1)
+        sigma2_g = sigma2_g.clamp(min=1e-6, max=1e2)
+        sigma2_a = sigma2_a.clamp(min=1e-6, max=1e2)
 
         B, N, _ = gyro.shape
         device = gyro.device
@@ -62,7 +71,11 @@ class DifferentiablePreintegrator(nn.Module):
             gyro_i = gyro[:, i, :]              # [B, 3]
             accel_i = accel[:, i, :]            # [B, 3]
             valid = mask[:, i].unsqueeze(-1)    # [B, 1]
-            dt_i = dt_i * valid                 # zero out padded samples
+            # Use where() rather than multiply-by-zero, so invalid samples with
+            # inf values cannot create inf*0 -> nan.
+            dt_i = torch.where(valid, dt_i, torch.zeros_like(dt_i))
+            gyro_i = torch.where(valid, gyro_i, torch.zeros_like(gyro_i))
+            accel_i = torch.where(valid, accel_i, torch.zeros_like(accel_i))
 
             # --- rotation increment ---
             omega = gyro_i * dt_i               # [B, 3] angle-axis
@@ -124,8 +137,19 @@ class DifferentiablePreintegrator(nn.Module):
 
         # Convert final rotation to matrix form
         delta_R_mat = delta_R.matrix()          # [B, 3, 3]
+        delta_R_mat = torch.nan_to_num(delta_R_mat, nan=0.0, posinf=0.0, neginf=0.0)
+        bad_R = ~torch.isfinite(delta_R_mat).all(dim=(-2, -1))
+        if bad_R.any():
+            n_bad = int(bad_R.sum().item())
+            eye = torch.eye(3, device=device, dtype=dtype).unsqueeze(0).expand(n_bad, -1, -1)
+            delta_R_mat = delta_R_mat.clone()
+            delta_R_mat[bad_R] = eye
+
+        delta_v = torch.nan_to_num(delta_v, nan=0.0, posinf=0.0, neginf=0.0)
+        delta_p = torch.nan_to_num(delta_p, nan=0.0, posinf=0.0, neginf=0.0)
 
         # Symmetrize covariance for numerical stability
+        Sigma = torch.nan_to_num(Sigma, nan=0.0, posinf=1e6, neginf=-1e6)
         Sigma = 0.5 * (Sigma + Sigma.transpose(-1, -2))
 
         return {

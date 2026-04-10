@@ -21,6 +21,7 @@ output/
 dataset/
 *.bag
 *.onnx
+output_infer_bag/
 
 # Weights
 dynamask_vio/weights/

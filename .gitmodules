@@ -7,3 +7,6 @@
 [submodule "references/DPVO"]
 	path = references/DPVO
 	url = https://github.com/princeton-vl/DPVO.git
+[submodule "references/MAC-VO"]
+	path = references/MAC-VO
+	url = https://github.com/MAC-VO/MAC-VO.git

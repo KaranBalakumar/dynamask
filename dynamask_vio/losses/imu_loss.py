@@ -6,7 +6,6 @@ linalg operations.
 """
 
 import torch
-import torch.nn.functional as F
 
 from ..models.preintegration import so3_log_map
 
@@ -41,13 +40,34 @@ def imu_integration_loss(pred_R: torch.Tensor, pred_v: torch.Tensor,
     pred_p = pred_p.float()
     gt_p = gt_p.float()
 
+    finite_mask = (
+        torch.isfinite(pred_R).all(dim=(-2, -1))
+        & torch.isfinite(gt_R).all(dim=(-2, -1))
+        & torch.isfinite(pred_v).all(dim=-1)
+        & torch.isfinite(gt_v).all(dim=-1)
+        & torch.isfinite(pred_p).all(dim=-1)
+        & torch.isfinite(gt_p).all(dim=-1)
+    )
+    if not finite_mask.any():
+        # Keep graph connection so AMP GradScaler still records inf checks.
+        return pred_v.sum() * 0.0
+
+    pred_R = pred_R[finite_mask].clamp(min=-1e3, max=1e3)
+    gt_R = gt_R[finite_mask].clamp(min=-1e3, max=1e3)
+    pred_v = pred_v[finite_mask]
+    gt_v = gt_v[finite_mask]
+    pred_p = pred_p[finite_mask]
+    gt_p = gt_p[finite_mask]
+
     # Rotation error: geodesic distance on SO(3)
     R_err = pred_R.transpose(-1, -2) @ gt_R
     angle_err = _rotation_angle(R_err)  # [B]
     loss_R = angle_err.pow(2).mean()
 
-    loss_v = F.mse_loss(pred_v, gt_v)
-    loss_p = F.mse_loss(pred_p, gt_p)
+    vel_res = (pred_v - gt_v).clamp(min=-1e3, max=1e3)
+    pos_res = (pred_p - gt_p).clamp(min=-1e3, max=1e3)
+    loss_v = vel_res.pow(2).mean()
+    loss_p = pos_res.pow(2).mean()
 
     return w_rot * loss_R + w_vel * loss_v + w_pos * loss_p
 
@@ -82,12 +102,32 @@ def covariance_nll_loss(pred_R: torch.Tensor, pred_v: torch.Tensor,
     gt_p = gt_p.float()
     Sigma = Sigma.float()
 
+    finite_mask = (
+        torch.isfinite(pred_R).all(dim=(-2, -1))
+        & torch.isfinite(gt_R).all(dim=(-2, -1))
+        & torch.isfinite(pred_v).all(dim=-1)
+        & torch.isfinite(gt_v).all(dim=-1)
+        & torch.isfinite(pred_p).all(dim=-1)
+        & torch.isfinite(gt_p).all(dim=-1)
+        & torch.isfinite(Sigma).all(dim=(-2, -1))
+    )
+    if not finite_mask.any():
+        return pred_v.sum() * 0.0
+
+    pred_R = pred_R[finite_mask].clamp(min=-1e3, max=1e3)
+    gt_R = gt_R[finite_mask].clamp(min=-1e3, max=1e3)
+    pred_v = pred_v[finite_mask]
+    gt_v = gt_v[finite_mask]
+    pred_p = pred_p[finite_mask]
+    gt_p = gt_p[finite_mask]
+    Sigma = Sigma[finite_mask]
+
     # 9-d error vector: (rot, vel, pos).
     # Detach — NLL trains Σ, not err (see docstring).
     with torch.no_grad():
         err_R = so3_log_map(gt_R.transpose(-1, -2) @ pred_R)  # [B, 3]
-        err_v = gt_v - pred_v
-        err_p = gt_p - pred_p
+        err_v = (gt_v - pred_v).clamp(min=-1e3, max=1e3)
+        err_p = (gt_p - pred_p).clamp(min=-1e3, max=1e3)
         err = torch.cat([err_R, err_v, err_p], dim=-1)  # [B, 9]
 
     # Regularise Sigma — 1e-2 identity floor.  Bounds Σ^{-1} ≤ 100, which is

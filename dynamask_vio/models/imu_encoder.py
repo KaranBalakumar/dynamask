@@ -151,16 +151,24 @@ class IMUEncoder(nn.Module):
 
         # Noise correction
         nc_out = self.noise_corrector(imu_raw)
-        delta_ba = nc_out["delta_ba"]
-        delta_bg = nc_out["delta_bg"]
-        sigma2_a = nc_out["sigma2_a"]
-        sigma2_g = nc_out["sigma2_g"]
+        delta_ba = torch.nan_to_num(
+            nc_out["delta_ba"], nan=0.0, posinf=0.0, neginf=0.0
+        ).clamp(min=-5.0, max=5.0)
+        delta_bg = torch.nan_to_num(
+            nc_out["delta_bg"], nan=0.0, posinf=0.0, neginf=0.0
+        ).clamp(min=-2.0, max=2.0)
+        sigma2_a = torch.nan_to_num(
+            nc_out["sigma2_a"], nan=1e-4, posinf=1.0, neginf=1e-6
+        ).clamp(min=1e-6, max=1e2)
+        sigma2_g = torch.nan_to_num(
+            nc_out["sigma2_g"], nan=1e-4, posinf=1.0, neginf=1e-6
+        ).clamp(min=1e-6, max=1e2)
 
         # Corrected measurements
-        accel_raw = imu_raw[:, :, 0:3]
-        gyro_raw = imu_raw[:, :, 3:6]
-        accel_corrected = accel_raw - delta_ba
-        gyro_corrected = gyro_raw - delta_bg
+        accel_raw = imu_raw[:, :, 0:3].float()
+        gyro_raw = imu_raw[:, :, 3:6].float()
+        accel_corrected = (accel_raw - delta_ba.float()).clamp(min=-500.0, max=500.0)
+        gyro_corrected = (gyro_raw - delta_bg.float()).clamp(min=-200.0, max=200.0)
 
         # PyPose SO3 conversion expects consistent floating dtype. Keep this block
         # out of AMP autocast and in fp32 to avoid Half/Float mismatches.
