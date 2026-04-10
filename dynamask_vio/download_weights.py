@@ -1,26 +1,22 @@
-"""Download pretrained weights required for DynaMask V2.
+"""Download pretrained weights required for DynaMask V2.5."""
 
-RAFT pretrained weights (raft-things.pth):
-  - Trained on FlyingThings3D by Teed & Deng (ECCV 2020)
-  - Used to initialize feature encoder (fnet) and context encoder (cnet)
-  - ~5.3M params total; our encoder is a subset
-
-Usage:
-    python -m dynamask_vio.download_weights
-    python -m dynamask_vio.download_weights --output-dir ./weights
-"""
+from __future__ import annotations
 
 import argparse
 import os
-import hashlib
+import shutil
 import sys
+import zipfile
 
-# RAFT pretrained checkpoint hosted on the RAFT authors' Dropbox
-# This is the "raft-things.pth" model trained on FlyingThings3D
+
 RAFT_THINGS_URL = "https://dl.dropboxusercontent.com/s/4j4z58wuv8o0mfz/models.zip"
 RAFT_THINGS_FILENAME = "raft-things.pth"
 
-# Alternative: if user already has the RAFT repo cloned
+AIRIMU_EUROC_URL = (
+    "https://github.com/sleepycan/AirIMU/releases/download/pretrained_model_euroc/EuRoCWholeaug.zip"
+)
+AIRIMU_FILENAME = "airimu_codenet_euroc.ckpt"
+
 RAFT_LOCAL_PATHS = [
     "references/DPVO/thirdparty/RAFT/models/raft-things.pth",
     "references/RAFT/models/raft-things.pth",
@@ -28,107 +24,130 @@ RAFT_LOCAL_PATHS = [
 ]
 
 
-def _sha256_file(path: str) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    return h.hexdigest()
+def _download_url(url: str, out_path: str) -> None:
+    import torch
+
+    torch.hub.download_url_to_file(url, out_path)
+
+
+def _extract_first_matching(zip_path: str, target_path: str, candidates: tuple[str, ...]) -> str:
+    with zipfile.ZipFile(zip_path) as zf:
+        names = zf.namelist()
+        for name in names:
+            lower = name.lower()
+            if any(lower.endswith(cand) for cand in candidates):
+                with open(target_path, "wb") as f:
+                    f.write(zf.read(name))
+                return name
+    raise FileNotFoundError(f"No matching file {candidates} found in {zip_path}")
 
 
 def download_raft_weights(output_dir: str) -> str:
-    """Download or locate RAFT-Things pretrained weights.
-
-    Returns path to the checkpoint file.
-    """
     target = os.path.join(output_dir, RAFT_THINGS_FILENAME)
-
-    # Already downloaded?
     if os.path.exists(target):
         print(f"[weights] {RAFT_THINGS_FILENAME} already exists at {target}")
         return target
 
-    # Check local reference paths
     for local_path in RAFT_LOCAL_PATHS:
         if os.path.exists(local_path):
             print(f"[weights] Found RAFT weights at {local_path}")
-            import shutil
             os.makedirs(output_dir, exist_ok=True)
             shutil.copy2(local_path, target)
             print(f"[weights] Copied to {target}")
             return target
 
-    # Download from torch hub or direct URL
     os.makedirs(output_dir, exist_ok=True)
-    print(f"[weights] Downloading RAFT-Things weights...")
-    print(f"[weights] This may take a few minutes (~20MB)")
+    zip_path = os.path.join(output_dir, "raft_models.zip")
+    print("[weights] Downloading RAFT-Things weights...")
+    _download_url(RAFT_THINGS_URL, zip_path)
 
     try:
-        import torch
-        # Try torch.hub.download_url_to_file (handles redirects, shows progress)
-        zip_path = os.path.join(output_dir, "raft_models.zip")
-        torch.hub.download_url_to_file(RAFT_THINGS_URL, zip_path)
+        extracted = _extract_first_matching(zip_path, target, ("/raft-things.pth", "raft-things.pth"))
+        print(f"[weights] Extracted {extracted} -> {target}")
+    finally:
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+    return target
 
-        # Extract the specific checkpoint
-        import zipfile
-        with zipfile.ZipFile(zip_path) as zf:
-            # Find raft-things.pth inside the zip
-            for name in zf.namelist():
-                if name.endswith("raft-things.pth"):
-                    print(f"[weights] Extracting {name}...")
-                    data = zf.read(name)
-                    with open(target, "wb") as f:
-                        f.write(data)
-                    break
-            else:
-                # If exact name not found, list contents
-                print(f"[weights] Zip contents: {zf.namelist()}")
-                raise FileNotFoundError("raft-things.pth not found in archive")
 
-        os.remove(zip_path)
-        print(f"[weights] Saved to {target}")
+def download_airimu_weights(output_dir: str) -> str:
+    target = os.path.join(output_dir, AIRIMU_FILENAME)
+    if os.path.exists(target):
+        print(f"[weights] {AIRIMU_FILENAME} already exists at {target}")
         return target
 
+    os.makedirs(output_dir, exist_ok=True)
+    zip_path = os.path.join(output_dir, "airimu_euroc.zip")
+    print("[weights] Downloading AirIMU EuRoC checkpoint...")
+    _download_url(AIRIMU_EUROC_URL, zip_path)
+
+    try:
+        extracted = _extract_first_matching(
+            zip_path,
+            target,
+            (
+                ".ckpt",
+                ".pth",
+                ".pt",
+            ),
+        )
+        print(f"[weights] Extracted {extracted} -> {target}")
+    finally:
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+    return target
+
+
+def _verify_torch_load(path: str, label: str) -> None:
+    try:
+        import torch
+
+        ckpt = torch.load(path, map_location="cpu", weights_only=False)
+        if isinstance(ckpt, dict):
+            print(f"[verify] {label}: loaded dict with {len(ckpt)} top-level keys")
+        else:
+            print(f"[verify] {label}: loaded object type {type(ckpt).__name__}")
     except Exception as e:
-        print(f"[weights] Download failed: {e}")
-        print(f"[weights] Please manually download RAFT weights:")
-        print(f"  1. Clone https://github.com/princeton-vl/RAFT")
-        print(f"  2. Run: ./download_models.sh")
-        print(f"  3. Copy models/raft-things.pth to {target}")
-        sys.exit(1)
+        print(f"[verify] Warning: could not verify {label} checkpoint: {e}")
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Download pretrained weights for DynaMask V2")
-    parser.add_argument("--output-dir", type=str,
-                        default="dynamask_vio/weights",
-                        help="Directory to save weights")
+    parser = argparse.ArgumentParser(description="Download pretrained weights for DynaMask V2.5")
+    parser.add_argument("--output-dir", type=str, default="dynamask_vio/weights")
+    parser.add_argument("--skip-raft", action="store_true")
+    parser.add_argument("--skip-airimu", action="store_true")
     args = parser.parse_args()
 
     print("=" * 60)
-    print("DynaMask V2 — Pretrained Weight Download")
+    print("DynaMask V2.5 — Pretrained Weight Download")
     print("=" * 60)
 
-    path = download_raft_weights(args.output_dir)
-    print(f"\n[Done] RAFT weights: {path}")
-
-    # Verify the checkpoint can be loaded
+    raft_path = None
+    airimu_path = None
     try:
-        import torch
-        ckpt = torch.load(path, map_location="cpu", weights_only=False)
-        n_keys = len(ckpt) if isinstance(ckpt, dict) else 0
-        print(f"[Verify] Checkpoint has {n_keys} keys")
-
-        # Show encoder-relevant keys
-        fnet_keys = [k for k in ckpt if "fnet" in k or "cnet" in k]
-        print(f"[Verify] Found {len(fnet_keys)} encoder keys (fnet/cnet)")
+        if not args.skip_raft:
+            raft_path = download_raft_weights(args.output_dir)
+            _verify_torch_load(raft_path, "RAFT")
+        if not args.skip_airimu:
+            airimu_path = download_airimu_weights(args.output_dir)
+            _verify_torch_load(airimu_path, "AirIMU")
     except Exception as e:
-        print(f"[Verify] Warning: could not verify checkpoint: {e}")
+        print(f"[weights] Download failed: {e}")
+        sys.exit(1)
 
-    print(f"\nTo use these weights, set in your config:")
-    print(f"  model:")
-    print(f"    raft_checkpoint: \"{path}\"")
+    print("\n[Done]")
+    if raft_path:
+        print(f"  RAFT checkpoint:   {raft_path}")
+    if airimu_path:
+        print(f"  AirIMU checkpoint: {airimu_path}")
+
+    if raft_path or airimu_path:
+        print("\nSuggested config:")
+        print("model:")
+        if raft_path:
+            print(f'  raft_checkpoint: "{raft_path}"')
+        if airimu_path:
+            print(f'  airimu_weights_path: "{airimu_path}"')
 
 
 if __name__ == "__main__":

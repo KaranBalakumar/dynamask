@@ -1,5 +1,5 @@
 """
-RAFT-style Flow Decoder (Update Operator) for DynaMask V2.
+RAFT-style Flow Decoder (Update Operator) for DynaMask V2.5.
 
 Replaces the V1 TemporalDecoder with a proper iterative flow refinement:
   1. All-pairs correlation volume with 4-level pyramid
@@ -7,10 +7,10 @@ Replaces the V1 TemporalDecoder with a proper iterative flow refinement:
   3. Separable ConvGRU (iterative refinement)
   4. Output heads:
      - FlowHead (internal — drives GRU iterations, feeds BA at train time)
-     - MaskHead (exported — dynamic probability per pixel)
+     - ScoreHead (raw dynamic score logit per pixel, per iteration)
 
 The flow is NOT exported at inference. It is an internal mechanism that
-drives the GRU state from which the mask is decoded.
+drives the GRU state from which score logits are decoded.
 
 Reference: Teed & Deng, "RAFT", ECCV 2020.
 GradientClip adopted from DPVO (Teed et al., NeurIPS 2023).
@@ -19,6 +19,8 @@ GradientClip adopted from DPVO (Teed et al., NeurIPS 2023).
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from .score_head import ScoreHead
 
 
 class GradientClip(torch.autograd.Function):
@@ -236,30 +238,12 @@ class FlowHead(nn.Module):
         return self.conv2(self.relu(self.conv1(h)))
 
 
-class MaskHead(nn.Module):
-    """Predicts dynamic probability mask from GRU hidden state (EXPORTED).
-
-    Includes GradientClip after logits to bound BA-derived gradients.
-    """
-
-    def __init__(self, hidden_dim: int = 128):
-        super().__init__()
-        self.conv1 = nn.Conv2d(hidden_dim, 64, 3, padding=1)
-        self.conv2 = nn.Conv2d(64, 1, 1)
-        self.relu = nn.ReLU(inplace=True)
-        self.grad_clip = GradClipModule(clip_val=0.01)
-
-    def forward(self, h: torch.Tensor) -> torch.Tensor:
-        logits = self.conv2(self.relu(self.conv1(h)))
-        logits = self.grad_clip(logits)
-        return logits
-
-
 class FlowDecoder(nn.Module):
-    """RAFT-style Update Operator — iterative flow refinement + mask output."""
+    """RAFT-style Update Operator — iterative flow refinement + score output."""
 
     def __init__(self, hidden_dim: int = 128, corr_levels: int = 4,
-                 corr_radius: int = 4, gru_iters: int = 3):
+                 corr_radius: int = 4, gru_iters: int = 3,
+                 score_logit_clip: float = 10.0):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.corr_levels = corr_levels
@@ -272,7 +256,11 @@ class FlowDecoder(nn.Module):
         self.gru = SepConvGRU(hidden_dim=hidden_dim,
                               input_dim=hidden_dim + hidden_dim)
         self.flow_head = FlowHead(hidden_dim)
-        self.mask_head = MaskHead(hidden_dim)
+        self.score_head = ScoreHead(
+            hidden_dim=hidden_dim,
+            grad_clip=0.01,
+            logit_clip=score_logit_clip,
+        )
 
     def forward(self, fmap1: torch.Tensor, fmap2: torch.Tensor,
                 net_init: torch.Tensor, inp: torch.Tensor) -> tuple:
@@ -285,7 +273,7 @@ class FlowDecoder(nn.Module):
 
         Returns:
             flow_predictions: list of [B, 2, H, W] at each iteration
-            mask_logits: [B, 1, H, W] from final GRU state
+            score_logits_per_iter: list of [B, 1, H, W] at each iteration
         """
         B, C, H, W = fmap1.shape
 
@@ -305,6 +293,7 @@ class FlowDecoder(nn.Module):
         coords0 = torch.stack([gx, gy], dim=0).unsqueeze(0).expand(B, -1, -1, -1)
 
         flow_predictions = []
+        score_logits_per_iter = []
 
         for _ in range(self.gru_iters):
             flow = flow.detach()
@@ -318,6 +307,6 @@ class FlowDecoder(nn.Module):
             delta_flow = self.flow_head(h)
             flow = flow + delta_flow
             flow_predictions.append(flow)
+            score_logits_per_iter.append(self.score_head(h))
 
-        mask_logits = self.mask_head(h)
-        return flow_predictions, mask_logits
+        return flow_predictions, score_logits_per_iter

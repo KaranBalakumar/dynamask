@@ -112,10 +112,10 @@ class IMUAugmentor:
         self.bias_drift_p = aug.get("bias_drift_p", 0.5)
         self.b0_sigma = aug.get("bias_drift_b0_sigma", 0.01)
         self.alpha_sigma = aug.get("bias_drift_alpha_sigma", 0.001)
-        self.temporal_offset_p = aug.get("temporal_offset_p", 0.5)
-        self.temporal_offset_ms = aug.get("temporal_offset_ms", [-10, 10])
-        self.dropout_p = aug.get("imu_dropout_p", 0.3)
-        self.dropout_rate = aug.get("imu_dropout_rate", 0.1)
+        self.temporal_offset_p = aug.get("temporal_offset_p", 1.0)
+        self.temporal_offset_ms = aug.get("temporal_offset_ms", [-30, 30])
+        self.dropout_p = aug.get("imu_dropout_p", 1.0)
+        self.dropout_rate = aug.get("imu_dropout_rate", [0.1, 0.3])
 
     def __call__(self, imu_window: np.ndarray, valid_mask: np.ndarray,
                  horizontally_flipped: bool = False) -> tuple:
@@ -163,7 +163,11 @@ class IMUAugmentor:
 
         # Sample dropout
         if np.random.random() < self.dropout_p and N > 2:
-            n_drop = max(1, int(N * self.dropout_rate))
+            if isinstance(self.dropout_rate, (list, tuple, np.ndarray)):
+                rate = float(np.random.uniform(*self.dropout_rate))
+            else:
+                rate = float(self.dropout_rate)
+            n_drop = max(1, int(N * rate))
             valid_idx = np.where(mask)[0]
             # Don't drop first or last valid sample
             if len(valid_idx) > 2:

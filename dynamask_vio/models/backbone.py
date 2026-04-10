@@ -26,6 +26,7 @@ Optical Flow", ECCV 2020.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint_sequential
 
 
 class ResidualBlock(nn.Module):
@@ -92,9 +93,10 @@ class BasicEncoder(nn.Module):
     STAGE_CHANNELS = [64, 96, 128]
 
     def __init__(self, output_dim: int = 128, norm_fn: str = "instance",
-                 film_layers: nn.ModuleList = None):
+                 film_layers: nn.ModuleList = None, use_checkpoint: bool = False):
         super().__init__()
         self.film_layers = film_layers
+        self.use_checkpoint = use_checkpoint
 
         # Stem: 3 -> 64, stride 2
         if norm_fn == "instance":
@@ -153,18 +155,23 @@ class BasicEncoder(nn.Module):
         """
         x = self.stem(x)
 
+        def run_stage(stage: nn.Sequential, tensor: torch.Tensor) -> torch.Tensor:
+            if self.use_checkpoint and self.training and tensor.requires_grad:
+                return checkpoint_sequential(stage, 2, tensor, use_reentrant=False)
+            return stage(tensor)
+
         # Stage 1
-        x = self.stage1(x)
+        x = run_stage(self.stage1, x)
         if self.film_layers is not None and f_imu is not None:
             x = self.film_layers[0](x, f_imu)
 
         # Stage 2
-        x = self.stage2(x)
+        x = run_stage(self.stage2, x)
         if self.film_layers is not None and f_imu is not None:
             x = self.film_layers[1](x, f_imu)
 
         # Stage 3
-        x = self.stage3(x)
+        x = run_stage(self.stage3, x)
         if self.film_layers is not None and f_imu is not None:
             x = self.film_layers[2](x, f_imu)
 
