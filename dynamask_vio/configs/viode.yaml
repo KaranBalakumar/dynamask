@@ -1,0 +1,62 @@
+# VIODE dataset-specific overrides
+
+data:
+  image_height: 480
+  image_width: 640
+  imu_rate_hz: 200
+  camera_rate_hz: 20
+
+# VIODE camera intrinsics (from VIODE default camera)
+camera:
+  fx: 320.0
+  fy: 320.0
+  cx: 320.0
+  cy: 240.0
+
+# VIODE segmentation — dynamic class IDs
+# In VIODE, dynamic objects are characters/people.
+# Static classes: sky, ground, building, vegetation, road
+# Everything NOT in static set is dynamic.
+segmentation:
+  # "auto": use encoding to infer rgb-vs-id conversion
+  # "rgb": force rgb palette -> class-id conversion
+  # "id":  force direct integer-id interpretation
+  mode: "auto"
+
+  # AirSim class IDs for static objects in VIODE
+  static_class_ids: [0, 1, 2, 3, 4, 5, 6]  # background, sky, ground, building, vegetation, road, sidewalk
+  # Any class ID not in static_class_ids is treated as dynamic
+
+  # Optional explicit color palette map ("R,G,B" -> class_id) for rgb8 masks.
+  # Leave empty to auto-assign stable IDs per unique color at runtime.
+  palette_to_class_id: {}
+
+# Train/val/test splits
+splits:
+  train:
+    - "city_day/0_none"
+    - "city_day/1_low"
+    - "city_day/2_mid"
+    - "city_day/3_high"
+    - "city_night/0_none"
+    - "city_night/1_low"
+    - "city_night/2_mid"
+    - "city_night/3_high"
+  val:
+    - "parking_lot/1_low"
+    - "parking_lot/2_mid"
+  test:
+    - "parking_lot/3_high"
+    - "city_night/3_high"
+
+# Camera-to-IMU extrinsic for VIODE (AirSim default)
+extrinsics:
+  T_CI: [[1, 0, 0, 0],
+         [0, 1, 0, 0],
+         [0, 0, 1, 0],
+         [0, 0, 0, 1]]
+
+# Optional offline logger overrides for VIODE runs.
+# Omit this block to inherit from default.yaml.
+offline_logging:
+  enabled: true

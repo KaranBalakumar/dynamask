@@ -1,0 +1,43 @@
+# DynaMask-VIO Environment
+# Works with both conda and micromamba.
+#
+# USAGE:
+#   CUDA:  micromamba env create -f environment.yml
+#          micromamba activate dynamask
+#          pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#
+#   ROCm:  micromamba env create -f environment.yml
+#          micromamba activate dynamask
+#          pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm6.2
+#
+#   CPU (dev only):
+#          micromamba env create -f environment.yml
+#          micromamba activate dynamask
+#          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#
+# Or use the install script:  bash install.sh [cuda|rocm|cpu]
+
+name: dynamask
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy>=1.24
+  - scipy>=1.10
+  - opencv>=4.7
+  - pyyaml>=6.0
+  - matplotlib>=3.7
+  - tqdm>=4.65
+  - pip>=23.0
+  - pip:
+    - pypose>=0.6.0
+    - pytorch-lightning>=2.0.0
+    - tensorboard>=2.13.0
+    - einops>=0.6.0
+    - timm>=0.9.0
+    - evo>=1.20.0
+    - rosbags>=0.9.0
+    - onnx>=1.14.0
+    - onnxruntime>=1.15.0
+    - wandb>=0.15.0
+    - python-dotenv>=1.0.0

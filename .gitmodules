@@ -1,0 +1,9 @@
+[submodule "references/Air-IO"]
+	path = references/Air-IO
+	url = https://github.com/Air-IO/Air-IO.git
+[submodule "references/AirIMU"]
+	path = references/AirIMU
+	url = https://github.com/haleqiu/AirIMU.git
+[submodule "references/DPVO"]
+	path = references/DPVO
+	url = https://github.com/princeton-vl/DPVO.git
