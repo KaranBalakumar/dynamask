@@ -1,0 +1,1 @@
+{"nodes": [{"id": "setup_vagrantmachines", "label": "Setup-VagrantMachines.ps1", "file_type": "code", "source_file": "dynamask_vio/references/MAC-VO/Baseline/DPVO/Pangolin/scripts/vcpkg/scripts/azure-pipelines/osx/Setup-VagrantMachines.ps1", "source_location": "L1"}], "edges": []}
