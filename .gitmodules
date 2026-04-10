@@ -1,12 +1,12 @@
-[submodule "references/Air-IO"]
-	path = references/Air-IO
-	url = https://github.com/Air-IO/Air-IO.git
-[submodule "references/AirIMU"]
-	path = references/AirIMU
-	url = https://github.com/haleqiu/AirIMU.git
-[submodule "references/DPVO"]
-	path = references/DPVO
-	url = https://github.com/princeton-vl/DPVO.git
-[submodule "references/MAC-VO"]
-	path = references/MAC-VO
+[submodule "dynamask_vio/references/MAC-VO"]
+	path = dynamask_vio/references/MAC-VO
 	url = https://github.com/MAC-VO/MAC-VO.git
+[submodule "dynamask_vio/references/AirIMU"]
+	path = dynamask_vio/references/AirIMU
+	url = https://github.com/haleqiu/AirIMU.git
+[submodule "dynamask_vio/references/Air-IO"]
+	path = dynamask_vio/references/Air-IO
+	url = https://github.com/Air-IO/Air-IO.git
+[submodule "dynamask_vio/references/DPVO"]
+	path = dynamask_vio/references/DPVO
+	url = https://github.com/princeton-vl/DPVO.git
