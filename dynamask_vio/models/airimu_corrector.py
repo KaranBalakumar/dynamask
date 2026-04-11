@@ -208,11 +208,48 @@ def _assert_airimu_load_clean(missing: Iterable[str], unexpected: Iterable[str])
         )
 
 
+def _resolve_airimu_checkpoint_path(ckpt_path: str) -> Path:
+    """Resolve AirIMU checkpoint file from a file path or directory path."""
+    path = Path(ckpt_path)
+    if path.is_file():
+        return path
+    if not path.exists():
+        raise FileNotFoundError(f"AirIMU checkpoint path not found: {ckpt_path}")
+    if not path.is_dir():
+        raise FileNotFoundError(f"AirIMU checkpoint is neither file nor directory: {ckpt_path}")
+
+    preferred = [
+        path / "ckpt" / "best_model.ckpt",
+        path / "ckpt" / "newest.ckpt",
+        path / "best_model.ckpt",
+        path / "newest.ckpt",
+    ]
+    for candidate in preferred:
+        if candidate.is_file():
+            return candidate
+
+    candidates = sorted(
+        p for p in path.rglob("*") if p.is_file() and p.suffix.lower() in {".ckpt", ".pth", ".pt"}
+    )
+    if not candidates:
+        raise FileNotFoundError(
+            f"No checkpoint files (*.ckpt/*.pth/*.pt) found under directory: {ckpt_path}"
+        )
+
+    # Prefer "best" checkpoints over generic/latest names.
+    def rank(p: Path) -> tuple[int, int, str]:
+        name = p.name.lower()
+        is_best = 0 if "best" in name else 1
+        is_newest = 0 if "newest" in name else 1
+        return (is_best, is_newest, str(p))
+
+    return sorted(candidates, key=rank)[0]
+
+
 def load_airimu_weights(encoder: AirIMUCorrector, ckpt_path: str, *, freeze: bool = True) -> AirIMUCorrector:
     """Load AirIMU CodeNet weights and optionally freeze the encoder."""
-    ckpt_file = Path(ckpt_path)
-    if not ckpt_file.exists():
-        raise FileNotFoundError(f"AirIMU checkpoint not found: {ckpt_path}")
+    ckpt_file = _resolve_airimu_checkpoint_path(ckpt_path)
+    print(f"[AirIMU] Loading checkpoint: {ckpt_file}")
 
     ckpt = torch.load(str(ckpt_file), map_location="cpu", weights_only=False)
     state = ckpt.get("model_state_dict", ckpt.get("state_dict", ckpt))
@@ -233,6 +270,7 @@ def load_airimu_weights(encoder: AirIMUCorrector, ckpt_path: str, *, freeze: boo
 
     missing, unexpected = encoder.load_state_dict(cleaned, strict=False)
     _assert_airimu_load_clean(missing, unexpected)
+    setattr(encoder, "_loaded_checkpoint_path", str(ckpt_file))
 
     if freeze:
         for p in encoder.parameters():

@@ -18,7 +18,18 @@
       "Bash(python3:*)",
       "Bash(wc:*)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(wait)"
+      "Bash(wait)",
+      "Bash(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv)",
+      "Read(//proc/2017857/**)",
+      "Bash(pip show:*)",
+      "Bash(echo \"---exit: $?---\")",
+      "Bash(nvidia-smi:*)",
+      "Bash(sudo -n tee /proc/sys/kernel/yama/ptrace_scope)",
+      "Bash(ps -p 2017857 -o pid,stat,etime,%cpu,%mem,vsz,rss)",
+      "Bash(kill -TERM 2017857)",
+      "Bash(ps -p 2017857 -o pid,stat)",
+      "Bash(kill -9 2017857 2018023 2018024 2018025 2018026 2018027 2018028 2018029 2018030 2018103 2018104 2018105 2018112 2018116 2018117 2018118 2018119)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

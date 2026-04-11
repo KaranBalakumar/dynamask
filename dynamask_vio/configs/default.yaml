@@ -9,7 +9,7 @@ model:
   gru_iterations: 3
   corr_levels: 4
   corr_radius: 4
-  airimu_weights_path: null
+  airimu_weights_path: "dynamask_vio/weights/EuRoCWholeaug"
   freeze_airimu: true
   encoder_gradient_checkpointing: true
   # Path to RAFT pretrained weights (e.g. raft-things.pth).
@@ -72,7 +72,7 @@ ba:
 data:
   # Structured dataset selection for datamodule setup and phase routing.
   # Supported values: euroc, viode, tartanair
-  enabled_datasets: ["euroc", "viode", "tartanair"]
+  enabled_datasets: ["viode"]
   image_height: 480
   image_width: 640
   imu_max_window_size: 15  # max IMU samples per frame pair (for padding)

@@ -272,15 +272,6 @@ class DynaMaskLitModule(pl.LightningModule):
                 losses[name] = val
             self.log(f"val/loss_{name}", val, sync_dist=True)
 
-        if "gt_mask" in batch:
-            threshold = float(self.cfg.get("thresholds", {}).get("fixed", 0.5))
-            pred_mask = (outputs["score_cal"] > threshold).float()
-            gt_mask = batch["gt_mask"]
-            intersection = (pred_mask * gt_mask).sum()
-            union = ((pred_mask + gt_mask) > 0).float().sum()
-            iou = intersection / (union + 1e-6)
-            self.log("val/mask_iou", iou, prog_bar=True, sync_dist=True)
-
         return losses["total"]
 
     def configure_optimizers(self):
@@ -421,6 +412,12 @@ class V25DataModule(pl.LightningDataModule):
 
 
 def main():
+    # Avoid OpenMP fork deadlock: loading AirIMU's GRU weights initializes the
+    # intraop thread pool in the main process, and DataLoader workers forked
+    # afterwards inherit corrupted mutex state and hang in futex_wait_queue.
+    # Resetting to 1 thread rebuilds the pool cleanly before workers fork.
+    torch.set_num_threads(1)
+
     parser = argparse.ArgumentParser(description="DynaMask V2.5 Training")
     parser.add_argument("--config", type=str, default="dynamask_vio/configs/default.yaml")
     parser.add_argument("--gpus", type=int, default=1)

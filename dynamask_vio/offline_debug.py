@@ -453,6 +453,7 @@ class OfflineDebugCallback(pl.Callback):
         if self.save_images and step % self.image_every == 0:
             n = min(self.max_images, batch_size)
             images_to_log = []
+            has_gt_mask = "gt_mask" in batch
             for i in range(n):
                 # Images are [0, 255] float — clip and cast
                 img_prev = batch["img_prev"][i].cpu().permute(1, 2, 0).numpy()
@@ -461,19 +462,19 @@ class OfflineDebugCallback(pl.Callback):
                 img_curr = np.clip(img_curr, 0, 255).astype(np.uint8)
 
                 pred_m = out["dynamic_mask"][i, 0].cpu().numpy()
-                gt_m = batch["gt_mask"][i, 0].cpu().numpy()
-
                 pred_overlay = _mask_overlay(img_curr, pred_m, color=(0, 255, 0))
-                gt_overlay = _mask_overlay(img_curr, gt_m, color=(0, 100, 255))
-                err_map = _error_map(pred_m, gt_m)
 
                 flow_vis = out["flow"][i].cpu().numpy()
                 flow_img = _flow_magnitude_image(flow_vis)
 
                 images_to_log.append({"image": img_prev, "caption": f"Frame t-1 (sample {i})"})
                 images_to_log.append({"image": pred_overlay, "caption": f"Pred mask (dyn={dynamic_ratio:.1%})"})
-                images_to_log.append({"image": gt_overlay, "caption": "GT mask"})
-                images_to_log.append({"image": err_map, "caption": "Error: G=TP, R=FP, B=FN"})
+                if has_gt_mask:
+                    gt_m = batch["gt_mask"][i, 0].cpu().numpy()
+                    gt_overlay = _mask_overlay(img_curr, gt_m, color=(0, 100, 255))
+                    err_map = _error_map(pred_m, gt_m)
+                    images_to_log.append({"image": gt_overlay, "caption": "GT mask"})
+                    images_to_log.append({"image": err_map, "caption": "Error: G=TP, R=FP, B=FN"})
                 images_to_log.append({"image": flow_img, "caption": "Flow magnitude"})
 
             self.writer.log_images(step, images_to_log)

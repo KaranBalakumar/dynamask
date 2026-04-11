@@ -435,7 +435,7 @@ python -m dynamask_vio.train --config dynamask_vio/configs/viode_5ep_mem12gb.yam
 ### Checkpoints
 
 Saved automatically to `checkpoints/` (configurable via `paths.checkpoint_dir`):
-- `dynamask-v2-{epoch:02d}-{val/mask_iou:.3f}.ckpt` -- top-3 by validation loss
+- `dynamask-v25-{epoch:02d}-{val/loss_total:.3f}.ckpt` -- top-3 by validation loss
 - `last.ckpt` -- most recent epoch
 
 Checkpoint format: PyTorch Lightning checkpoint with `state_dict` prefix `model.`. To load for downstream use:
@@ -545,7 +545,8 @@ Each entry in `results.json`:
 ## Evaluation
 
 ```bash
-# Mask quality on VIODE test set
+# Mask quality metrics require a dataset that provides true motion-mask labels.
+# Current default datasets are self-supervised and do not provide gt_mask.
 python -m dynamask_vio.evaluate \
     --checkpoint checkpoints/best.ckpt \
     --eval-mask
@@ -616,9 +617,8 @@ logs/offline/<run_name>/
     step_00000100/
       000.png         # Frame t-1
       001.png         # Predicted mask overlay
-      002.png         # GT mask overlay
-      003.png         # Error map
-      004.png         # Flow magnitude
+      002.png         # Flow magnitude
+      # If gt_mask is available, GT overlay + error map are also logged
   images.jsonl        # image index with captions
 ```
 
@@ -658,11 +658,11 @@ with open("logs/offline/my_run/alerts.jsonl") as f:
 | **Preintegration** | `preint/delta_v_norm`, `preint/delta_p_norm`, `preint/delta_R_frob_from_I`, `preint/cov_diag_mean`, `preint/cov_diag_min`, `preint/cov_diag_max`, `preint/cov_min_eigenvalue` | Preintegration output and covariance health |
 | **FiLM** | `film/stage{0,1,2}_gamma_weight_norm`, `film/stage{0,1,2}_beta_weight_norm` | FiLM modulation magnitude per encoder stage |
 | **Performance** | `perf/batch_time_ms`, `perf/samples_per_sec`, `perf/gpu_memory_allocated_MB`, `perf/gpu_memory_reserved_MB` | Throughput and memory usage |
-| **Validation** | `val/loss_total`, `val/mask_iou` | Validation loss and mask IoU (when GT available) |
+| **Validation** | `val/loss_total` | Validation loss (primary signal for self-supervised training) |
 
 **Histograms** (every 100 steps): weight distributions, gradient distributions, mask probability distribution, flow magnitude distribution, bias corrections (delta_bg, delta_ba), noise variances (sigma2_g, sigma2_a), covariance diagonal
 
-**Images** (every 200 steps): input frame t-1, predicted mask overlay (green), GT mask overlay (blue), error map (TP=green, FP=red, FN=blue, TN=dark gray), flow magnitude heatmap (TURBO colormap)
+**Images** (every 200 steps): input frame t-1, predicted mask overlay (green), flow magnitude heatmap (TURBO colormap). If true mask GT exists in a dataset, GT overlay and error map are logged too.
 
 **Alerts** (real-time anomaly detection):
 
@@ -690,7 +690,7 @@ with open("logs/offline/my_run/alerts.jsonl") as f:
 | **Slow training** | `perf/batch_time_ms` > 1000 | Large batch or many GRU iters | Reduce `model.gru_iterations` to 2. Reduce `training.batch_size`. |
 | **GPU OOM** | CUDA out of memory error | Batch too large for VRAM | Reduce `training.batch_size`. Reduce `model.corr_radius` to 3. |
 | **Phase not switching** | `train/phase` stays at 1 | DataModule phase not updating | Check `PhaseCallback` is in callbacks list. Verify epoch count. |
-| **Val IoU always 0** | `val/mask_iou` = 0 | No GT masks in validation set or all predictions < 0.5 | Check validation dataset has `gt_mask`. Check `mask/mean_probability`. |
+| **No mask IoU shown** | Progress bar has no mask IoU metric | Current datasets do not provide true motion GT masks | Expected in current VIODE-only setup. Use `val/loss_total` as the primary validation signal. |
 
 ### Configure logging frequency
 
@@ -854,7 +854,7 @@ ba:
 
 # ── Data ──
 data:
-  enabled_datasets: ["euroc", "viode", "tartanair"]
+  enabled_datasets: ["viode"]   # add "euroc"/"tartanair" when those datasets are available
   image_height: 480
   image_width: 640
   imu_max_window_size: 15     # max IMU samples per frame pair (padded)

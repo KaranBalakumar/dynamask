@@ -134,9 +134,9 @@ class TartanAirDataset(Dataset):
             seg = cv2.imread(seg_files[frame_idx + 1], cv2.IMREAD_UNCHANGED)
             if seg.ndim == 3:
                 seg = seg[:, :, 0]
-            gt_mask = self._make_dynamic_mask(seg)
+            proxy_mask = self._make_dynamic_mask(seg)
         else:
-            gt_mask = np.zeros(img_curr.shape[:2], dtype=np.float32)
+            proxy_mask = np.zeros(img_curr.shape[:2], dtype=np.float32)
 
         # Load flow (if available)
         flow_dir = os.path.join(seq_dir, "flow")
@@ -181,8 +181,8 @@ class TartanAirDataset(Dataset):
         # Augmentation
         flipped = [False]
         if self.augment_visual is not None:
-            img_prev, img_curr, gt_mask = self.augment_visual(
-                img_prev, img_curr, gt_mask, flipped)
+            img_prev, img_curr, proxy_mask = self.augment_visual(
+                img_prev, img_curr, proxy_mask, flipped)
 
         if self.augment_imu is not None:
             imu_window, imu_valid = self.augment_imu(
@@ -191,7 +191,6 @@ class TartanAirDataset(Dataset):
         # Convert to tensors
         img_prev = torch.from_numpy(img_prev).permute(2, 0, 1).float()
         img_curr = torch.from_numpy(img_curr).permute(2, 0, 1).float()
-        gt_mask = torch.from_numpy(gt_mask).unsqueeze(0).float()
         imu_window = torch.from_numpy(imu_window).float()
         imu_valid = torch.from_numpy(imu_valid.astype(np.float32)).bool()
 
@@ -202,7 +201,6 @@ class TartanAirDataset(Dataset):
         result = {
             "img_prev": img_prev,
             "img_curr": img_curr,
-            "gt_mask": gt_mask,
             "imu_window": imu_window,
             "imu_mask": imu_valid,
             "gt_R": gt_R,

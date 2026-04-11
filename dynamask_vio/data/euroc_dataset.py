@@ -251,14 +251,9 @@ class EuRoCDataset(Dataset):
         if self.augment_imu is not None:
             imu_window, imu_valid = self.augment_imu(imu_window, imu_valid)
 
-        # EuRoC has no dynamic objects → mask is all zeros
-        H, W = img_prev.shape[:2]
-        gt_mask = np.zeros((H, W), dtype=np.float32)
-
         # Convert to tensors
         img_prev = torch.from_numpy(img_prev).permute(2, 0, 1).float()
         img_curr = torch.from_numpy(img_curr).permute(2, 0, 1).float()
-        gt_mask = torch.from_numpy(gt_mask).unsqueeze(0).float()
         imu_window = torch.from_numpy(imu_window).float()
         imu_valid = torch.from_numpy(imu_valid.astype(np.float32)).bool()
 
@@ -271,7 +266,6 @@ class EuRoCDataset(Dataset):
         return {
             "img_prev": img_prev,
             "img_curr": img_curr,
-            "gt_mask": gt_mask,
             "imu_window": imu_window,
             "imu_mask": imu_valid,
             "gt_R": gt_R,

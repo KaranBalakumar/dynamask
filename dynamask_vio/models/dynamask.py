@@ -126,6 +126,21 @@ class DynaMaskVIO(nn.Module):
 
     def get_parameter_groups(self, base_lr: float, encoder_lr_multiplier: float = 0.1) -> list[dict]:
         """V2.5 optimizer groups with RAFT layerwise LR decay."""
+        seen: set[int] = set()
+
+        def collect_unique_params(*modules: nn.Module) -> list[nn.Parameter]:
+            params: list[nn.Parameter] = []
+            for module in modules:
+                for param in module.parameters():
+                    if not param.requires_grad:
+                        continue
+                    param_id = id(param)
+                    if param_id in seen:
+                        continue
+                    seen.add(param_id)
+                    params.append(param)
+            return params
+
         base_modules = [
             self.flow_decoder,
             self.conv_net,
@@ -133,15 +148,12 @@ class DynaMaskVIO(nn.Module):
             self.film_layers,
             self.imu_encoder.feature_mlp,
         ]
-        base_params = [
-            p
-            for module in base_modules
-            for p in module.parameters()
-            if p.requires_grad
-        ]
+        base_params = collect_unique_params(*base_modules)
 
-        fnet_params = [p for p in self.feature_encoder.parameters() if p.requires_grad]
-        cnet_params = [p for p in self.context_encoder.parameters() if p.requires_grad]
+        # FiLM layers are attached to feature_encoder, but intentionally run at base_lr.
+        # Keep parameter groups disjoint to satisfy torch optimizer constraints.
+        fnet_params = collect_unique_params(self.feature_encoder)
+        cnet_params = collect_unique_params(self.context_encoder)
 
         groups: list[dict] = []
         if base_params:

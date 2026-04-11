@@ -1,8 +1,9 @@
 """
-Evaluation: mask quality metrics + VIO trajectory metrics.
+Evaluation: optional mask metrics + VIO trajectory metrics.
 
 Mask metrics (on VIODE test sequences):
   - IoU, Precision, Recall, F1 (per dynamic level)
+  - Requires true motion-mask labels in the dataloader batch (`gt_mask`)
 
 IMU metrics (on EuRoC test sequences):
   - RTE, ROE of 1-second preintegration
@@ -84,6 +85,11 @@ def evaluate_mask(model: DynaMaskVIO, dataloader: DataLoader,
 
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Mask eval"):
+            if "gt_mask" not in batch:
+                raise RuntimeError(
+                    "Mask evaluation requires batch['gt_mask'], but the current datasets "
+                    "do not provide true motion-mask labels."
+                )
             batch = {k: v.to(device) if isinstance(v, torch.Tensor) else v
                      for k, v in batch.items()}
 

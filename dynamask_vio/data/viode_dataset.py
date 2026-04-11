@@ -251,7 +251,7 @@ class VIODEDataset(Dataset):
         # Segmentation
         seg_raw = hf["seg"][frame_idx + 1]                           # [H,W] or [H,W,3]
         seg = self._decode_segmentation(seg_raw, meta["seg_encoding"])
-        gt_mask = self._make_dynamic_mask(seg)
+        proxy_mask = self._make_dynamic_mask(seg)
 
         # IMU window
         t_prev = meta["img_timestamps"][frame_idx]
@@ -280,8 +280,8 @@ class VIODEDataset(Dataset):
         # Augmentation
         flipped = [False]
         if self.augment_visual is not None:
-            img_prev, img_curr, gt_mask = self.augment_visual(
-                img_prev, img_curr, gt_mask, flipped)
+            img_prev, img_curr, proxy_mask = self.augment_visual(
+                img_prev, img_curr, proxy_mask, flipped)
         if self.augment_imu is not None:
             imu_window, imu_valid = self.augment_imu(
                 imu_window, imu_valid, horizontally_flipped=flipped[0])
@@ -289,7 +289,6 @@ class VIODEDataset(Dataset):
         # Tensors
         img_prev = torch.from_numpy(img_prev).permute(2, 0, 1).float()
         img_curr = torch.from_numpy(img_curr).permute(2, 0, 1).float()
-        gt_mask  = torch.from_numpy(gt_mask).unsqueeze(0).float()
         imu_window = torch.from_numpy(imu_window).float()
         imu_valid  = torch.from_numpy(imu_valid.astype(np.float32)).bool()
         gt_R = torch.from_numpy(gt_preint["delta_R"]).float()
@@ -300,7 +299,6 @@ class VIODEDataset(Dataset):
         return {
             "img_prev":   img_prev,
             "img_curr":   img_curr,
-            "gt_mask":    gt_mask,
             "imu_window": imu_window,
             "imu_mask":   imu_valid,
             "gt_R":       gt_R,
