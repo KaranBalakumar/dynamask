@@ -1,0 +1,1 @@
+{"nodes": [{"id": "submission_get_cfg", "label": "get_cfg", "file_type": "code", "source_file": "dynamask_vio/references/MAC-VO/Module/Network/FlowFormer/configs/submission.py", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}

@@ -17,6 +17,7 @@ Then point viode_hdf5_root in your config to ./dataset/viode_hdf5.
 import os
 import threading
 
+import cv2
 import h5py
 import numpy as np
 import torch
@@ -32,6 +33,152 @@ from .augmentations import VisualAugmentor, IMUAugmentor
 #  per worker avoids pickling issues with DataLoader num_workers > 0)
 # ──────────────────────────────────────────────────────────────────────────────
 _tls = threading.local()
+
+GT_ODOM_TOPICS = {
+    "/odometry",
+    "/groundtruth/odometry",
+    "/vio/odom",
+    "/ground_truth/odometry",
+    "/odom",
+    "/groundtruth/odom",
+}
+
+
+def _get_ros1_decoder():
+    try:
+        from rosbags.serde import deserialize_cdr, ros1_to_cdr
+
+        def decode(raw, msgtype):
+            return deserialize_cdr(ros1_to_cdr(raw, msgtype), msgtype)
+
+    except ImportError:
+        from rosbags.typesys import Stores, get_typestore
+
+        ts = get_typestore(Stores.ROS1_NOETIC)
+
+        def decode(raw, msgtype):
+            return ts.deserialize_ros1(raw, msgtype)
+
+    return decode
+
+
+def _load_rosbag(bag_path: str, *, resize_h: int | None = None, resize_w: int | None = None) -> dict:
+    """Load VIODE-style ROS1 bag into in-memory arrays for inference/debug paths."""
+    from rosbags.rosbag1 import Reader
+
+    decode = _get_ros1_decoder()
+    images = []
+    seg = []
+    depth = []
+    imu_timestamps = []
+    imu_data = []
+    gt_poses = []
+
+    with Reader(bag_path) as reader:
+        topics = {conn.topic for conn in reader.connections}
+        avail_gt = GT_ODOM_TOPICS & topics
+
+        for conn, timestamp, rawdata in reader.messages():
+            t_sec = float(timestamp) / 1e9
+
+            if conn.topic == "/cam0/image_raw":
+                msg = decode(rawdata, conn.msgtype)
+                h, w = msg.height, msg.width
+                data = np.frombuffer(msg.data, dtype=np.uint8)
+                enc = (msg.encoding or "").lower()
+                if enc in ("rgb8", "8uc3"):
+                    img = data.reshape(h, w, 3)
+                elif enc == "bgr8":
+                    img = data.reshape(h, w, 3)[:, :, ::-1]
+                elif enc in ("mono8", "8uc1"):
+                    mono = data.reshape(h, w)
+                    img = np.stack([mono, mono, mono], axis=-1)
+                else:
+                    arr = data.reshape(h, w, -1)
+                    if arr.shape[2] >= 3:
+                        img = arr[:, :, :3]
+                    else:
+                        mono = arr[:, :, 0]
+                        img = np.stack([mono, mono, mono], axis=-1)
+                if resize_h and resize_w:
+                    img = cv2.resize(img, (resize_w, resize_h), interpolation=cv2.INTER_LINEAR)
+                images.append((t_sec, img.astype(np.uint8)))
+
+            elif conn.topic == "/cam0/segmentation":
+                msg = decode(rawdata, conn.msgtype)
+                h, w = msg.height, msg.width
+                data = np.frombuffer(msg.data, dtype=np.uint8)
+                enc = (msg.encoding or "").lower()
+                if enc in ("rgb8", "8uc3", "bgr8"):
+                    s = data.reshape(h, w, 3)
+                    if enc == "bgr8":
+                        s = s[:, :, ::-1]
+                elif enc in ("mono8", "8uc1"):
+                    s = data.reshape(h, w)
+                else:
+                    arr = data.reshape(h, w, -1)
+                    s = arr[:, :, 0] if arr.shape[2] > 0 else np.zeros((h, w), np.uint8)
+                if resize_h and resize_w:
+                    s = cv2.resize(s, (resize_w, resize_h), interpolation=cv2.INTER_NEAREST)
+                seg.append((t_sec, s.astype(np.uint8)))
+
+            elif conn.topic in ("/cam0/depth", "/camera/depth", "/depth"):
+                msg = decode(rawdata, conn.msgtype)
+                h, w = msg.height, msg.width
+                enc = (msg.encoding or "").lower()
+                if enc in ("32fc1",):
+                    d = np.frombuffer(msg.data, dtype=np.float32).reshape(h, w)
+                elif enc in ("16uc1",):
+                    d_mm = np.frombuffer(msg.data, dtype=np.uint16).reshape(h, w)
+                    d = d_mm.astype(np.float32) / 1000.0
+                else:
+                    arr = np.frombuffer(msg.data, dtype=np.uint8).reshape(h, w, -1)
+                    d = arr[:, :, 0].astype(np.float32)
+                if resize_h and resize_w:
+                    d = cv2.resize(d, (resize_w, resize_h), interpolation=cv2.INTER_NEAREST)
+                depth.append((t_sec, d.astype(np.float32)))
+
+            elif conn.topic == "/imu0":
+                msg = decode(rawdata, conn.msgtype)
+                imu_timestamps.append(t_sec)
+                imu_data.append(
+                    [
+                        msg.linear_acceleration.x,
+                        msg.linear_acceleration.y,
+                        msg.linear_acceleration.z,
+                        msg.angular_velocity.x,
+                        msg.angular_velocity.y,
+                        msg.angular_velocity.z,
+                    ]
+                )
+
+            elif conn.topic in avail_gt:
+                msg = decode(rawdata, conn.msgtype)
+                try:
+                    pos = msg.pose.pose.position
+                    ori = msg.pose.pose.orientation
+                    gt_poses.append((t_sec, pos.x, pos.y, pos.z, ori.x, ori.y, ori.z, ori.w))
+                except AttributeError:
+                    continue
+
+    images.sort(key=lambda x: x[0])
+    seg.sort(key=lambda x: x[0])
+    depth.sort(key=lambda x: x[0])
+
+    gt = None
+    if len(gt_poses) > 1:
+        gt_poses.sort(key=lambda x: x[0])
+        gt_arr = np.asarray(gt_poses, dtype=np.float64)
+        gt = {"timestamps": gt_arr[:, 0], "poses": gt_arr[:, 1:8]}
+
+    return {
+        "images": images,
+        "seg": seg,
+        "depth": depth,
+        "imu_timestamps": np.asarray(imu_timestamps, dtype=np.float64),
+        "imu_data": np.asarray(imu_data, dtype=np.float64),
+        "gt": gt,
+    }
 
 
 def _open_h5(path: str) -> h5py.File:
@@ -294,6 +441,7 @@ class VIODEDataset(Dataset):
         gt_R = torch.from_numpy(gt_preint["delta_R"]).float()
         gt_v = torch.from_numpy(gt_preint["delta_v"]).float()
         gt_p = torch.from_numpy(gt_preint["delta_p"]).float()
+        gt_mask = torch.from_numpy(proxy_mask).unsqueeze(0).float()
         intrinsics = torch.from_numpy(self.intrinsics).float()
 
         return {
@@ -304,6 +452,7 @@ class VIODEDataset(Dataset):
             "gt_R":       gt_R,
             "gt_v":       gt_v,
             "gt_p":       gt_p,
+            "gt_mask":    gt_mask,
             "intrinsics": intrinsics,
             "has_flow":   False,
         }
