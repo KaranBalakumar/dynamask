@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from DataLoader import StereoData
 from Utility.Utils import padTo, reflect_torch_dtype
 from Utility.Extensions import ConfigTestableSubclass, OnCallCompiler
-from Utility.Device import is_supported_device_string
+from Utility.Device import canonicalize_torch_device, is_supported_device_string
 
 # Stereo Depth interface ###
 
@@ -42,6 +42,8 @@ class IStereoDepth(ABC, ConfigTestableSubclass):
     
     def __init__(self, config: SimpleNamespace):
         self.config : SimpleNamespace = config
+        if hasattr(self.config, "device"):
+            self.config.device = canonicalize_torch_device(self.config.device)
     
     @property
     @abstractmethod

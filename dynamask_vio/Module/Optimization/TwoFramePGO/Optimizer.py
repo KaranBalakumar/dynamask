@@ -12,7 +12,7 @@ from pypose.optim.strategy import TrustRegion
 from Module.Map import VisualMap
 from Utility.Timer import Timer
 from Utility.Math  import NormalizeQuat
-from Utility.Device import is_supported_device_string
+from Utility.Device import canonicalize_torch_device, is_supported_device_string
 
 from ..Interface import IOptimizer
 from ..PyposeOptimizers import LM_analytic, AnalyticModule, FactorGraph
@@ -50,6 +50,7 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
 
     @staticmethod
     def init_context(config) -> dict:
+        runtime_device = canonicalize_torch_device(config.device)
         match (config.autodiff, config.graph_type):
             case (True, "icp"):
                 PoseGraphClass = ICP_TwoframePGO
@@ -74,7 +75,7 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
                 "corrector": FastTriggs(Huber(delta=0.1)),
                 "vectorize": config.vectorize,
             },
-            "device": config.device,
+            "device": runtime_device,
 
             "pose_graph_class": PoseGraphClass
         }

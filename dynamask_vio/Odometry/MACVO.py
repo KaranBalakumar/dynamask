@@ -14,7 +14,7 @@ from Utility.Point import filterPointsInRange, pixel2point_NED
 from Utility.PrettyPrint import Logger, GlobalConsole
 from Utility.Timer import Timer
 from Utility.Visualize import fig_plt
-from Utility.Device import is_supported_device_string
+from Utility.Device import canonicalize_torch_device, is_supported_device_string
 from Utility.Extensions import ConfigTestable
 
 from .Interface import IOdometry
@@ -46,7 +46,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             Logger.write("warn", f"Receive excessive arguments for __init__ {_excessive_args}, update/clean up your config!")
         
         self.graph = VisualMap()
-        self.device = device
+        self.device = canonicalize_torch_device(device)
         self.mapping: bool = mapping
         self.match_cov_default: float = match_cov_default
 
