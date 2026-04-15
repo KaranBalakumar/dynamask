@@ -1,0 +1,711 @@
+{
+  "nodes": [
+    {
+      "id": "dynamask_vio_static_analysis_requirements_file",
+      "label": "static_analysis_requirements.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/static_analysis_requirements.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_readme_file",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_requirements_file",
+      "label": "requirements.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/requirements.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_docker_readme_file",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Docker/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_readme_file",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_pose_lcam_front_file",
+      "label": "pose_lcam_front.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/pose_lcam_front.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_gyro_file",
+      "label": "gyro.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/gyro.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_ori_global_file",
+      "label": "ori_global.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/ori_global.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_vel_global_file",
+      "label": "vel_global.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/vel_global.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_nograv_file",
+      "label": "acc_nograv.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/acc_nograv.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_pos_global_file",
+      "label": "pos_global.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/pos_global.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_vel_body_file",
+      "label": "vel_body.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/vel_body.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_nograv_body_file",
+      "label": "acc_nograv_body.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/acc_nograv_body.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_imu_time_file",
+      "label": "imu_time.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/imu_time.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_file",
+      "label": "acc.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/acc.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_cam_time_file",
+      "label": "cam_time.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/cam_time.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_stubs_readme_file",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/stubs/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_utility_extensions_readme_file",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Utility/Extensions/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_file",
+      "label": "2026-04-11-static-confidence-head-macvo-spec.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-macvo-spec.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_file",
+      "label": "2026-04-11-static-confidence-head-method-theory.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-method-theory.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_config_readme_file",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Config/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_config_configspec_file",
+      "label": "ConfigSpec.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Config/ConfigSpec.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_readme_url_1",
+      "label": "Reference: mac-vo.github.io",
+      "file_type": "document",
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "source_url": "https://mac-vo.github.io",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_readme_url_2",
+      "label": "Reference: img.shields.io",
+      "file_type": "document",
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "source_url": "https://img.shields.io/badge/Homepage-4385f4?style=flat&logo=googlehome&logoColor=white",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_readme_url_3",
+      "label": "Reference: arxiv.org",
+      "file_type": "document",
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "source_url": "https://arxiv.org/abs/2409.09479v2",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_docker_readme_url_1",
+      "label": "Reference: www.docker.com",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Docker/README.md",
+      "source_location": null,
+      "source_url": "https://www.docker.com/get-started",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_stubs_readme_url_1",
+      "label": "Reference: github.com",
+      "file_type": "document",
+      "source_file": "dynamask_vio/stubs/README.md",
+      "source_location": null,
+      "source_url": "https://github.com/microsoft/pyright/blob/main/docs/type-stubs.md",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_stubs_readme_url_2",
+      "label": "Reference: peps.python.org",
+      "file_type": "document",
+      "source_file": "dynamask_vio/stubs/README.md",
+      "source_location": null,
+      "source_url": "https://peps.python.org/pep-0561/",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_rationale_1",
+      "label": "Rationale: # See §3.3 / theory §5.5 for why this is load-bearing.",
+      "file_type": "document",
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-macvo-spec.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_rationale_2",
+      "label": "Rationale: **Why a subclass, not a new class:** every existing config path, CUDAGraph varia...",
+      "file_type": "document",
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-macvo-spec.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_rationale_1",
+      "label": "Rationale: you *what* to build; this document tells you *why* every piece is shaped the way...",
+      "file_type": "document",
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-method-theory.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_rationale_2",
+      "label": "Rationale: because the camera moved. It is a deterministic function of the camera's motion,...",
+      "file_type": "document",
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-method-theory.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "dynamask_vio_readme_file",
+      "target": "dynamask_vio_readme_url_1",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_readme_file",
+      "target": "dynamask_vio_readme_url_2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_readme_file",
+      "target": "dynamask_vio_readme_url_3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_readme_file",
+      "target": "dynamask_vio_requirements_file",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docker_readme_file",
+      "target": "dynamask_vio_docker_readme_url_1",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/Docker/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_stubs_readme_file",
+      "target": "dynamask_vio_stubs_readme_url_1",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/stubs/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_stubs_readme_file",
+      "target": "dynamask_vio_stubs_readme_url_2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/stubs/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_rationale_1",
+      "target": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_file",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-macvo-spec.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_rationale_2",
+      "target": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_file",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-macvo-spec.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_file",
+      "target": "dynamask_vio_readme_file",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-macvo-spec.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_rationale_1",
+      "target": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_file",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-method-theory.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_rationale_2",
+      "target": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_file",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-method-theory.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_file",
+      "target": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_file",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-method-theory.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_config_readme_file",
+      "target": "dynamask_vio_config_configspec_file",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/Config/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_static_analysis_requirements_file",
+      "target": "dynamask_vio_readme_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/static_analysis_requirements.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_readme_file",
+      "target": "dynamask_vio_requirements_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_requirements_file",
+      "target": "dynamask_vio_docker_readme_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/requirements.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docker_readme_file",
+      "target": "dynamask_vio_scripts_unittest_readme_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Docker/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_readme_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_pose_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_pose_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_gyro_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/pose_lcam_front.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_gyro_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_ori_global_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/gyro.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_ori_global_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_vel_global_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/ori_global.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_vel_global_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_nograv_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/vel_global.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_nograv_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_pos_global_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/acc_nograv.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_pos_global_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_vel_body_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/pos_global.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_vel_body_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_nograv_body_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/vel_body.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_nograv_body_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_imu_time_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/acc_nograv_body.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_imu_time_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/imu_time.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_acc_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_cam_time_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/acc.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_imu_cam_time_file",
+      "target": "dynamask_vio_stubs_readme_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/imu/cam_time.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_stubs_readme_file",
+      "target": "dynamask_vio_utility_extensions_readme_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/stubs/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_utility_extensions_readme_file",
+      "target": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Utility/Extensions/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docs_2026_04_11_static_confidence_head_macvo_spec_file",
+      "target": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-macvo-spec.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_docs_2026_04_11_static_confidence_head_method_theory_file",
+      "target": "dynamask_vio_config_readme_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/docs/2026-04-11-static-confidence-head-method-theory.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_config_readme_file",
+      "target": "dynamask_vio_config_configspec_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Config/README.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

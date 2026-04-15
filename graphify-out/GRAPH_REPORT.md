@@ -1,0 +1,4117 @@
+# Graph Report - dynamask_vio  (2026-04-15)
+
+## Corpus Check
+- Large corpus: 1454 files · ~3,596,293 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder, or use --no-semantic to run AST-only.
+
+## Summary
+- 7072 nodes · 9641 edges · 678 communities detected
+- Extraction: 84% EXTRACTED · 16% INFERRED · 0% AMBIGUOUS · INFERRED: 1536 edges (avg confidence: 0.56)
+- Token cost: 0 input · 0 output
+
+## Community Hubs (Navigation)
+- [[_COMMUNITY_Init Estimate|Init Estimate]]
+- [[_COMMUNITY_Init Getitem|Init Getitem]]
+- [[_COMMUNITY_Init Forward|Init Forward]]
+- [[_COMMUNITY_Init Path|Init Path]]
+- [[_COMMUNITY_Init Forward|Init Forward]]
+- [[_COMMUNITY_Stb Truetype Equal|Stb Truetype Equal]]
+- [[_COMMUNITY_Init Push|Init Push]]
+- [[_COMMUNITY_Init Convert|Init Convert]]
+- [[_COMMUNITY_This Ccompiler|This Ccompiler]]
+- [[_COMMUNITY_Reference Com|Reference Com]]
+- [[_COMMUNITY_Reference Com|Reference Com]]
+- [[_COMMUNITY_Init Forward|Init Forward]]
+- [[_COMMUNITY_Reference Com|Reference Com]]
+- [[_COMMUNITY_Reference Github|Reference Github]]
+- [[_COMMUNITY_Pangolin Pango|Pangolin Pango]]
+- [[_COMMUNITY_Reference Github|Reference Github]]
+- [[_COMMUNITY_Reference Rst|Reference Rst]]
+- [[_COMMUNITY_Pytypes Advance|Pytypes Advance]]
+- [[_COMMUNITY_Reference Com|Reference Com]]
+- [[_COMMUNITY_Reference Com|Reference Com]]
+- [[_COMMUNITY_Init Flow|Init Flow]]
+- [[_COMMUNITY_Init Serialize|Init Serialize]]
+- [[_COMMUNITY_Init Repr|Init Repr]]
+- [[_COMMUNITY_Range Expect|Range Expect]]
+- [[_COMMUNITY_Android App Destroy Android App Entry|Android App Destroy Android App Entry]]
+- [[_COMMUNITY_Compute All|Compute All]]
+- [[_COMMUNITY_Rst Reference|Rst Reference]]
+- [[_COMMUNITY_Init Forward|Init Forward]]
+- [[_COMMUNITY_Plotimplicit Plotseries|Plotimplicit Plotseries]]
+- [[_COMMUNITY_Numpy Append Extents|Numpy Append Extents]]
+- [[_COMMUNITY_Pybind11 Add Base|Pybind11 Add Base]]
+- [[_COMMUNITY_Cast Load|Cast Load]]
+- [[_COMMUNITY_Pleora Cpp|Pleora Cpp]]
+- [[_COMMUNITY_Txt Reference|Txt Reference]]
+- [[_COMMUNITY_Eigen Numpy|Eigen Numpy]]
+- [[_COMMUNITY_Main Cpp|Main Cpp]]
+- [[_COMMUNITY_Hpp Add|Hpp Add]]
+- [[_COMMUNITY_Txt Cmakelists|Txt Cmakelists]]
+- [[_COMMUNITY_Opengl Render State Cpp|Opengl Render State Cpp]]
+- [[_COMMUNITY_Firewire Cpp|Firewire Cpp]]
+- [[_COMMUNITY_Lietorch Cpu Cpp|Lietorch Cpu Cpp]]
+- [[_COMMUNITY_Buttonsurface Createwaylandwindowandbind|Buttonsurface Createwaylandwindowandbind]]
+- [[_COMMUNITY_That Functions|That Functions]]
+- [[_COMMUNITY_Txt Cmakelists|Txt Cmakelists]]
+- [[_COMMUNITY_Test Pytypes Converting|Test Pytypes Converting]]
+- [[_COMMUNITY_Std Tuple|Std Tuple]]
+- [[_COMMUNITY_Memory Pool Parse Error|Memory Pool Parse Error]]
+- [[_COMMUNITY_Test Numpy Array Arr|Test Numpy Array Arr]]
+- [[_COMMUNITY_Pangolinnsglview Acceptsfirstresponder|Pangolinnsglview Acceptsfirstresponder]]
+- [[_COMMUNITY_Txt Reference|Txt Reference]]
+- [[_COMMUNITY_Add Patient Clear Instance|Add Patient Clear Instance]]
+- [[_COMMUNITY_Openni2 Cpp|Openni2 Cpp]]
+- [[_COMMUNITY_Txt Cmakelists|Txt Cmakelists]]
+- [[_COMMUNITY_Attr Append Self Arg If Needed|Attr Append Self Arg If Needed]]
+- [[_COMMUNITY_Widgets Cpp|Widgets Cpp]]
+- [[_COMMUNITY_Stl List|Stl List]]
+- [[_COMMUNITY_Cmakelists Txt|Cmakelists Txt]]
+- [[_COMMUNITY_Txt Cmakelists|Txt Cmakelists]]
+- [[_COMMUNITY_Test Methods And Attributes Object|Test Methods And Attributes Object]]
+- [[_COMMUNITY_Handler Image Cpp|Handler Image Cpp]]
+- [[_COMMUNITY_Video Viewer Cpp|Video Viewer Cpp]]
+- [[_COMMUNITY_Txt Cmakelists|Txt Cmakelists]]
+- [[_COMMUNITY_Cmakelists Txt|Cmakelists Txt]]
+- [[_COMMUNITY_Init Factory Wrapper|Init Factory Wrapper]]
+- [[_COMMUNITY_Test Iostream Redirect Stderr|Test Iostream Redirect Stderr]]
+- [[_COMMUNITY_Test Numpy Dtypes Assert Equal|Test Numpy Dtypes Assert Equal]]
+- [[_COMMUNITY_Transform Cpp|Transform Cpp]]
+- [[_COMMUNITY_Configurecolornode Configuredepthnode|Configurecolornode Configuredepthnode]]
+- [[_COMMUNITY_View Cpp|View Cpp]]
+- [[_COMMUNITY_Cmakelists Txt|Cmakelists Txt]]
+- [[_COMMUNITY_Png Lcam Front|Png Lcam Front]]
+- [[_COMMUNITY_Breaksbase Chimera|Breaksbase Chimera]]
+- [[_COMMUNITY_V4L Cpp|V4L Cpp]]
+- [[_COMMUNITY_Operator All As|Operator All As]]
+- [[_COMMUNITY_Cmakelists Txt|Cmakelists Txt]]
+- [[_COMMUNITY_Asyncsourcereader Uvc Mediafoundation|Asyncsourcereader Uvc Mediafoundation]]
+- [[_COMMUNITY_Cmakelists Txt|Cmakelists Txt]]
+- [[_COMMUNITY_Txt Cmakelists|Txt Cmakelists]]
+- [[_COMMUNITY_Get Fn Mode Register|Get Fn Mode Register]]
+- [[_COMMUNITY_Txt Cmakelists|Txt Cmakelists]]
+- [[_COMMUNITY_Cmakelists Txt|Cmakelists Txt]]
+- [[_COMMUNITY_Cmakelists Txt|Cmakelists Txt]]
+- [[_COMMUNITY_Txt Cmakelists|Txt Cmakelists]]
+- [[_COMMUNITY_Png Lcam Front Depth|Png Lcam Front Depth]]
+- [[_COMMUNITY_Python Makes|Python Makes]]
+- [[_COMMUNITY_Gldraw Gldraw X0|Gldraw Gldraw X0]]
+- [[_COMMUNITY_Checkwldieonerror Createwinwindowandbind|Checkwldieonerror Createwinwindowandbind]]
+- [[_COMMUNITY_Build Run|Build Run]]
+- [[_COMMUNITY_Gl2Engine Glcolor4F|Gl2Engine Glcolor4F]]
+- [[_COMMUNITY_File Utils Cpp|File Utils Cpp]]
+- [[_COMMUNITY_Check Exp|Check Exp]]
+- [[_COMMUNITY_Emscripten Bindings Emscriptenwindow|Emscripten Bindings Emscriptenwindow]]
+- [[_COMMUNITY_Type That|Type That]]
+- [[_COMMUNITY_Datalog Addsamples|Datalog Addsamples]]
+- [[_COMMUNITY_Availableframes Bayermethodfromstring|Availableframes Bayermethodfromstring]]
+- [[_COMMUNITY_Telisystem Teli|Telisystem Teli]]
+- [[_COMMUNITY_Tiny Obj Loader Exportgroupstoshape|Tiny Obj Loader Exportgroupstoshape]]
+- [[_COMMUNITY_Mixing Bases|Mixing Bases]]
+- [[_COMMUNITY_Chooseframebuffer Createglcontext|Chooseframebuffer Createglcontext]]
+- [[_COMMUNITY_Uvc Cpp|Uvc Cpp]]
+- [[_COMMUNITY_Bindtocontext Destroywindow|Bindtocontext Destroywindow]]
+- [[_COMMUNITY_Testfactory1 Testfactory2|Testfactory1 Testfactory2]]
+- [[_COMMUNITY_Packetstream Reader Cpp|Packetstream Reader Cpp]]
+- [[_COMMUNITY_Ffmpeg Output Cpp|Ffmpeg Output Cpp]]
+- [[_COMMUNITY_Rapidxml Print Hpp|Rapidxml Print Hpp]]
+- [[_COMMUNITY_Torch Argument|Torch Argument]]
+- [[_COMMUNITY_Common Constexpr First|Common Constexpr First]]
+- [[_COMMUNITY_Myexception Myexception2|Myexception Myexception2]]
+- [[_COMMUNITY_Isclose Test Sequences And Iterators|Isclose Test Sequences And Iterators]]
+- [[_COMMUNITY_Examplemanda Nonecasttester|Examplemanda Nonecasttester]]
+- [[_COMMUNITY_Test Smart Ptr Issue|Test Smart Ptr Issue]]
+- [[_COMMUNITY_Video Input Cpp|Video Input Cpp]]
+- [[_COMMUNITY_Images Cpp|Images Cpp]]
+- [[_COMMUNITY_Picojson Deny Parse Context|Picojson Deny Parse Context]]
+- [[_COMMUNITY_Dynalo Hpp|Dynalo Hpp]]
+- [[_COMMUNITY_Check Gradients|Check Gradients]]
+- [[_COMMUNITY_Createlogdirectory Disablerc4|Createlogdirectory Disablerc4]]
+- [[_COMMUNITY_Internals Get Internals|Internals Get Internals]]
+- [[_COMMUNITY_Test Numpy Array Cpp|Test Numpy Array Cpp]]
+- [[_COMMUNITY_Test Callbacks Python|Test Callbacks Python]]
+- [[_COMMUNITY_Test Exceptions Ignore Pytest Unraisable Warning|Test Exceptions Ignore Pytest Unraisable Warning]]
+- [[_COMMUNITY_Varstate Cpp|Varstate Cpp]]
+- [[_COMMUNITY_Pack Cpp|Pack Cpp]]
+- [[_COMMUNITY_Unpack Cpp|Unpack Cpp]]
+- [[_COMMUNITY_Ffmpeg Cpp|Ffmpeg Cpp]]
+- [[_COMMUNITY_Consoleview Addline|Consoleview Addline]]
+- [[_COMMUNITY_Image Io Jpg Cpp|Image Io Jpg Cpp]]
+- [[_COMMUNITY_Geometry Ply Cpp|Geometry Ply Cpp]]
+- [[_COMMUNITY_Rxso3 Act4|Rxso3 Act4]]
+- [[_COMMUNITY_Move Copy|Move Copy]]
+- [[_COMMUNITY_A Repeat A Tpl|A Repeat A Tpl]]
+- [[_COMMUNITY_Functions Test Virtual Functions|Functions Test Virtual Functions]]
+- [[_COMMUNITY_Test Chrono Test Chrono Different Resolutions|Test Chrono Test Chrono Different Resolutions]]
+- [[_COMMUNITY_Range Abssize|Range Abssize]]
+- [[_COMMUNITY_Se3 Act4|Se3 Act4]]
+- [[_COMMUNITY_Sim3 Act4|Sim3 Act4]]
+- [[_COMMUNITY_Flowformer Asnamespace|Flowformer Asnamespace]]
+- [[_COMMUNITY_Get-Changelog Ps1|Get-Changelog Ps1]]
+- [[_COMMUNITY_Test Constants And Functions Cpp|Test Constants And Functions Cpp]]
+- [[_COMMUNITY_Video Cpp|Video Cpp]]
+- [[_COMMUNITY_Packetstream Cpp|Packetstream Cpp]]
+- [[_COMMUNITY_Glstate Glcolormask|Glstate Glcolormask]]
+- [[_COMMUNITY_Egldisplayhl Headlesswindow|Egldisplayhl Headlesswindow]]
+- [[_COMMUNITY_Mjpeg Cpp|Mjpeg Cpp]]
+- [[_COMMUNITY_Gamma Cpp|Gamma Cpp]]
+- [[_COMMUNITY_Join Cpp|Join Cpp]]
+- [[_COMMUNITY_Handler Cpp|Handler Cpp]]
+- [[_COMMUNITY_Read Return|Read Return]]
+- [[_COMMUNITY_Evaluate Train Flowformer|Evaluate Train Flowformer]]
+- [[_COMMUNITY_Test Tagbased Polymorphic Cpp|Test Tagbased Polymorphic Cpp]]
+- [[_COMMUNITY_Test Buffers Squarematrix|Test Buffers Squarematrix]]
+- [[_COMMUNITY_Video Output Cpp|Video Output Cpp]]
+- [[_COMMUNITY_Realsense2 Cpp|Realsense2 Cpp]]
+- [[_COMMUNITY_Thread Cpp|Thread Cpp]]
+- [[_COMMUNITY_Realsense Cpp|Realsense Cpp]]
+- [[_COMMUNITY_Threadedfilebuf Cpp|Threadedfilebuf Cpp]]
+- [[_COMMUNITY_Alloc Col|Alloc Col]]
+- [[_COMMUNITY_So3 Act4|So3 Act4]]
+- [[_COMMUNITY_Forward Init|Forward Init]]
+- [[_COMMUNITY_Setup Build Expected Version Hex|Setup Build Expected Version Hex]]
+- [[_COMMUNITY_Iostream Exit|Iostream Exit]]
+- [[_COMMUNITY_Test Modules Pydoc|Test Modules Pydoc]]
+- [[_COMMUNITY_Test Stl Binders Test Map Delitem|Test Stl Binders Test Map Delitem]]
+- [[_COMMUNITY_Copyonlyint Moveonlyint|Copyonlyint Moveonlyint]]
+- [[_COMMUNITY_Test Kwargs And Defaults Issue|Test Kwargs And Defaults Issue]]
+- [[_COMMUNITY_Pyinterpreter Cpp|Pyinterpreter Cpp]]
+- [[_COMMUNITY_Viewport Cpp|Viewport Cpp]]
+- [[_COMMUNITY_Shift Cpp|Shift Cpp]]
+- [[_COMMUNITY_Timer Cpu Timeit|Timer Cpu Timeit]]
+- [[_COMMUNITY_Eigen Cast|Eigen Cast]]
+- [[_COMMUNITY_Test Enum Todo|Test Enum Todo]]
+- [[_COMMUNITY_Test Numpy Vectorize Test Array Collapse|Test Numpy Vectorize Test Array Collapse]]
+- [[_COMMUNITY_Test Call Policies Test Alive Gc|Test Call Policies Test Alive Gc]]
+- [[_COMMUNITY_E Nc Test Stl Binders|E Nc Test Stl Binders]]
+- [[_COMMUNITY_Pypangolin Widget|Pypangolin Widget]]
+- [[_COMMUNITY_Packetstream Writer Cpp|Packetstream Writer Cpp]]
+- [[_COMMUNITY_Glsl Addpreprocessedshader|Glsl Addpreprocessedshader]]
+- [[_COMMUNITY_Gltext Cpp|Gltext Cpp]]
+- [[_COMMUNITY_Pangolinnsapplication Pangolinappdelegate|Pangolinnsapplication Pangolinappdelegate]]
+- [[_COMMUNITY_Merge Cpp|Merge Cpp]]
+- [[_COMMUNITY_Ffmpeg Convert Cpp|Ffmpeg Convert Cpp]]
+- [[_COMMUNITY_Cpp Grabnewest|Cpp Grabnewest]]
+- [[_COMMUNITY_Image View Cpp|Image View Cpp]]
+- [[_COMMUNITY_Image Io Png Cpp|Image Io Png Cpp]]
+- [[_COMMUNITY_Projective Ops Coords Grid|Projective Ops Coords Grid]]
+- [[_COMMUNITY_Gil Dec Ref|Gil Dec Ref]]
+- [[_COMMUNITY_Test Multiple Inheritance Cpp|Test Multiple Inheritance Cpp]]
+- [[_COMMUNITY_Widget Test Interpreter|Widget Test Interpreter]]
+- [[_COMMUNITY_Var Cpp|Var Cpp]]
+- [[_COMMUNITY_Plotter Pangolin|Plotter Pangolin]]
+- [[_COMMUNITY_Disableprograms Enableprogram|Disableprograms Enableprogram]]
+- [[_COMMUNITY_Openni Cpp|Openni Cpp]]
+- [[_COMMUNITY_Split Cpp|Split Cpp]]
+- [[_COMMUNITY_Shared Memory Cpp|Shared Memory Cpp]]
+- [[_COMMUNITY_Truncate Cpp|Truncate Cpp]]
+- [[_COMMUNITY_Deinterlacevideo Grabnewest|Deinterlacevideo Grabnewest]]
+- [[_COMMUNITY_Glutbitmap Glrasterpos2F|Glutbitmap Glrasterpos2F]]
+- [[_COMMUNITY_Simple Math Matadd|Simple Math Matadd]]
+- [[_COMMUNITY_Stdistream Image Io Exr|Stdistream Image Io Exr]]
+- [[_COMMUNITY_Loss Cov Loss|Loss Cov Loss]]
+- [[_COMMUNITY_Regenerate Ps1|Regenerate Ps1]]
+- [[_COMMUNITY_Embed Finalize Interpreter|Embed Finalize Interpreter]]
+- [[_COMMUNITY_Buffer Info Compare|Buffer Info Compare]]
+- [[_COMMUNITY_Test Numpy Dtypes Cpp|Test Numpy Dtypes Cpp]]
+- [[_COMMUNITY_Test Operator Overloading Need|Test Operator Overloading Need]]
+- [[_COMMUNITY_Test Eigen Cpp|Test Eigen Cpp]]
+- [[_COMMUNITY_Vector2 Test Operator Overloading|Vector2 Test Operator Overloading]]
+- [[_COMMUNITY_Destructiontester Test Custom Type Casters|Destructiontester Test Custom Type Casters]]
+- [[_COMMUNITY_Test Pickling Simplepyderived|Test Pickling Simplepyderived]]
+- [[_COMMUNITY_Pango Video Output Cpp|Pango Video Output Cpp]]
+- [[_COMMUNITY_File Extension Cpp|File Extension Cpp]]
+- [[_COMMUNITY_Process Cpp|Process Cpp]]
+- [[_COMMUNITY_Pangolin Gl Cpp|Pangolin Gl Cpp]]
+- [[_COMMUNITY_Logger Close|Logger Close]]
+- [[_COMMUNITY_Evaluates Error|Evaluates Error]]
+- [[_COMMUNITY_Chrono Cast|Chrono Cast]]
+- [[_COMMUNITY_Options Global State|Options Global State]]
+- [[_COMMUNITY_Nonzeroiterator Test Sequences And Iterators|Nonzeroiterator Test Sequences And Iterators]]
+- [[_COMMUNITY_Object M Ptr|Object M Ptr]]
+- [[_COMMUNITY_Test Constants And Functions Test Bytes|Test Constants And Functions Test Bytes]]
+- [[_COMMUNITY_Pybind11 Tests Cpp|Pybind11 Tests Cpp]]
+- [[_COMMUNITY_Conf Clean Up|Conf Clean Up]]
+- [[_COMMUNITY_Packetstream Writer Pangolin|Packetstream Writer Pangolin]]
+- [[_COMMUNITY_Packet Cpp|Packet Cpp]]
+- [[_COMMUNITY_Images Out Cpp|Images Out Cpp]]
+- [[_COMMUNITY_Factory Registry Exception|Factory Registry Exception]]
+- [[_COMMUNITY_Glgeometry Cpp|Glgeometry Cpp]]
+- [[_COMMUNITY_Renderable Cpp|Renderable Cpp]]
+- [[_COMMUNITY_Png Pybind11-Logo|Png Pybind11-Logo]]
+- [[_COMMUNITY_Macvo Get Args|Macvo Get Args]]
+- [[_COMMUNITY_Torch Float|Torch Float]]
+- [[_COMMUNITY_Train Image2Gray|Train Image2Gray]]
+- [[_COMMUNITY_Generatebaseline Generate Baseline|Generatebaseline Generate Baseline]]
+- [[_COMMUNITY_Generateportversionsdb Generate Versions Db|Generateportversionsdb Generate Versions Db]]
+- [[_COMMUNITY_Utility-Prefix Ps1|Utility-Prefix Ps1]]
+- [[_COMMUNITY_Computehash Deploybinary|Computehash Deploybinary]]
+- [[_COMMUNITY_Generate-Ports Ps1|Generate-Ports Ps1]]
+- [[_COMMUNITY_Stl Load|Stl Load]]
+- [[_COMMUNITY_Test Stl Cpp|Test Stl Cpp]]
+- [[_COMMUNITY_Test Iostream Cpp|Test Iostream Cpp]]
+- [[_COMMUNITY_Test Async Event Loop|Test Async Event Loop]]
+- [[_COMMUNITY_Test Files Test Build Global Dist|Test Files Test Build Global Dist]]
+- [[_COMMUNITY_Pypangoio Cpp|Pypangoio Cpp]]
+- [[_COMMUNITY_Appendcolumns Csvtableloader|Appendcolumns Csvtableloader]]
+- [[_COMMUNITY_Colourwheel Getuniquecolour|Colourwheel Getuniquecolour]]
+- [[_COMMUNITY_Glfont Cpp|Glfont Cpp]]
+- [[_COMMUNITY_Glpangoglu Cpp|Glpangoglu Cpp]]
+- [[_COMMUNITY_Natural Sort Hpp|Natural Sort Hpp]]
+- [[_COMMUNITY_Mask Option Type|Mask Option Type]]
+- [[_COMMUNITY_Attribute Iterator Node Iterator|Attribute Iterator Node Iterator]]
+- [[_COMMUNITY_Rapidxml Utils Hpp|Rapidxml Utils Hpp]]
+- [[_COMMUNITY_Param Set Cpp|Param Set Cpp]]
+- [[_COMMUNITY_Posixsemaphore Semaphore|Posixsemaphore Semaphore]]
+- [[_COMMUNITY_Posixsharedmemorybuffer Shared Memory Buffer|Posixsharedmemorybuffer Shared Memory Buffer]]
+- [[_COMMUNITY_Pthreadconditionvariable Create Named Condition Variable|Pthreadconditionvariable Create Named Condition Variable]]
+- [[_COMMUNITY_Factory Help Cpp|Factory Help Cpp]]
+- [[_COMMUNITY_Frac Pangolin|Frac Pangolin]]
+- [[_COMMUNITY_Shared Image Copyfrom|Shared Image Copyfrom]]
+- [[_COMMUNITY_Image Io Ppm Cpp|Image Io Ppm Cpp]]
+- [[_COMMUNITY_Plot Utils Best Plotmode|Plot Utils Best Plotmode]]
+- [[_COMMUNITY_Test Config Modules Test Frontend Config|Test Config Modules Test Frontend Config]]
+- [[_COMMUNITY_Plotbeautifulcompare Get Color|Plotbeautifulcompare Get Color]]
+- [[_COMMUNITY_Point Filterpointsinrange|Point Filterpointsinrange]]
+- [[_COMMUNITY_Rendertree Render Tree|Rendertree Render Tree]]
+- [[_COMMUNITY_File Script Gen All File Strings|File Script Gen All File Strings]]
+- [[_COMMUNITY_Eval Exec|Eval Exec]]
+- [[_COMMUNITY_Complex Cast|Complex Cast]]
+- [[_COMMUNITY_Typeid Pybind11 Namespace Begin|Typeid Pybind11 Namespace Begin]]
+- [[_COMMUNITY_Init No Nullptr|Init No Nullptr]]
+- [[_COMMUNITY_That Type|That Type]]
+- [[_COMMUNITY_Virtclass Test Gil Scoped|Virtclass Test Gil Scoped]]
+- [[_COMMUNITY_Test Eval Test Eval Empty Globals|Test Eval Test Eval Empty Globals]]
+- [[_COMMUNITY_Test Call Policies Cpp|Test Call Policies Cpp]]
+- [[_COMMUNITY_Test Pickling Cpp|Test Pickling Cpp]]
+- [[_COMMUNITY_Test Opaque Types Test Pointers|Test Opaque Types Test Pointers]]
+- [[_COMMUNITY_Pytest Deprecated Call|Pytest Deprecated Call]]
+- [[_COMMUNITY_Test Setuphelper Test Intree Extensions|Test Setuphelper Test Intree Extensions]]
+- [[_COMMUNITY_Benchmark Generate Dummy Code Boost|Benchmark Generate Dummy Code Boost]]
+- [[_COMMUNITY_Varvaluegeneric Pangolin|Varvaluegeneric Pangolin]]
+- [[_COMMUNITY_Varextra Detachvarbyname|Varextra Detachvarbyname]]
+- [[_COMMUNITY_Vars Cpp|Vars Cpp]]
+- [[_COMMUNITY_Playback Session Cpp|Playback Session Cpp]]
+- [[_COMMUNITY_X11Window Glcontextinterface|X11Window Glcontextinterface]]
+- [[_COMMUNITY_Stream Encoder Factory Cpp|Stream Encoder Factory Cpp]]
+- [[_COMMUNITY_Type Convert Pangolin|Type Convert Pangolin]]
+- [[_COMMUNITY_Sigstate Cpp|Sigstate Cpp]]
+- [[_COMMUNITY_Setfullscreen Toggleconsole|Setfullscreen Toggleconsole]]
+- [[_COMMUNITY_Image Io Tiff Cpp|Image Io Tiff Cpp]]
+- [[_COMMUNITY_Mouse Mousemotion|Mouse Mousemotion]]
+- [[_COMMUNITY_Geometry Obj Cpp|Geometry Obj Cpp]]
+- [[_COMMUNITY_Evalseq Evaluatesequences|Evalseq Evaluatesequences]]
+- [[_COMMUNITY_Montecarlo Disparityvariance Montecarlo Sample Depth|Montecarlo Disparityvariance Montecarlo Sample Depth]]
+- [[_COMMUNITY_Flops Analyzer Getflops|Flops Analyzer Getflops]]
+- [[_COMMUNITY_Init Build Flowformer|Init Build Flowformer]]
+- [[_COMMUNITY_Main Sample|Main Sample]]
+- [[_COMMUNITY_Main Sample|Main Sample]]
+- [[_COMMUNITY_Main Sample|Main Sample]]
+- [[_COMMUNITY_Main Sample|Main Sample]]
+- [[_COMMUNITY_Main Sample|Main Sample]]
+- [[_COMMUNITY_Main Sample|Main Sample]]
+- [[_COMMUNITY_Main Sample|Main Sample]]
+- [[_COMMUNITY_Main Sample|Main Sample]]
+- [[_COMMUNITY_Simpledisplay A Callback|Simpledisplay A Callback]]
+- [[_COMMUNITY_My Lib Cpp|My Lib Cpp]]
+- [[_COMMUNITY_Functional Pybind11 Namespace Begin|Functional Pybind11 Namespace Begin]]
+- [[_COMMUNITY_Operators Pybind11 Namespace Begin|Operators Pybind11 Namespace Begin]]
+- [[_COMMUNITY_Stl Bind Pybind11 Namespace Begin|Stl Bind Pybind11 Namespace Begin]]
+- [[_COMMUNITY_Test Numpy Vectorize Cpp|Test Numpy Vectorize Cpp]]
+- [[_COMMUNITY_Gil Acquire Initcross Module Gil Utils|Gil Acquire Initcross Module Gil Utils]]
+- [[_COMMUNITY_Test Builtin Casters Cpp|Test Builtin Casters Cpp]]
+- [[_COMMUNITY_Test Callbacks Cpp|Test Callbacks Cpp]]
+- [[_COMMUNITY_Embed Cpp|Embed Cpp]]
+- [[_COMMUNITY_Window Cpp|Window Cpp]]
+- [[_COMMUNITY_Cpp Bind Gl|Cpp Bind Gl]]
+- [[_COMMUNITY_Plotter Cpp|Plotter Cpp]]
+- [[_COMMUNITY_Varinit Pango Check Wrap|Varinit Pango Check Wrap]]
+- [[_COMMUNITY_Varvalue Init|Varvalue Init]]
+- [[_COMMUNITY_Glchar Pangolin|Glchar Pangolin]]
+- [[_COMMUNITY_Gl Es Compat Glrectf|Gl Es Compat Glrectf]]
+- [[_COMMUNITY_Glchar Cpp|Glchar Cpp]]
+- [[_COMMUNITY_Video Exception Pangolin|Video Exception Pangolin]]
+- [[_COMMUNITY_Realsense2 Pangolin|Realsense2 Pangolin]]
+- [[_COMMUNITY_Realsense Pangolin|Realsense Pangolin]]
+- [[_COMMUNITY_Transform Pangolin|Transform Pangolin]]
+- [[_COMMUNITY_Video Help Cpp|Video Help Cpp]]
+- [[_COMMUNITY_Video Cpp|Video Cpp]]
+- [[_COMMUNITY_Params Pangolin|Params Pangolin]]
+- [[_COMMUNITY_Format String Formatstring|Format String Formatstring]]
+- [[_COMMUNITY_Handler Glbuffer Cpp|Handler Glbuffer Cpp]]
+- [[_COMMUNITY_Image Utils Getscaleonly|Image Utils Getscaleonly]]
+- [[_COMMUNITY_Image Io Packed12Bit Cpp|Image Io Packed12Bit Cpp]]
+- [[_COMMUNITY_Image Io Cpp|Image Io Cpp]]
+- [[_COMMUNITY_Image Io Bmp Cpp|Image Io Bmp Cpp]]
+- [[_COMMUNITY_Pixel Format Cpp|Pixel Format Cpp]]
+- [[_COMMUNITY_Image Io Pango Cpp|Image Io Pango Cpp]]
+- [[_COMMUNITY_Image Io Tga Cpp|Image Io Tga Cpp]]
+- [[_COMMUNITY_Image Io Zstd Cpp|Image Io Zstd Cpp]]
+- [[_COMMUNITY_Image Io Lz4 Cpp|Image Io Lz4 Cpp]]
+- [[_COMMUNITY_Glgeometry Hasattribute|Glgeometry Hasattribute]]
+- [[_COMMUNITY_Geometry Getaxisalignedbox|Geometry Getaxisalignedbox]]
+- [[_COMMUNITY_Stream Image Stream|Stream Image Stream]]
+- [[_COMMUNITY_Evaldepth Evaluate Depth|Evaldepth Evaluate Depth]]
+- [[_COMMUNITY_Plotseq Plot Jointly|Plotseq Plot Jointly]]
+- [[_COMMUNITY_Evalflow Evaluate Flow|Evalflow Evaluate Flow]]
+- [[_COMMUNITY_Test Config Loadable Cluster|Test Config Loadable Cluster]]
+- [[_COMMUNITY_Test Config Sequence Test Sequence Cfg|Test Config Sequence Test Sequence Cfg]]
+- [[_COMMUNITY_Test Config Macvo Test Macvo Config|Test Config Macvo Test Macvo Config]]
+- [[_COMMUNITY_Test Frontend Cluster|Test Frontend Cluster]]
+- [[_COMMUNITY_Test Stereo Depth Test Matching|Test Stereo Depth Test Matching]]
+- [[_COMMUNITY_Test Performance Macvo Test Macvo Performance|Test Performance Macvo Test Macvo Performance]]
+- [[_COMMUNITY_Test Config Tartanvo Test Tartanvo Config|Test Config Tartanvo Test Tartanvo Config]]
+- [[_COMMUNITY_Test Matching Cluster|Test Matching Cluster]]
+- [[_COMMUNITY_Experiment Tartanvo Execute Experiment|Experiment Tartanvo Execute Experiment]]
+- [[_COMMUNITY_Experiment Macvo Execute Experiment|Experiment Macvo Execute Experiment]]
+- [[_COMMUNITY_Experiment Macvo Resolution Execute Experiment|Experiment Macvo Resolution Execute Experiment]]
+- [[_COMMUNITY_Experiment Dpvo Execute Experiment|Experiment Dpvo Execute Experiment]]
+- [[_COMMUNITY_Tartanvodisparity Avgerror Main|Tartanvodisparity Avgerror Main]]
+- [[_COMMUNITY_Matchestimator Main|Matchestimator Main]]
+- [[_COMMUNITY_Visualizeflow Sparsification Plot|Visualizeflow Sparsification Plot]]
+- [[_COMMUNITY_Optimization Ablation Run Frame|Optimization Ablation Run Frame]]
+- [[_COMMUNITY_Submission Get Cfg|Submission Get Cfg]]
+- [[_COMMUNITY_Main-Transform Cpp|Main-Transform Cpp]]
+- [[_COMMUNITY_Main-Print Cpp|Main-Print Cpp]]
+- [[_COMMUNITY_Util Expandgloboption|Util Expandgloboption]]
+- [[_COMMUNITY_Shader Main|Shader Main]]
+- [[_COMMUNITY_Simpleplot Main|Simpleplot Main]]
+- [[_COMMUNITY_Simplevideo Main|Simplevideo Main]]
+- [[_COMMUNITY_Findexistingimportmoduledirectives Addposhvcpkgtopowershellp|Findexistingimportmoduledirectives Addposhvcpkgtopowershellp]]
+- [[_COMMUNITY_Invoke-Scriptwithprefix Create-Image|Invoke-Scriptwithprefix Create-Image]]
+- [[_COMMUNITY_Installinteloneapi Deploy-Inteloneapi|Installinteloneapi Deploy-Inteloneapi]]
+- [[_COMMUNITY_Installwindowsdk Deploy-Windows-Sdks|Installwindowsdk Deploy-Windows-Sdks]]
+- [[_COMMUNITY_New-Physicaldisk Deploy-Install-Disk|New-Physicaldisk Deploy-Install-Disk]]
+- [[_COMMUNITY_Installmpi Deploy-Mpi|Installmpi Deploy-Mpi]]
+- [[_COMMUNITY_Installvisualstudio Deploy-Visual-Studio|Installvisualstudio Deploy-Visual-Studio]]
+- [[_COMMUNITY_Format-Size Disk-Space|Format-Size Disk-Space]]
+- [[_COMMUNITY_K4Adeploy Ps1|K4Adeploy Ps1]]
+- [[_COMMUNITY_Gettimeofday Cluster|Gettimeofday Cluster]]
+- [[_COMMUNITY_Openni2Deploy Ps1|Openni2Deploy Ps1]]
+- [[_COMMUNITY_Qtdeploy Ps1|Qtdeploy Ps1]]
+- [[_COMMUNITY_Magnumdeploy Ps1|Magnumdeploy Ps1]]
+- [[_COMMUNITY_Main Check Getcontext|Main Check Getcontext]]
+- [[_COMMUNITY_Generatefeatures Ps1|Generatefeatures Ps1]]
+- [[_COMMUNITY_Set Endian Decomp|Set Endian Decomp]]
+- [[_COMMUNITY_Pyinterpreter Pangolin|Pyinterpreter Pangolin]]
+- [[_COMMUNITY_Test Union Cpp|Test Union Cpp]]
+- [[_COMMUNITY_Test Eval Cpp|Test Eval Cpp]]
+- [[_COMMUNITY_Test Pytypes Cpp|Test Pytypes Cpp]]
+- [[_COMMUNITY_Local Bindings Pets|Local Bindings Pets]]
+- [[_COMMUNITY_Test Docstring Options Cpp|Test Docstring Options Cpp]]
+- [[_COMMUNITY_Test Buffers Cpp|Test Buffers Cpp]]
+- [[_COMMUNITY_Test Async Cpp|Test Async Cpp]]
+- [[_COMMUNITY_Pybind11 Cross Module Tests Cpp|Pybind11 Cross Module Tests Cpp]]
+- [[_COMMUNITY_Test Opaque Types Cpp|Test Opaque Types Cpp]]
+- [[_COMMUNITY_Test Chrono Cpp|Test Chrono Cpp]]
+- [[_COMMUNITY_Constructorstats Constructor Stats|Constructorstats Constructor Stats]]
+- [[_COMMUNITY_Test Enum Cpp|Test Enum Cpp]]
+- [[_COMMUNITY_Test Local Bindings Cpp|Test Local Bindings Cpp]]
+- [[_COMMUNITY_Test Modules Cpp|Test Modules Cpp]]
+- [[_COMMUNITY_Test Tagbased Polymorphic Test Downcast|Test Tagbased Polymorphic Test Downcast]]
+- [[_COMMUNITY_Test Kwargs And Defaults Cpp|Test Kwargs And Defaults Cpp]]
+- [[_COMMUNITY_Test Docstring Options Cluster|Test Docstring Options Cluster]]
+- [[_COMMUNITY_Test Union Cluster|Test Union Cluster]]
+- [[_COMMUNITY_External Module Cpp|External Module Cpp]]
+- [[_COMMUNITY_Main Catch|Main Catch]]
+- [[_COMMUNITY_Main Cpp|Main Cpp]]
+- [[_COMMUNITY_Pypangolin Module Cpp|Pypangolin Module Cpp]]
+- [[_COMMUNITY_Pypangolin Embed Cpp|Pypangolin Embed Cpp]]
+- [[_COMMUNITY_Gl Draw Cpp|Gl Draw Cpp]]
+- [[_COMMUNITY_Viewport Cpp|Viewport Cpp]]
+- [[_COMMUNITY_Params Cpp|Params Cpp]]
+- [[_COMMUNITY_Handler Cpp|Handler Cpp]]
+- [[_COMMUNITY_View Cpp|View Cpp]]
+- [[_COMMUNITY_Handler Hpp|Handler Hpp]]
+- [[_COMMUNITY_Bind Display Display|Bind Display Display]]
+- [[_COMMUNITY_Pypangoio Py Pangolin|Pypangoio Py Pangolin]]
+- [[_COMMUNITY_Bind Attach Attach|Bind Attach Attach]]
+- [[_COMMUNITY_Bind Datalog Datalog|Bind Datalog Datalog]]
+- [[_COMMUNITY_Glvbo Cpp|Glvbo Cpp]]
+- [[_COMMUNITY_Pixel Format Cpp|Pixel Format Cpp]]
+- [[_COMMUNITY_Bind Colour Colour|Bind Colour Colour]]
+- [[_COMMUNITY_Hpp Bind Image|Hpp Bind Image]]
+- [[_COMMUNITY_Opengl Render State Cpp|Opengl Render State Cpp]]
+- [[_COMMUNITY_Image View Cpp|Image View Cpp]]
+- [[_COMMUNITY_Varvaluet Pangolin|Varvaluet Pangolin]]
+- [[_COMMUNITY_Varwrapper Pangolin|Varwrapper Pangolin]]
+- [[_COMMUNITY_Var Pangolin|Var Pangolin]]
+- [[_COMMUNITY_Packetstream Reader Pangolin|Packetstream Reader Pangolin]]
+- [[_COMMUNITY_Packetstream Tags Pangolin|Packetstream Tags Pangolin]]
+- [[_COMMUNITY_Playback Session Pangolin|Playback Session Pangolin]]
+- [[_COMMUNITY_Packetstream Source Pangolin|Packetstream Source Pangolin]]
+- [[_COMMUNITY_Packet Pangolin|Packet Pangolin]]
+- [[_COMMUNITY_Packetstream Pangolin|Packetstream Pangolin]]
+- [[_COMMUNITY_Pangolin Csv Table Loader|Pangolin Csv Table Loader]]
+- [[_COMMUNITY_Table Loader Pangolin|Table Loader Pangolin]]
+- [[_COMMUNITY_Gltext Pangolin|Gltext Pangolin]]
+- [[_COMMUNITY_Viewport Pangolin|Viewport Pangolin]]
+- [[_COMMUNITY_Gltexturecache Pangolin|Gltexturecache Pangolin]]
+- [[_COMMUNITY_Glfont Pangolin|Glfont Pangolin]]
+- [[_COMMUNITY_Glpangoglu Pangolin|Glpangoglu Pangolin]]
+- [[_COMMUNITY_Glvbo Pangolin|Glvbo Pangolin]]
+- [[_COMMUNITY_Glinclude Pangolin|Glinclude Pangolin]]
+- [[_COMMUNITY_Glpixformat Pangolin|Glpixformat Pangolin]]
+- [[_COMMUNITY_Glcuda Pangolin|Glcuda Pangolin]]
+- [[_COMMUNITY_Opengl Render State Pangolin|Opengl Render State Pangolin]]
+- [[_COMMUNITY_Glformattraits Pangolin|Glformattraits Pangolin]]
+- [[_COMMUNITY_Gldraw Cpp|Gldraw Cpp]]
+- [[_COMMUNITY_Emscriptenwindow Pangolin|Emscriptenwindow Pangolin]]
+- [[_COMMUNITY_Handler Enums Pangolin|Handler Enums Pangolin]]
+- [[_COMMUNITY_Handler Bitsets Pangolin|Handler Bitsets Pangolin]]
+- [[_COMMUNITY_Osxwindow Pangolin|Osxwindow Pangolin]]
+- [[_COMMUNITY_Pangolin Display Android|Pangolin Display Android]]
+- [[_COMMUNITY_Winwindow Pangolin|Winwindow Pangolin]]
+- [[_COMMUNITY_Window Cpp|Window Cpp]]
+- [[_COMMUNITY_Stream Info Pangolin|Stream Info Pangolin]]
+- [[_COMMUNITY_Iostream Operators Pangolin|Iostream Operators Pangolin]]
+- [[_COMMUNITY_Stream Encoder Factory Pangolin|Stream Encoder Factory Pangolin]]
+- [[_COMMUNITY_Video Output Interface Pangolin|Video Output Interface Pangolin]]
+- [[_COMMUNITY_Video Help Pangolin|Video Help Pangolin]]
+- [[_COMMUNITY_Video Input Pangolin|Video Input Pangolin]]
+- [[_COMMUNITY_Video Pangolin|Video Pangolin]]
+- [[_COMMUNITY_Video Interface Pangolin|Video Interface Pangolin]]
+- [[_COMMUNITY_Video Output Pangolin|Video Output Pangolin]]
+- [[_COMMUNITY_Ffmpeg Convert Pangolin|Ffmpeg Convert Pangolin]]
+- [[_COMMUNITY_Pango Video Output Pangolin|Pango Video Output Pangolin]]
+- [[_COMMUNITY_Uvc Mediafoundation Pangolin|Uvc Mediafoundation Pangolin]]
+- [[_COMMUNITY_Ffmpeg Output Pangolin|Ffmpeg Output Pangolin]]
+- [[_COMMUNITY_Pangolin Cluster|Pangolin Cluster]]
+- [[_COMMUNITY_Pleora Pangolin|Pleora Pangolin]]
+- [[_COMMUNITY_Openni2 Pangolin|Openni2 Pangolin]]
+- [[_COMMUNITY_Pangolin Debayer|Pangolin Debayer]]
+- [[_COMMUNITY_Images Pangolin|Images Pangolin]]
+- [[_COMMUNITY_Teli Pangolin|Teli Pangolin]]
+- [[_COMMUNITY_Shared Memory Pangolin|Shared Memory Pangolin]]
+- [[_COMMUNITY_Pangolin Deinterlace|Pangolin Deinterlace]]
+- [[_COMMUNITY_Images Out Pangolin|Images Out Pangolin]]
+- [[_COMMUNITY_Unpack Pangolin|Unpack Pangolin]]
+- [[_COMMUNITY_Pangolin Depthsense|Pangolin Depthsense]]
+- [[_COMMUNITY_Ffmpeg Pangolin|Ffmpeg Pangolin]]
+- [[_COMMUNITY_V4L Pangolin|V4L Pangolin]]
+- [[_COMMUNITY_Split Pangolin|Split Pangolin]]
+- [[_COMMUNITY_Firewire Pangolin|Firewire Pangolin]]
+- [[_COMMUNITY_Uvc Pangolin|Uvc Pangolin]]
+- [[_COMMUNITY_Openni Pangolin|Openni Pangolin]]
+- [[_COMMUNITY_Gamma Pangolin|Gamma Pangolin]]
+- [[_COMMUNITY_Merge Pangolin|Merge Pangolin]]
+- [[_COMMUNITY_Pack Pangolin|Pack Pangolin]]
+- [[_COMMUNITY_Shift Pangolin|Shift Pangolin]]
+- [[_COMMUNITY_Join Pangolin|Join Pangolin]]
+- [[_COMMUNITY_Truncate Pangolin|Truncate Pangolin]]
+- [[_COMMUNITY_Openni Common Pangolin|Openni Common Pangolin]]
+- [[_COMMUNITY_Thread Pangolin|Thread Pangolin]]
+- [[_COMMUNITY_Mjpeg Pangolin|Mjpeg Pangolin]]
+- [[_COMMUNITY_Ffmpeg Common Pangolin|Ffmpeg Common Pangolin]]
+- [[_COMMUNITY_Tests Video Uri Cpp|Tests Video Uri Cpp]]
+- [[_COMMUNITY_Json Cpp|Json Cpp]]
+- [[_COMMUNITY_Type Traits Pangolin|Type Traits Pangolin]]
+- [[_COMMUNITY_File Utils Pangolin|File Utils Pangolin]]
+- [[_COMMUNITY_Memstreambuf Pangolin|Memstreambuf Pangolin]]
+- [[_COMMUNITY_True False Toggle Pangolin|True False Toggle Pangolin]]
+- [[_COMMUNITY_Pangolin Compontent Cast|Pangolin Compontent Cast]]
+- [[_COMMUNITY_Threadedfilebuf Pangolin|Threadedfilebuf Pangolin]]
+- [[_COMMUNITY_Parse Pangolin|Parse Pangolin]]
+- [[_COMMUNITY_Param Set Pangolin|Param Set Pangolin]]
+- [[_COMMUNITY_Fix Size Buffer Queue Pangolin|Fix Size Buffer Queue Pangolin]]
+- [[_COMMUNITY_File Extension Pangolin|File Extension Pangolin]]
+- [[_COMMUNITY_Variadic All Pangolin|Variadic All Pangolin]]
+- [[_COMMUNITY_Timer Pangolin|Timer Pangolin]]
+- [[_COMMUNITY_Uri Pangolin|Uri Pangolin]]
+- [[_COMMUNITY_Is Streamable Pangolin|Is Streamable Pangolin]]
+- [[_COMMUNITY_Sigstate Pangolin|Sigstate Pangolin]]
+- [[_COMMUNITY_Pangolin Assert|Pangolin Assert]]
+- [[_COMMUNITY_Pangolin Avx Math|Pangolin Avx Math]]
+- [[_COMMUNITY_Pangolin Condition Variable|Pangolin Condition Variable]]
+- [[_COMMUNITY_Semaphore Pangolin|Semaphore Pangolin]]
+- [[_COMMUNITY_Shared Memory Buffer Pangolin|Shared Memory Buffer Pangolin]]
+- [[_COMMUNITY_Factory Help Pangolin|Factory Help Pangolin]]
+- [[_COMMUNITY_Factory Pangolin|Factory Pangolin]]
+- [[_COMMUNITY_Tests Uri Cpp|Tests Uri Cpp]]
+- [[_COMMUNITY_Uri Cpp|Uri Cpp]]
+- [[_COMMUNITY_Factory Registry Cpp|Factory Registry Cpp]]
+- [[_COMMUNITY_Handler Pangolin|Handler Pangolin]]
+- [[_COMMUNITY_Handler Glbuffer Pangolin|Handler Glbuffer Pangolin]]
+- [[_COMMUNITY_Handler Image Pangolin|Handler Image Pangolin]]
+- [[_COMMUNITY_Image View Pangolin|Image View Pangolin]]
+- [[_COMMUNITY_Process Pangolin|Process Pangolin]]
+- [[_COMMUNITY_Pangolin Default Font|Pangolin Default Font]]
+- [[_COMMUNITY_Pangolin Display|Pangolin Display]]
+- [[_COMMUNITY_View Pangolin|View Pangolin]]
+- [[_COMMUNITY_User App Pangolin|User App Pangolin]]
+- [[_COMMUNITY_Pangolin Consoleview|Pangolin Consoleview]]
+- [[_COMMUNITY_Interpreterinterface Pangolin|Interpreterinterface Pangolin]]
+- [[_COMMUNITY_Pangolin Gl Pangolin|Pangolin Gl Pangolin]]
+- [[_COMMUNITY_Video Viewer Pangolin|Video Viewer Pangolin]]
+- [[_COMMUNITY_Pangolin Copy|Pangolin Copy]]
+- [[_COMMUNITY_Managed Image Pangolin|Managed Image Pangolin]]
+- [[_COMMUNITY_Pixel Format Pangolin|Pixel Format Pangolin]]
+- [[_COMMUNITY_Memcpy Pangolin|Memcpy Pangolin]]
+- [[_COMMUNITY_Image Convert Pangolin|Image Convert Pangolin]]
+- [[_COMMUNITY_Typed Image Pangolin|Typed Image Pangolin]]
+- [[_COMMUNITY_Image Io Pangolin|Image Io Pangolin]]
+- [[_COMMUNITY_Image Io Libraw Cpp|Image Io Libraw Cpp]]
+- [[_COMMUNITY_Image Io Raw Cpp|Image Io Raw Cpp]]
+- [[_COMMUNITY_Interactive Pangolin|Interactive Pangolin]]
+- [[_COMMUNITY_Renderable Pangolin|Renderable Pangolin]]
+- [[_COMMUNITY_Scenehandler Pangolin|Scenehandler Pangolin]]
+- [[_COMMUNITY_Interactive Index Pangolin|Interactive Index Pangolin]]
+- [[_COMMUNITY_Tree Pangolin|Tree Pangolin]]
+- [[_COMMUNITY_Geometry Ply Pangolin|Geometry Ply Pangolin]]
+- [[_COMMUNITY_Geometry Obj Pangolin|Geometry Obj Pangolin]]
+- [[_COMMUNITY_Geometry Cpp|Geometry Cpp]]
+- [[_COMMUNITY_Plotspeed Plot Compare Plot|Plotspeed Plot Compare Plot]]
+- [[_COMMUNITY_Depthquality Cluster|Depthquality Cluster]]
+- [[_COMMUNITY_Matchquality Cluster|Matchquality Cluster]]
+- [[_COMMUNITY_Is Valid Config This|Is Valid Config This]]
+- [[_COMMUNITY_Name Assign|Name Assign]]
+- [[_COMMUNITY_Init Cluster|Init Cluster]]
+- [[_COMMUNITY_Init Cluster|Init Cluster]]
+- [[_COMMUNITY_Given Sequence|Given Sequence]]
+- [[_COMMUNITY_Given Batch|Given Batch]]
+- [[_COMMUNITY_Given Initialize|Given Initialize]]
+- [[_COMMUNITY_Given Context|Given Context]]
+- [[_COMMUNITY_Returns Immediately|Returns Immediately]]
+- [[_COMMUNITY_Returns Concrete|Returns Concrete]]
+- [[_COMMUNITY_Returns Concrete|Returns Concrete]]
+- [[_COMMUNITY_Should This|Should This]]
+- [[_COMMUNITY_Model Returns|Model Returns]]
+- [[_COMMUNITY_Verifies Whether|Verifies Whether]]
+- [[_COMMUNITY_Given Pixel Uv|Given Pixel Uv]]
+- [[_COMMUNITY_Dpvo Cluster|Dpvo Cluster]]
+- [[_COMMUNITY_Tartanvo Cluster|Tartanvo Cluster]]
+- [[_COMMUNITY_Init Cluster|Init Cluster]]
+- [[_COMMUNITY_Setup Cluster|Setup Cluster]]
+- [[_COMMUNITY_Bootstrap Ps1|Bootstrap Ps1]]
+- [[_COMMUNITY_Create-Prdiff Ps1|Create-Prdiff Ps1]]
+- [[_COMMUNITY_Test-Modified-Ports Ps1|Test-Modified-Ports Ps1]]
+- [[_COMMUNITY_Rearrange-Msvc-Drop-Layout Ps1|Rearrange-Msvc-Drop-Layout Ps1]]
+- [[_COMMUNITY_Install-Prerequisites Ps1|Install-Prerequisites Ps1]]
+- [[_COMMUNITY_Setup-Vagrantmachines Ps1|Setup-Vagrantmachines Ps1]]
+- [[_COMMUNITY_Vagrantfile-Box Cluster|Vagrantfile-Box Cluster]]
+- [[_COMMUNITY_Vagrantfile-Vm Cluster|Vagrantfile-Vm Cluster]]
+- [[_COMMUNITY_Create-Image Ps1|Create-Image Ps1]]
+- [[_COMMUNITY_Create-Vmss Ps1|Create-Vmss Ps1]]
+- [[_COMMUNITY_Provision-Entire-Image Ps1|Provision-Entire-Image Ps1]]
+- [[_COMMUNITY_Deploy-Pwsh Ps1|Deploy-Pwsh Ps1]]
+- [[_COMMUNITY_Deploy-Cuda Ps1|Deploy-Cuda Ps1]]
+- [[_COMMUNITY_Drop-To-Admin-User-Prefix Ps1|Drop-To-Admin-User-Prefix Ps1]]
+- [[_COMMUNITY_Create-Vmss Ps1|Create-Vmss Ps1]]
+- [[_COMMUNITY_Sysprep Ps1|Sysprep Ps1]]
+- [[_COMMUNITY_Deploy-Psexec Ps1|Deploy-Psexec Ps1]]
+- [[_COMMUNITY_Freeimageconfig-Static Cluster|Freeimageconfig-Static Cluster]]
+- [[_COMMUNITY_Freeimageconfig-Dynamic Cluster|Freeimageconfig-Dynamic Cluster]]
+- [[_COMMUNITY_Gettimeofday Cluster|Gettimeofday Cluster]]
+- [[_COMMUNITY_Magick Types Cluster|Magick Types Cluster]]
+- [[_COMMUNITY_Angle Commit Cluster|Angle Commit Cluster]]
+- [[_COMMUNITY_String Cluster|String Cluster]]
+- [[_COMMUNITY_Core Cluster 595|Core Cluster 595]]
+- [[_COMMUNITY_Arith Win64 Cluster|Arith Win64 Cluster]]
+- [[_COMMUNITY_Arith Win32 Cluster|Arith Win32 Cluster]]
+- [[_COMMUNITY_Arith Linux64 Cluster|Arith Linux64 Cluster]]
+- [[_COMMUNITY_Arith Osx Cluster|Arith Osx Cluster]]
+- [[_COMMUNITY_B64 Dynamic Config Cluster|B64 Dynamic Config Cluster]]
+- [[_COMMUNITY_B64 Static Config Cluster|B64 Static Config Cluster]]
+- [[_COMMUNITY_Core Cluster 602|Core Cluster 602]]
+- [[_COMMUNITY_Modp B64 Data Cluster|Modp B64 Data Cluster]]
+- [[_COMMUNITY_Cgnsconfig Cluster|Cgnsconfig Cluster]]
+- [[_COMMUNITY_Core Cluster 605|Core Cluster 605]]
+- [[_COMMUNITY_Linux Cluster|Linux Cluster]]
+- [[_COMMUNITY_Core Cluster 607|Core Cluster 607]]
+- [[_COMMUNITY_Libsecp256K1-Config Cluster|Libsecp256K1-Config Cluster]]
+- [[_COMMUNITY_Openblas Common Cluster|Openblas Common Cluster]]
+- [[_COMMUNITY_Arith Win64 Cluster|Arith Win64 Cluster]]
+- [[_COMMUNITY_Arith Win32 Cluster|Arith Win32 Cluster]]
+- [[_COMMUNITY_Arith Osx Cluster|Arith Osx Cluster]]
+- [[_COMMUNITY_Core Cluster 613|Core Cluster 613]]
+- [[_COMMUNITY_Fficonfig Cluster|Fficonfig Cluster]]
+- [[_COMMUNITY_Core Cluster 615|Core Cluster 615]]
+- [[_COMMUNITY_U2F-Server-Version Cluster|U2F-Server-Version Cluster]]
+- [[_COMMUNITY_Generate Static Link Cmd Windows Cluster|Generate Static Link Cmd Windows Cluster]]
+- [[_COMMUNITY_Generate Static Link Cmd Linux Cluster|Generate Static Link Cmd Linux Cluster]]
+- [[_COMMUNITY_Convert Lib Params Windows Cluster|Convert Lib Params Windows Cluster]]
+- [[_COMMUNITY_Convert Lib Params Macos Cluster|Convert Lib Params Macos Cluster]]
+- [[_COMMUNITY_Convert Lib Params Linux Cluster|Convert Lib Params Linux Cluster]]
+- [[_COMMUNITY_Generate Static Link Cmd Macos Cluster|Generate Static Link Cmd Macos Cluster]]
+- [[_COMMUNITY_Chartdir Cluster|Chartdir Cluster]]
+- [[_COMMUNITY_Common Cluster|Common Cluster]]
+- [[_COMMUNITY_Make Changelog Cluster|Make Changelog Cluster]]
+- [[_COMMUNITY_Libsize Cluster|Libsize Cluster]]
+- [[_COMMUNITY_Test Exceptions Cluster|Test Exceptions Cluster]]
+- [[_COMMUNITY_Test Eval Call Cluster|Test Eval Call Cluster]]
+- [[_COMMUNITY_Core Cluster 629|Core Cluster 629]]
+- [[_COMMUNITY_Cxx Standard|Cxx Standard]]
+- [[_COMMUNITY_Glvbo Hpp|Glvbo Hpp]]
+- [[_COMMUNITY_Video Hpp|Video Hpp]]
+- [[_COMMUNITY_Widget Hpp|Widget Hpp]]
+- [[_COMMUNITY_Window Hpp|Window Hpp]]
+- [[_COMMUNITY_Pixel Format Hpp|Pixel Format Hpp]]
+- [[_COMMUNITY_Glsl Hpp|Glsl Hpp]]
+- [[_COMMUNITY_Params Hpp|Params Hpp]]
+- [[_COMMUNITY_Display Hpp|Display Hpp]]
+- [[_COMMUNITY_View Hpp|View Hpp]]
+- [[_COMMUNITY_Attach Hpp|Attach Hpp]]
+- [[_COMMUNITY_Gl Draw Hpp|Gl Draw Hpp]]
+- [[_COMMUNITY_Datalog Hpp|Datalog Hpp]]
+- [[_COMMUNITY_Opengl Render State Hpp|Opengl Render State Hpp]]
+- [[_COMMUNITY_Glsl Cpp|Glsl Cpp]]
+- [[_COMMUNITY_Cpp Cluster|Cpp Cluster]]
+- [[_COMMUNITY_Hpp Cluster|Hpp Cluster]]
+- [[_COMMUNITY_Plotter Hpp|Plotter Hpp]]
+- [[_COMMUNITY_Viewport Hpp|Viewport Hpp]]
+- [[_COMMUNITY_Image View Hpp|Image View Hpp]]
+- [[_COMMUNITY_Colour Hpp|Colour Hpp]]
+- [[_COMMUNITY_Test All Cpp|Test All Cpp]]
+- [[_COMMUNITY_Glplatform Cluster|Glplatform Cluster]]
+- [[_COMMUNITY_Gltexturecache Cpp|Gltexturecache Cpp]]
+- [[_COMMUNITY_Gl2Engine Cpp|Gl2Engine Cpp]]
+- [[_COMMUNITY_X11Glcontext Cluster|X11Glcontext Cluster]]
+- [[_COMMUNITY_Display Osx Cluster|Display Osx Cluster]]
+- [[_COMMUNITY_Video Record Repeat Cluster|Video Record Repeat Cluster]]
+- [[_COMMUNITY_Tests Video Loading Cpp|Tests Video Loading Cpp]]
+- [[_COMMUNITY_Pangolin Cluster|Pangolin Cluster]]
+- [[_COMMUNITY_Platform Cluster|Platform Cluster]]
+- [[_COMMUNITY_Log Cluster|Log Cluster]]
+- [[_COMMUNITY_Signal Slot Cluster|Signal Slot Cluster]]
+- [[_COMMUNITY_Symbol Helper Hpp|Symbol Helper Hpp]]
+- [[_COMMUNITY_Hpp Cluster|Hpp Cluster]]
+- [[_COMMUNITY_Dummy Cpp|Dummy Cpp]]
+- [[_COMMUNITY_Avx Math Cpp|Avx Math Cpp]]
+- [[_COMMUNITY_Default Font Cpp|Default Font Cpp]]
+- [[_COMMUNITY_Tinyobj Cpp|Tinyobj Cpp]]
+- [[_COMMUNITY_Core Cluster 669|Core Cluster 669]]
+- [[_COMMUNITY_Init Cluster|Init Cluster]]
+- [[_COMMUNITY_Common Cluster|Common Cluster]]
+- [[_COMMUNITY_Init Cluster|Init Cluster]]
+- [[_COMMUNITY_Common Cluster|Common Cluster]]
+- [[_COMMUNITY_Make Changelog Cluster|Make Changelog Cluster]]
+- [[_COMMUNITY_Libsize Cluster|Libsize Cluster]]
+- [[_COMMUNITY_Cxx Standard|Cxx Standard]]
+- [[_COMMUNITY_Collate That|Collate That]]
+
+## God Nodes (most connected - your core abstractions)
+1. `Timer` - 74 edges
+2. `IStereoDepth` - 63 edges
+3. `IMatcher` - 50 edges
+4. `StereoFrame` - 49 edges
+5. `StereoData` - 48 edges
+6. `SequenceBase` - 48 edges
+7. `LieGroup` - 42 edges
+8. `AutoScalingTensor` - 33 edges
+9. `StereoInertialFrame` - 32 edges
+10. `PangolinNSGLView` - 31 edges
+
+## Surprising Connections (you probably didn't know these)
+- `Core method for IVisualOdometry. This method handles the incoming frames and per` --uses--> `Sandbox`  [INFERRED]
+  dynamask_vio/Odometry/Interface.py → dynamask_vio/Utility/Sandbox.py
+- `Provides the VisualMap built across multiple calls of .run(...).` --uses--> `Sandbox`  [INFERRED]
+  dynamask_vio/Odometry/Interface.py → dynamask_vio/Utility/Sandbox.py
+- `Plots Gaussian distribution for some confidence interval and compare the  predic` --uses--> `IStereoDepth`  [INFERRED]
+  dynamask_vio/Scripts/AdHoc/CovarianceModel.py → dynamask_vio/Module/Frontend/StereoDepth.py
+- `IOdometry` --uses--> `ColoredTqdm`  [INFERRED]
+  dynamask_vio/Odometry/Interface.py → dynamask_vio/Utility/PrettyPrint.py
+- `Core method for IVisualOdometry. This method handles the incoming frames and per` --uses--> `ColoredTqdm`  [INFERRED]
+  dynamask_vio/Odometry/Interface.py → dynamask_vio/Utility/PrettyPrint.py
+
+## Communities
+
+### Community 0 - "Init Estimate"
+Cohesion: 0.01
+Nodes (149): ABC, TartanVO, ConfigTestableSubclass, Plots Gaussian distribution for some confidence interval and compare the  predic, CUDAGraph_FlowFormerCovFrontend, CUDAGraphHandler, estimate_depth(), estimate_pair() (+141 more)
+
+### Community 1 - "Init Getitem"
+Cohesion: 0.02
+Nodes (87): Dataset, build_intrinsic(), EuRoC_Sequence, EuRoC_StereoSequence, EurocIMULoader, EurocMonocularDataset, interpolate_rotate(), interpolate_vecN() (+79 more)
+
+### Community 2 - "Init Forward"
+Cohesion: 0.02
+Nodes (80): AttentionLayer, BroadMultiHeadAttention, LinearPositionEmbeddingSine(), MultiHeadAttention, PositionalEncoding2D, :param channels: The last dimension of the tensor you want to apply pos emb to., :param tensor: A 4d tensor of size (batch_size, x, y, ch)         :return: Posit, # NOTE: For some reason, replace this with SDPA (FlashAttention 2) backend makes (+72 more)
+
+### Community 3 - "Init Path"
+Cohesion: 0.02
+Nodes (101): fix_binary(), fix_dependency(), fix_main_binaries(), get_dependencies(), GlobalConfig, is_loader_path_lib(), is_qt_lib(), is_qt_plugin() (+93 more)
+
+### Community 4 - "Init Forward"
+Cohesion: 0.02
+Nodes (58): BA(), block_matmul(), block_solve(), CholeskySolver, disp_retr(), pose_retr(), block matrix multiply, safe_scatter_add_mat() (+50 more)
+
+### Community 5 - "Stb Truetype Equal"
+Cohesion: 0.04
+Nodes (124): equal(), main(), my_stbtt_initfont(), my_stbtt_print(), stbrp_init_target(), stbrp_pack_rects(), stbtt__add_point(), stbtt_BakeFontBitmap() (+116 more)
+
+### Community 6 - "Init Push"
+Cohesion: 0.02
+Nodes (26): Chain, To have SML-like function chaining operator      (f1 >> f2)(x) = f2(f1(x)), ConfigTestable, GridRecorder, ConfigTestableSubclass, Core method for IVisualOdometry. This method handles the incoming frames and per, Provides the VisualMap built across multiple calls of .run(...)., OnCallCompiler (+18 more)
+
+### Community 7 - "Init Convert"
+Cohesion: 0.08
+Nodes (47): broadcast_inputs(), check_broadcastable(), Automatic broadcasting of missing dimensions, Act3, Act4, Adj, AdjT, Exp (+39 more)
+
+### Community 8 - "This Ccompiler"
+Cohesion: 0.03
+Nodes (42): build_ext, _Extension, CMakeBuild, CMakeExtension, auto_cpp_level(), build_ext, cxx_std(), has_flag() (+34 more)
+
+### Community 9 - "Reference Com"
+Cohesion: 0.03
+Nodes (65): Rationale: In order to execute a process in Download Mode call `vcpkg_execute_in_download_m..., Reference: github.com, Reference: github.com, Rationale: If the feature adds additional APIs (or executables, or library binaries) and do..., Rationale: Conflicting libs are typically by design and not considered a defect. Because so..., Reference: www.debian.org, Reference: docs.brew.sh, Reference: docs.brew.sh (+57 more)
+
+### Community 10 - "Reference Com"
+Cohesion: 0.03
+Nodes (63): Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Reference: ninja-build.org, Reference: github.com (+55 more)
+
+### Community 11 - "Init Forward"
+Cohesion: 0.06
+Nodes (35): AnalyticModule, FactorGraph, Analytic_ICP_TwoframePGO, Analytic_Reproj_TwoFramePGO, Analytic_ReprojDisp_TwoFramePGO, GraphInput, GraphOutput, ICP_TwoframePGO (+27 more)
+
+### Community 12 - "Reference Com"
+Cohesion: 0.03
+Nodes (59): Reference: sqlite.org, Reference: github.com, Reference: sqlite.org, Reference: sqlite.org, Reference: zlib.net, Rationale: `abort()` is a standard CRT call and certainly available in UWP, so we just need..., Reference: msdn.microsoft.com, Reference: github.com (+51 more)
+
+### Community 13 - "Reference Github"
+Cohesion: 0.03
+Nodes (56): Reference: www.debian.org, Reference: repology.org, Reference: www.debian.org, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com (+48 more)
+
+### Community 14 - "Pangolin Pango"
+Cohesion: 0.03
+Nodes (37): GrabNewest(), GrabNext(), PangoVideo(), Seek(), SetupStreams(), SizeBytes(), connect(), connect_scoped() (+29 more)
+
+### Community 15 - "Reference Github"
+Cohesion: 0.03
+Nodes (53): Rationale: maintenance easier because all consumers can be updated from a single place., Rationale: Because the scripts come from a port, they can be versioned and depended upon, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Rationale: so that `(A B)` is not distinguishable from `("A;B")`,, Rationale: `<N>` defaults to `0`, so that all arguments are taken. (+45 more)
+
+### Community 16 - "Reference Rst"
+Cohesion: 0.03
+Nodes (53): Rationale: - because in these cases there is no C++ variable to reference (the value, Rationale: macro and function names may soon be deprecated, in order to reduce, Reference: docs.python.org, Reference: docs.python.org, Reference: llvm.org, Rationale: Creating multiple copies of `scoped_interpreter` is not possible because it, Rationale: and raise them so that Python code can handle them., Reference: docs.python.org (+45 more)
+
+### Community 17 - "Pytypes Advance"
+Cohesion: 0.06
+Nodes (65): advance(), args_proxy(), arrow_proxy(), as_unsigned(), begin(), bytearray(), bytes(), capsule() (+57 more)
+
+### Community 18 - "Reference Com"
+Cohesion: 0.05
+Nodes (52): Reference: github.com, Rationale: Okay, I've finished trying to outline how much boilerplate is needed with the re..., Rationale: In this example we've moved from Flatland into 3D! Doing so requires us to get a..., Reference: www.glfw.org, Reference: en.wikipedia.org, Reference: www.songho.ca, Reference: github.com, Reference: github.com (+44 more)
+
+### Community 19 - "Reference Com"
+Cohesion: 0.03
+Nodes (48): Rationale: # you need generator expressions, because those will be placed in the target fil..., Rationale: - because in these cases there is no C++ variable to reference (the value, Rationale: macro and function names may soon be deprecated, in order to reduce, Reference: docs.python.org, Reference: docs.python.org, Reference: llvm.org, Rationale: and raise them so that Python code can handle them., Reference: docs.python.org (+40 more)
+
+### Community 20 - "Init Flow"
+Cohesion: 0.04
+Nodes (35): backward(), CorrLayer, cupy_kernel(), cupy_launch(), forward(), _FunctionCorrelation, ModuleCorrelation, PatchLayer (+27 more)
+
+### Community 21 - "Init Serialize"
+Cohesion: 0.04
+Nodes (17): AutoScalingBundle, DenseEdge_Multi, deserialize(), EdgeLike, init(), Provide graph infrastructure (node with arbitrary features and edges), An arbitrary one-to-multi mapping relationship., In case of one-to-multi mapping with continuous index. Can significantly reduce (+9 more)
+
+### Community 22 - "Init Repr"
+Cohesion: 0.06
+Nodes (23): create(), data(), __get_curr_time(), __get_git_version(), __get_sys_command(), load(), Sandbox, SandboxFile (+15 more)
+
+### Community 23 - "Range Expect"
+Cohesion: 0.05
+Nodes (25): DepthCovPerformance, DepthPerformance, FlowCovPerformance, FlowPerformance, mean(), median(), as_chain_func(), plot_flow() (+17 more)
+
+### Community 24 - "Android App Destroy Android App Entry"
+Cohesion: 0.08
+Nodes (41): android_app_destroy(), android_app_entry(), android_app_free(), android_app_post_exec_cmd(), android_app_pre_exec_cmd(), android_app_read_cmd(), android_app_set_activity_state(), android_app_set_input() (+33 more)
+
+### Community 25 - "Compute All"
+Cohesion: 0.06
+Nodes (27): cropping and resizing, perform augmentation on RGB-D video, RGBDAugmentor, depth_read(), image_read(), Base class for RGBD dataset, compute optical flow distance between all pairs of frames, return training video (+19 more)
+
+### Community 26 - "Rst Reference"
+Cohesion: 0.04
+Nodes (23): Rationale: If the numpy matrix cannot be used as is (either because its types differ, e.g., Rationale: because the storage is incompatible), pybind11 makes a temporary copy and, Reference: eigen.tuxfamily.org, Rationale: using pybind11-generated bindings so that Python can interact with it., Rationale: 2. Use a native Python type everywhere. It will need to be wrapped so that, Rationale: ``std::string`` or ``char*`` *without* conversion. In order to make a function, Rationale: Because UTF-8 is inclusive of pure ASCII, there is never any issue with, Reference: utf8everywhere.org (+15 more)
+
+### Community 27 - "Init Forward"
+Cohesion: 0.06
+Nodes (14): PSMNet, Conv, Hourglass, Hourglass2, Simplified Hourglass wo/ residule modules, Residual, hourglass, PSMNet (+6 more)
+
+### Community 28 - "Plotimplicit Plotseries"
+Cohesion: 0.08
+Nodes (30): AddSeries(), ComputeAutoSelection(), ComputeTrackValue(), ConvertSequences(), data_sgn(), FindTickFactor(), FixSelection(), Keyboard() (+22 more)
+
+### Community 29 - "Numpy Append Extents"
+Cohesion: 0.11
+Nodes (40): append_extents(), array(), array_descriptor_proxy(), array_proxy(), array_t(), broadcast_trivial(), call(), cast() (+32 more)
+
+### Community 30 - "Pybind11 Add Base"
+Cohesion: 0.09
+Nodes (33): add_base(), all_type_info_get_cache(), cpp_function(), create_extension_module(), dealloc(), enum_name(), export_values(), fget() (+25 more)
+
+### Community 31 - "Cast Load"
+Cohesion: 0.07
+Nodes (21): args(), call(), cast(), if(), kwargs(), literals(), load(), load_args() (+13 more)
+
+### Community 32 - "Pleora Cpp"
+Cohesion: 0.08
+Nodes (28): DeinitBuffers(), DeinitDevice(), DeinitStream(), DropNFrames(), GetAnalogBlackLevel(), GetExposure(), GetGain(), GetGamma() (+20 more)
+
+### Community 33 - "Txt Reference"
+Cohesion: 0.05
+Nodes (19): Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com, Reference: github.com (+11 more)
+
+### Community 34 - "Eigen Numpy"
+Cohesion: 0.06
+Nodes (27): array_copy_but_one(), assert_equal_ref(), assert_keeps_alive(), assert_sparse_equal_ref(), assign_both(), Eigen doesn't support (as of yet) negative strides. When a function takes an Eig, Tests various ways of returning references and non-referencing copies, Tests Eigen's ability to mutate numpy values (+19 more)
+
+### Community 35 - "Main Cpp"
+Cohesion: 0.07
+Nodes (14): get_cmake_dir(), get_include(), Return the path to the pybind11 CMake module directory., Return the path to the pybind11 include directory. The historical "user"     arg, generate_value(), main(), print_includes(), RecordSample() (+6 more)
+
+### Community 36 - "Hpp Add"
+Cohesion: 0.11
+Nodes (30): Add(), AttachColour(), AttachDepth(), Bind(), CheckResize(), CopyFrom(), Delete(), Download() (+22 more)
+
+### Community 37 - "Txt Cmakelists"
+Cohesion: 0.05
+Nodes (18): Rationale: Many implementations allow signal return types, Sigslot does not because I have, Rationale: // This is fine because float is convertible to double., Reference: cmake.org, Reference: github.com, Reference: gcc.gnu.org, Reference: www.ms-studio.com, Reference: scripts.sil.org, Rationale: If the numpy matrix cannot be used as is (either because its types differ, e.g. (+10 more)
+
+### Community 38 - "Opengl Render State Cpp"
+Cohesion: 0.09
+Nodes (28): Apply(), ApplyNView(), EnableProjectiveTexturing(), Follow(), GetModelViewMatrix(), GetProjectionMatrix(), GetProjectionModelViewMatrix(), GetProjectiveTextureMatrix() (+20 more)
+
+### Community 39 - "Firewire Cpp"
+Cohesion: 0.07
+Nodes (14): Dc1394ColorCodingToString(), Dc1394ModeDetails(), FirewireVideo(), get_firewire_mode(), GetNewest(), GetNext(), GrabNewest(), GrabNext() (+6 more)
+
+### Community 40 - "Lietorch Cpu Cpp"
+Cohesion: 0.05
+Nodes (0): 
+
+### Community 41 - "Buttonsurface Createwaylandwindowandbind"
+Cohesion: 0.06
+Nodes (6): handle_configure(), MakeCurrent(), Resize(), SwapBuffers(), WaylandDisplay(), WaylandWindow()
+
+### Community 42 - "That Functions"
+Cohesion: 0.05
+Nodes (14): #511: problem with inheritance + overwritten def_static, Ensure the lifetime of temporary objects created for implicit conversions, Tests that class-specific operator new/delete functions are invoked, Expose protected member functions to Python using a helper class, Tests that simple POD classes can be constructed using C++11 brace initializatio, Instances must correctly increase/decrease the reference count of their types (#, Tests that a properly qualified name is set in __qualname__ (even in pre-3.3, wh, test_bind_protected_functions() (+6 more)
+
+### Community 43 - "Txt Cmakelists"
+Cohesion: 0.06
+Nodes (14): Reference: github.com, Rationale: # you need generator expressions, because those will be placed in the target fil..., Reference: github.com, Reference: github.com, Reference: github.com, Rationale: - pybind11 can automatically vectorize functions so that they are, Reference: github.com, Reference: github.com (+6 more)
+
+### Community 44 - "Test Pytypes Converting"
+Cohesion: 0.06
+Nodes (4): C++ default and converting constructors are equivalent to type calls in Python, Tests implicit casting when assigning or appending to dicts and lists., test_constructors(), test_implicit_casting()
+
+### Community 45 - "Std Tuple"
+Cohesion: 0.06
+Nodes (28): Tests the ability to pass bytes to C++ string-accepting functions.  Note that th, Tests support for C++17 string_view arguments and return values, Tests unicode conversion and error reporting., Issue #929 - out-of-range integer values shouldn't be accepted, # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar), # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar), std::pair <-> tuple & std::tuple <-> tuple, Casters produced with PYBIND11_TYPE_CASTER() should convert nullptr to None (+20 more)
+
+### Community 46 - "Memory Pool Parse Error"
+Cohesion: 0.06
+Nodes (8): compare(), memory_pool, parse_error, parse_node_contents(), xml_attribute, xml_base, xml_document, xml_node
+
+### Community 47 - "Test Numpy Array Arr"
+Cohesion: 0.06
+Nodes (2): Tests fix for #685 - ndarray shouldn't go to std::string overload, test_greedy_string_overload()
+
+### Community 48 - "Pangolinnsglview Acceptsfirstresponder"
+Cohesion: 0.06
+Nodes (30): PangolinNSGLView, -acceptsFirstResponder, -becomeFirstResponder, -dealloc, -initWithFramepixelFormat, -isFlipped, -keyDown, -keyUp (+22 more)
+
+### Community 49 - "Txt Reference"
+Cohesion: 0.06
+Nodes (10): Reference: www.docker.com, Rationale: # See §3.3 / theory §5.5 for why this is load-bearing., Rationale: **Why a subclass, not a new class:** every existing config path, CUDAGraph varia..., Rationale: you *what* to build; this document tells you *why* every piece is shaped the way..., Rationale: because the camera moved. It is a deterministic function of the camera's motion,..., Reference: mac-vo.github.io, Reference: img.shields.io, Reference: arxiv.org (+2 more)
+
+### Community 50 - "Add Patient Clear Instance"
+Cohesion: 0.12
+Nodes (23): add_patient(), clear_instance(), deregister_instance(), enable_buffer_protocol(), enable_dynamic_attributes(), get_fully_qualified_tp_name(), make_default_metaclass(), make_new_instance() (+15 more)
+
+### Community 51 - "Openni2 Cpp"
+Cohesion: 0.1
+Nodes (15): AddDevice(), AddStream(), FindOpenNI2Mode(), GrabNewest(), GrabNext(), InitialiseOpenNI(), OpenNi2Video(), PrintOpenNI2Modes() (+7 more)
+
+### Community 52 - "Txt Cmakelists"
+Cohesion: 0.06
+Nodes (9): Rationale: # The G3 plugin is disabled because it require the private copy of tiff, Rationale: # The JPEGTransform plugin is disable because it requires a private copy of jpeg, Reference: github.com, Rationale: # Because this is a GLOB_RECURSE, soundlib/plugins/*.cpp will be included, Rationale: In order to create a new agent pool, go to the `vcpkg/public` project;, Rationale: In order to get `sshfs` working on the physical machine,, Reference: developer.apple.com, Reference: raw.github.com (+1 more)
+
+### Community 53 - "Attr Append Self Arg If Needed"
+Cohesion: 0.12
+Nodes (24): arg(), arg_v(), arithmetic(), buffer_protocol(), doc(), dynamic_attr(), init(), is_final() (+16 more)
+
+### Community 54 - "Widgets Cpp"
+Cohesion: 0.12
+Nodes (23): AddVariable(), Button(), CalcVisibleEditPart(), cb_height(), Checkbox(), DrawShadowRect(), DrawWindow(), FunctionButton() (+15 more)
+
+### Community 55 - "Stl List"
+Cohesion: 0.07
+Nodes (16): Properties use the `reference_internal` policy by default. If the underlying fun, #171: Can't return reference wrappers (or STL structures containing them), Passing nullptr or None to an STL container pointer is not expected to work, Trying convert `list` to a `std::vector`, or vice versa, without including     <, Check if a string is NOT implicitly converted to a list, which was the     behav, check fix for issue #1561, std::valarray <-> list, Tests that stl casters preserve lvalue/rvalue context for container values (+8 more)
+
+### Community 56 - "Cmakelists Txt"
+Cohesion: 0.07
+Nodes (7): Reference: github.com, Rationale: # See http://stackoverflow.com/questions/13560945/c-and-c-library-using-longjmp ..., Rationale: # - This is a source-incompatible change because extern "C" is chosen by the inc..., Reference: stackoverflow.com, Reference: stackoverflow.com, Reference: github.com, Reference: github.com
+
+### Community 57 - "Txt Cmakelists"
+Cohesion: 0.07
+Nodes (6): Rationale: For example, if you distribute copies of the library, whether gratis or for a fe..., Rationale: To protect each distributor, we want to make it very clear that there is no warr..., Rationale: # The debug libraries have a "d" postfix so that CMake's FindGSL.cmake, Reference: www.apache.org, Reference: www.apache.org, Reference: www.opensource.org
+
+### Community 58 - "Test Methods And Attributes Object"
+Cohesion: 0.07
+Nodes (16): Static property getter and setters expect the type object as the their only argu, Overriding pybind11's default metaclass changes the behavior of `static_property, When returning an rvalue, the return value policy is automatically changed from, #2778: implicit casting from None to object (not pointer), #283: __str__ called on uninitialized instance when constructor arguments invali, Tests that explicit lvalue ref-qualified methods can be called just like their, Check to see if the normal overload order (first defined) and prepend overload o, Issue #443: calling copied methods fails in Python 3 (+8 more)
+
+### Community 59 - "Handler Image Cpp"
+Cohesion: 0.13
+Nodes (21): AdjustScale(), AdjustTranslation(), FixSelection(), glRenderOverlay(), glRenderTexture(), ImageToScreen(), ImageViewHandler(), Keyboard() (+13 more)
+
+### Community 60 - "Video Viewer Cpp"
+Cohesion: 0.12
+Nodes (17): ChangeExposure(), ChangeGain(), OpenInput(), Quit(), QuitAndWait(), Record(), RecordOneFrame(), RegisterDefaultKeyShortcutsAndPangoVariables() (+9 more)
+
+### Community 61 - "Txt Cmakelists"
+Cohesion: 0.08
+Nodes (4): Rationale: # I dont realy understand why this is necesary or what it is doing,, Reference: cmake.org, Reference: github.com, Reference: www.apache.org
+
+### Community 62 - "Cmakelists Txt"
+Cohesion: 0.08
+Nodes (4): Reference: github.com, Reference: github.com, Reference: github.com, Rationale: `pkg-config` in portfiles in order to gather dependencies for exotic buildsystem...
+
+### Community 63 - "Init Factory Wrapper"
+Cohesion: 0.12
+Nodes (22): create_and_destroy(), Tests py::init_factory() wrapper with various upcasting and downcasting returns, Tests py::init_factory() wrapper around various ways of returning the object, Tests py::init_factory() wrapper with value conversions and alias types, Tests init factory functions with dual main/alias factory functions, Prior to 2.2, `py::init<...>` relied on the type supporting placement     new; t, When the constructor is overloaded, previous overloads can require a preallocate, Tests invocation of the pybind-registered base class with an invalid `self` argu (+14 more)
+
+### Community 64 - "Test Iostream Redirect Stderr"
+Cohesion: 0.1
+Nodes (8): redirect_stderr(), redirect_stdout(), test_err(), test_multi_captured(), test_not_captured(), test_redirect(), test_redirect_both(), test_redirect_err()
+
+### Community 65 - "Test Numpy Dtypes Assert Equal"
+Cohesion: 0.12
+Nodes (9): assert_equal(), dt_fmt(), packed_dtype_fmt(), partial_dtype_fmt(), partial_ld_offset(), partial_nested_fmt(), simple_dtype_fmt(), test_dtype() (+1 more)
+
+### Community 66 - "Transform Cpp"
+Cohesion: 0.13
+Nodes (19): ChainSwap2(), ChainSwap4(), FlipX(), FlipXY(), FlipY(), GrabNewest(), GrabNext(), PitchedImageCopy() (+11 more)
+
+### Community 67 - "Configurecolornode Configuredepthnode"
+Cohesion: 0.15
+Nodes (19): ConfigureColorNode(), ConfigureDepthNode(), ConfigureNodes(), DepthSenseContext(), DepthSenseVideo(), DeviceClosing(), EventLoop(), GetDeltaTime() (+11 more)
+
+### Community 68 - "View Cpp"
+Cohesion: 0.11
+Nodes (12): Activate(), ActivateAndScissor(), ActivateScissorAndClear(), AspectAreaWithinTarget(), AttachAbs(), FindChild(), GetBounds(), NumVisibleChildren() (+4 more)
+
+### Community 69 - "Cmakelists Txt"
+Cohesion: 0.08
+Nodes (3): Reference: github.com, Reference: www.apache.org, Reference: github.com
+
+### Community 70 - "Png Lcam Front"
+Cohesion: 0.08
+Nodes (3): Reference: github.com, Reference: hub.docker.com, Reference: arxiv.org
+
+### Community 71 - "Breaksbase Chimera"
+Cohesion: 0.08
+Nodes (10): BreaksBase, BreaksTramp, Chimera, Dog, Hamster, Pet, ProtectedA, ProtectedB (+2 more)
+
+### Community 72 - "V4L Cpp"
+Cohesion: 0.17
+Nodes (20): close_device(), GetExposure(), GetGain(), GrabNewest(), GrabNext(), init_device(), init_mmap(), init_read() (+12 more)
+
+### Community 73 - "Operator All As"
+Cohesion: 0.13
+Nodes (12): cmd_line_arg_is_option_flag(), flag_is_short(), fmt_ostream(), fmt_string(), get_definition_for_long_flag(), get_definition_for_short_flag(), is_valid_flag_definition(), known_long_flag() (+4 more)
+
+### Community 74 - "Cmakelists Txt"
+Cohesion: 0.08
+Nodes (2): Reference: jxrlib.codeplex.com, Reference: stackoverflow.com
+
+### Community 75 - "Asyncsourcereader Uvc Mediafoundation"
+Cohesion: 0.12
+Nodes (14): AsyncSourceReader, DeinitDevice(), DeviceMatches(), FindDevice(), from_100micros(), GetExposure(), GrabNewest(), GrabNext() (+6 more)
+
+### Community 76 - "Cmakelists Txt"
+Cohesion: 0.09
+Nodes (1): Rationale: # This is imperfect because it fails on directories with trailing spaces, but th...
+
+### Community 77 - "Txt Cmakelists"
+Cohesion: 0.09
+Nodes (1): Reference: github.com
+
+### Community 78 - "Get Fn Mode Register"
+Cohesion: 0.11
+Nodes (7): __plot_grid(), plot_imatcher(), plot_istereo(), plot_macvo(), plot_reprojerr(), # NOTE: Since rerun does not ensure compatibilty between different versions,, Rerun_Visualizer
+
+### Community 79 - "Txt Cmakelists"
+Cohesion: 0.09
+Nodes (0): 
+
+### Community 80 - "Cmakelists Txt"
+Cohesion: 0.09
+Nodes (0): 
+
+### Community 81 - "Cmakelists Txt"
+Cohesion: 0.09
+Nodes (0): 
+
+### Community 82 - "Txt Cmakelists"
+Cohesion: 0.09
+Nodes (0): 
+
+### Community 83 - "Png Lcam Front Depth"
+Cohesion: 0.09
+Nodes (0): 
+
+### Community 84 - "Python Makes"
+Cohesion: 0.11
+Nodes (20): _python_to_cpp_to_python(), _python_to_cpp_to_python_from_threads(), Calls different C++ functions that come back to Python., Calls different C++ functions that come back to Python, from Python threads., # TODO: FIXME, sometimes returns -11 (segfault) instead of 0 on macOS Python 3.9, Makes sure there is no GIL deadlock when running in a thread.      It runs in a, # TODO: FIXME on macOS Python 3.9, Makes sure there is no GIL deadlock when running in a thread multiple times in p (+12 more)
+
+### Community 85 - "Gldraw Gldraw X0"
+Cohesion: 0.13
+Nodes (10): glDraw_x0(), glDraw_y0(), glDraw_z0(), glDrawAxis(), glDrawFrustum(), glDrawLine(), glDrawRect(), glDrawRectPerimeter() (+2 more)
+
+### Community 86 - "Checkwldieonerror Createwinwindowandbind"
+Cohesion: 0.15
+Nodes (14): GetMouseModifierKey(), GetPangoKey(), HandleWinMessages(), MakeCurrent(), Move(), RegisterThisClass(), Resize(), SetupPalette() (+6 more)
+
+### Community 87 - "Build Run"
+Cohesion: 0.13
+Nodes (18): build(), docs(), lint(), make_changelog(), Lint the codebase (except for clang-format/tidy)., Run the tests (requires a compiler)., Run the tests (requires a compiler)., Run the packaging tests. (+10 more)
+
+### Community 88 - "Gl2Engine Glcolor4F"
+Cohesion: 0.1
+Nodes (0): 
+
+### Community 89 - "File Utils Cpp"
+Cohesion: 0.17
+Nodes (12): Expand(), FileExists(), FilesMatchingWildcard(), FindPath(), MakeUniqueFilename(), MatchesWildcard(), PathExpand(), PathOsNormaliseInplace() (+4 more)
+
+### Community 90 - "Check Exp"
+Cohesion: 0.11
+Nodes (9): make_homogeneous(), matv(), check Log(Exp(x)) == x, check X * X^{-1} == 0, check X * Exp(a) == Exp(Adj(X,a)) * X 0, test_act(), test_adj(), test_exp_log() (+1 more)
+
+### Community 91 - "Emscripten Bindings Emscriptenwindow"
+Cohesion: 0.13
+Nodes (5): GetKeyModifierBitmask(), key_callback(), mod_key(), mouse_callback(), spec_key()
+
+### Community 92 - "Type That"
+Cohesion: 0.11
+Nodes (14): Load a `py::module_local` type that's only registered in an external module, Local types take precedence over globally registered types: a module with a `mod, Makes sure the internal local type map differs across the two modules, One module uses a generic vector caster from `<pybind11/stl.h>` while the other, Tests that duplicate `py::module_local` class bindings work across modules, Tests that attempting to register a non-local type in multiple modules fails, Tests expected failure when registering a class twice with py::local in the same, test_duplicate_local() (+6 more)
+
+### Community 93 - "Datalog Addsamples"
+Cohesion: 0.15
+Nodes (8): AddSamples(), Clear(), DataLog(), FirstBlock(), Log(), Sample(), Samples(), Save()
+
+### Community 94 - "Availableframes Bayermethodfromstring"
+Cohesion: 0.16
+Nodes (9): BayerOutputFormat(), DebayerVideo(), DownsampleDebayer(), GrabNewest(), GrabNext(), PitchedImageCopy(), ProcessImage(), ProcessStreams() (+1 more)
+
+### Community 95 - "Telisystem Teli"
+Cohesion: 0.15
+Nodes (9): GetNodeValStr(), GetParameter(), Initialise(), InitPangoDeviceProperties(), SetDeviceParams(), SetNodeValStr(), SetParameter(), TeliSystem (+1 more)
+
+### Community 96 - "Tiny Obj Loader Exportgroupstoshape"
+Cohesion: 0.23
+Nodes (15): exportGroupsToShape(), InitMaterial(), LoadMtl(), LoadObj(), LoadObjWithCallback(), operator(), parseInt(), parseRawTriple() (+7 more)
+
+### Community 97 - "Mixing Bases"
+Cohesion: 0.12
+Nodes (10): Mixing bases with and without static properties should be possible     and the r, Mixing bases with and without dynamic attribute support, Returning an offset (non-first MI) base class pointer should recognize the insta, Tests returning an offset (non-first MI) base class pointer to a derived instanc, Tests that diamond inheritance works as expected (issue #959), test_diamond_inheritance(), test_mi_base_return(), test_mi_dynamic_attributes() (+2 more)
+
+### Community 98 - "Chooseframebuffer Createglcontext"
+Cohesion: 0.15
+Nodes (7): ChooseFrameBuffer(), CreateGlContext(), CreateX11WindowAndBind(), GetEventFlagsFromXState(), isExtensionSupported(), ProcessEvents(), X11GlContext()
+
+### Community 99 - "Uvc Cpp"
+Cohesion: 0.17
+Nodes (9): DeinitDevice(), FindDevice(), GrabNewest(), GrabNext(), InitDevice(), InitPangoDeviceProperties(), Start(), Stop() (+1 more)
+
+### Community 100 - "Bindtocontext Destroywindow"
+Cohesion: 0.15
+Nodes (6): BindToContext(), FindContext(), RegisterKeyPressCallback(), RegisterNewContext(), ShowConsole(), ShowFullscreen()
+
+### Community 101 - "Testfactory1 Testfactory2"
+Cohesion: 0.15
+Nodes (9): PYBIND11_OVERRIDE(), PyTF6(), PyTF7(), TestFactory1, TestFactory2, TestFactory3, TestFactory4, TestFactory5 (+1 more)
+
+### Community 102 - "Packetstream Reader Cpp"
+Cohesion: 0.28
+Nodes (14): AppendIndex(), Close(), FixFileIndex(), GoodToRead(), NextFrame(), Open(), PacketStreamReader(), ParseFooter() (+6 more)
+
+### Community 103 - "Ffmpeg Output Cpp"
+Cohesion: 0.21
+Nodes (11): Close(), CreateStream(), CreateVideoCodecContext(), FfmpegVideoOutput(), FfmpegVideoOutputStream(), Flush(), Initialise(), StartStream() (+3 more)
+
+### Community 104 - "Rapidxml Print Hpp"
+Cohesion: 0.36
+Nodes (14): copy_and_expand_chars(), copy_chars(), fill_chars(), print(), print_attributes(), print_cdata_node(), print_children(), print_comment_node() (+6 more)
+
+### Community 105 - "Torch Argument"
+Cohesion: 0.14
+Nodes (13): gaussain_full_kernels(), gaussian_mixture_mean_var(), MahalanobisDist(), MahalanobisDist_Inv(), NormalizeQuat(), qinterp(), Argument         x       : pp.LieTensor of type SE3     Returns         x', Argument         x       : torch.Tensor of shape N x F         mu      : torch (+5 more)
+
+### Community 106 - "Common Constexpr First"
+Cohesion: 0.24
+Nodes (11): constexpr_first(), constexpr_sum(), first(), format(), instance_simple_holder_in_ptrs(), last(), pybind11_fail(), return_value_policy() (+3 more)
+
+### Community 107 - "Myexception Myexception2"
+Cohesion: 0.19
+Nodes (7): MyException, MyException2, MyException3, MyException4, MyException5, MyException5_1, TEST_SUBMODULE()
+
+### Community 108 - "Isclose Test Sequences And Iterators"
+Cohesion: 0.16
+Nodes (10): allclose(), isclose(), #2076: Exception raised by len(arg) should be propagated, #181: iterator passthrough did not compile, #388: Can't make iterators via make_iterator() with different r/v policies, Like math.isclose() from Python 3.5, test_iterator_passthrough(), test_iterator_rvp() (+2 more)
+
+### Community 109 - "Examplemanda Nonecasttester"
+Cohesion: 0.13
+Nodes (5): ExampleMandA, NoneCastTester, NoneTester, RegisteredDerived, UnregisteredBase
+
+### Community 110 - "Test Smart Ptr Issue"
+Cohesion: 0.13
+Nodes (2): #187: issue involving std::shared_ptr<> return value policy & garbage collection, test_shared_ptr_gc()
+
+### Community 111 - "Video Input Cpp"
+Cohesion: 0.21
+Nodes (12): Close(), Grab(), GrabNewest(), GrabNext(), InitialiseRecorder(), IsRecording(), Open(), Record() (+4 more)
+
+### Community 112 - "Images Cpp"
+Cohesion: 0.2
+Nodes (8): ConfigureStreamSizes(), GrabNewest(), GrabNext(), ImagesVideo(), LoadFrame(), PopulateFilenames(), PopulateFilenamesFromJson(), SizeBytes()
+
+### Community 113 - "Picojson Deny Parse Context"
+Cohesion: 0.25
+Nodes (12): deny_parse_context(), done_testing(), main(), parse(), parse_array_start(), parse_array_stop(), parse_object_start(), picojson() (+4 more)
+
+### Community 114 - "Dynalo Hpp"
+Cohesion: 0.4
+Nodes (10): close(), extension(), get_function(), invalid_handle(), last_error(), library, open(), prefix() (+2 more)
+
+### Community 115 - "Check Gradients"
+Cohesion: 0.25
+Nodes (13): _as_tuple(), _differentiable_outputs(), get_analytical_jacobian(), get_numerical_jacobian(), gradcheck(), gradgradcheck(), iter_tensors(), make_jacobian() (+5 more)
+
+### Community 116 - "Createlogdirectory Disablerc4"
+Cohesion: 0.16
+Nodes (3): DisableRC4(), Test-RegistryValueForFipsSettings(), Write-Log()
+
+### Community 117 - "Internals Get Internals"
+Cohesion: 0.25
+Nodes (8): get_internals(), get_internals_pp(), get_shared_data(), raise_err(), same_type(), set_shared_data(), translate_exception(), translate_local_exception()
+
+### Community 118 - "Test Numpy Array Cpp"
+Cohesion: 0.23
+Nodes (8): auxiliaries(), data(), data_t(), index_at(), index_at_t(), offset_at(), offset_at_t(), TEST_SUBMODULE()
+
+### Community 119 - "Test Callbacks Python"
+Cohesion: 0.14
+Nodes (4): Test if python builtins like sum() can be used as callbacks, Test if passing a function pointer from C++ -> Python -> C++ yields the original, test_cpp_function_roundtrip(), test_python_builtins()
+
+### Community 120 - "Test Exceptions Ignore Pytest Unraisable Warning"
+Cohesion: 0.14
+Nodes (3): Tests nested (e.g. C++ -> Python -> C++) exception handling, # TODO: FIXME, test_nested_throws()
+
+### Community 121 - "Varstate Cpp"
+Cohesion: 0.22
+Nodes (10): AddOrSetGeneric(), Clear(), erase_if(), LoadFromConfigStream(), LoadFromFile(), LoadFromJsonStream(), Remove(), SaveToFile() (+2 more)
+
+### Community 122 - "Pack Cpp"
+Cohesion: 0.18
+Nodes (5): GrabNewest(), GrabNext(), PackVideo(), Process(), SizeBytes()
+
+### Community 123 - "Unpack Cpp"
+Cohesion: 0.18
+Nodes (5): GrabNewest(), GrabNext(), Process(), SizeBytes(), UnpackVideo()
+
+### Community 124 - "Ffmpeg Cpp"
+Cohesion: 0.19
+Nodes (7): ffmpeg_error_string(), FfmpegVideo(), GrabNewest(), GrabNext(), InitUrl(), pango_sws_scale_frame(), Seek()
+
+### Community 125 - "Consoleview Addline"
+Cohesion: 0.26
+Nodes (11): AddLine(), CommonPrefix(), ConsoleView(), DrawLine(), GetLine(), glColour(), IsShown(), Keyboard() (+3 more)
+
+### Community 126 - "Image Io Jpg Cpp"
+Cohesion: 0.19
+Nodes (7): GetMJpegOffsets(), LoadJpg(), pango_jpeg_fill_input_buffer(), pango_jpeg_set_dest_mgr(), pango_jpeg_set_source_mgr(), pango_jpeg_skip_input_data(), SaveJpg()
+
+### Community 127 - "Geometry Ply Cpp"
+Cohesion: 0.27
+Nodes (13): AddVertexNormals(), AttachAssociatedTexturesPly(), LoadGeometryPly(), ParsePlyAscii(), ParsePlyBE(), ParsePlyHeader(), ParsePlyLE(), ReadGlIntType() (+5 more)
+
+### Community 128 - "Rxso3 Act4"
+Cohesion: 0.18
+Nodes (5): Adj(), AdjT(), calcW(), calcWInv(), Exp()
+
+### Community 129 - "Move Copy"
+Cohesion: 0.15
+Nodes (10): An object with a private `operator new` cannot be returned by value, #389: rvp::move should fall-through to copy on non-movable objects, Cast some values in C++ via custom type casters and count the number of moves/co, Call some functions that load arguments via custom type casters and count the nu, Tests move/copy loads of std::optional arguments, test_move_and_copy_casts(), test_move_and_copy_load_optional(), test_move_and_copy_loads() (+2 more)
+
+### Community 130 - "A Repeat A Tpl"
+Cohesion: 0.15
+Nodes (4): A_Repeat, A_Tpl, ExampleVirt, NCVirtTrampoline
+
+### Community 131 - "Functions Test Virtual Functions"
+Cohesion: 0.15
+Nodes (8): `A2`, unlike the above, is configured to always initialize the alias      While, #159: virtual function dispatch has problems with similar-named functions, #392/397: overriding reference-returning functions, `A` only initializes its trampoline class when we inherit from it      If we jus, test_alias_delay_initialization1(), test_alias_delay_initialization2(), test_dispatch_issue(), test_override_ref()
+
+### Community 132 - "Test Chrono Test Chrono Different Resolutions"
+Cohesion: 0.15
+Nodes (0): 
+
+### Community 133 - "Range Abssize"
+Cohesion: 0.15
+Nodes (0): 
+
+### Community 134 - "Se3 Act4"
+Cohesion: 0.23
+Nodes (9): Adj(), AdjT(), calcQ(), data(), inv(), left_jacobian(), left_jacobian_inverse(), Log() (+1 more)
+
+### Community 135 - "Sim3 Act4"
+Cohesion: 0.21
+Nodes (6): Adj(), AdjT(), data(), left_jacobian(), left_jacobian_inverse(), Sim3()
+
+### Community 136 - "Flowformer Asnamespace"
+Cohesion: 0.2
+Nodes (8): asNamespace(), __build_dynamic_config(), IncludeLoader, load_config(), LoadFrom, namespace_to_cfgnode(), Design for Flowformer. Flowformer uses yacs.config.CfgNode as config container., NamedTuple
+
+### Community 137 - "Get-Changelog Ps1"
+Cohesion: 0.21
+Nodes (9): DocumentationUpdate, Get-AuthHeader(), Get-MergedPullRequests(), Get-PullRequestFileMap(), PortUpdate, PRFileMap, Select-UpdatedPorts(), Select-Version() (+1 more)
+
+### Community 138 - "Test Constants And Functions Cpp"
+Cohesion: 0.17
+Nodes (0): 
+
+### Community 139 - "Video Cpp"
+Cohesion: 0.17
+Nodes (8): PyBufferAwareVideoInterface, PyGenicamVideoInterface, PyVideoFilterInterface, PyVideoInterface, PyVideoOutputInterface, PyVideoPlaybackInterface, PyVideoPropertiesInterface, PyVideoUvcInterface
+
+### Community 140 - "Packetstream Cpp"
+Cohesion: 0.29
+Nodes (10): get(), peekTag(), read(), readTag(), readTimestamp(), readUINT(), seekg(), skip() (+2 more)
+
+### Community 141 - "Glstate Glcolormask"
+Cohesion: 0.3
+Nodes (11): glColorMask(), glCullFace(), glDepthMask(), glDisable(), glEnable(), glLineWidth(), glPointSize(), glShadeModel() (+3 more)
+
+### Community 142 - "Egldisplayhl Headlesswindow"
+Cohesion: 0.2
+Nodes (4): EGLDisplayHL, makeCurrent(), swap(), SwapBuffers()
+
+### Community 143 - "Mjpeg Cpp"
+Cohesion: 0.21
+Nodes (5): GrabNewest(), GrabNext(), LoadNext(), MjpegVideo(), SizeBytes()
+
+### Community 144 - "Gamma Cpp"
+Cohesion: 0.21
+Nodes (5): GammaVideo(), GrabNewest(), GrabNext(), Process(), SizeBytes()
+
+### Community 145 - "Join Cpp"
+Cohesion: 0.3
+Nodes (7): AllInterfacesAreBufferAware(), GetAdjustedCaptureTime(), GrabNewest(), GrabNext(), JoinVideo(), SizeBytes(), Stop()
+
+### Community 146 - "Handler Cpp"
+Cohesion: 0.29
+Nodes (7): GetPosNormal(), GetPosNormalImpl(), Mouse(), MouseMotion(), PixelUnproject(), Special(), ValidWinDepth()
+
+### Community 147 - "Read Return"
+Cohesion: 0.23
+Nodes (10): cam_read(), Read depth data from file, return as numpy array., Read camera data, return (M,N) tuple.     M is the intrinsic matrix, N is the ex, Read .flo file in Middlebury format, Write optical flow to file.          If v is None, uv is assumed to contain both, read_gen(), readDPT(), readFlow() (+2 more)
+
+### Community 148 - "Evaluate Train Flowformer"
+Cohesion: 0.25
+Nodes (6): merge_matrices(), train(), AssertLiteralType(), get_datatype(), get_optimizer(), get_scheduler()
+
+### Community 149 - "Test Tagbased Polymorphic Cpp"
+Cohesion: 0.2
+Nodes (2): name_of_kind(), type_of_kind()
+
+### Community 150 - "Test Buffers Squarematrix"
+Cohesion: 0.18
+Nodes (2): SquareMatrix is derived from Matrix and inherits the buffer protocol, test_inherited_protocol()
+
+### Community 151 - "Video Output Cpp"
+Cohesion: 0.25
+Nodes (6): Close(), GetOutputImages(), Open(), SetStreams(), SizeBytes(), VideoOutput()
+
+### Community 152 - "Realsense2 Cpp"
+Cohesion: 0.25
+Nodes (5): GrabNewest(), GrabNext(), RealSense2Video(), SizeBytes(), Start()
+
+### Community 153 - "Thread Cpp"
+Cohesion: 0.33
+Nodes (7): AvailableFrames(), GrabNewest(), GrabNext(), operator()(), SizeBytes(), Stop(), ThreadVideo()
+
+### Community 154 - "Realsense Cpp"
+Cohesion: 0.27
+Nodes (6): GrabNewest(), GrabNext(), RealSenseVideo(), SizeBytes(), Start(), Stop()
+
+### Community 155 - "Threadedfilebuf Cpp"
+Cohesion: 0.31
+Nodes (8): allocate_buffer(), close(), force_close(), free_buffer(), operator()(), soft_close(), threadedfilebuf(), xsputn()
+
+### Community 156 - "Alloc Col"
+Cohesion: 0.33
+Nodes (8): Col(), InBounds(), InImage(), operator(), pangolin(), Row(), RowPtr(), SubImage()
+
+### Community 157 - "So3 Act4"
+Cohesion: 0.22
+Nodes (4): Adj(), AdjT(), other(), SO3()
+
+### Community 158 - "Forward Init"
+Cohesion: 0.22
+Nodes (5): CNNCovHead, LinearCovHead, Estimate the covariance using a linear feed-forward architecture., The feature input is default as [B, C, H, W], given that most of the encoder are, Estimate the covariance using a CNN architecture.
+
+### Community 159 - "Setup Build Expected Version Hex"
+Cohesion: 0.29
+Nodes (7): build_expected_version_hex(), get_and_replace(), Prepare a temporary directory, cleanup when done, # TODO: use literals & overload (typing extensions or Python 3.8), remove_output(), SDist, TemporaryDirectory()
+
+### Community 160 - "Iostream Exit"
+Cohesion: 0.42
+Nodes (8): c(), exit(), OstreamRedirect(), PYBIND11_NAMESPACE_BEGIN(), scoped_estream_redirect(), scoped_ostream_redirect(), _sync(), utf8_remainder()
+
+### Community 161 - "Test Modules Pydoc"
+Cohesion: 0.2
+Nodes (6): Pydoc needs to be able to provide help() for everything inside a pybind11 module, Registering two things with the same name, Test that all the keys in the builtin modules have type str.      Previous versi, test_builtin_key_type(), test_duplicate_registration(), test_pydoc()
+
+### Community 162 - "Test Stl Binders Test Map Delitem"
+Cohesion: 0.2
+Nodes (0): 
+
+### Community 163 - "Copyonlyint Moveonlyint"
+Cohesion: 0.2
+Nodes (3): CopyOnlyInt, MoveOnlyInt, MoveOrCopyInt
+
+### Community 164 - "Test Kwargs And Defaults Issue"
+Cohesion: 0.2
+Nodes (2): Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with reg, test_args_refcount()
+
+### Community 165 - "Pyinterpreter Cpp"
+Cohesion: 0.24
+Nodes (3): CheckPrintClearError(), EvalExec(), PyInterpreter()
+
+### Community 166 - "Viewport Cpp"
+Cohesion: 0.24
+Nodes (3): Activate(), ActivateIdentity(), ActivatePixelOrthographic()
+
+### Community 167 - "Shift Cpp"
+Cohesion: 0.29
+Nodes (6): DoShift16to8(), GrabNewest(), GrabNext(), Process(), ShiftVideo(), SizeBytes()
+
+### Community 168 - "Timer Cpu Timeit"
+Cohesion: 0.25
+Nodes (2): cuda_event_elapsed(), report()
+
+### Community 169 - "Eigen Cast"
+Cohesion: 0.39
+Nodes (6): base(), cast(), cast_impl(), conformable(), load(), stride()
+
+### Community 170 - "Test Enum Todo"
+Cohesion: 0.22
+Nodes (1): # TODO: Neither the name nor value tests actually check against aliasing.
+
+### Community 171 - "Test Numpy Vectorize Test Array Collapse"
+Cohesion: 0.22
+Nodes (0): 
+
+### Community 172 - "Test Call Policies Test Alive Gc"
+Cohesion: 0.22
+Nodes (0): 
+
+### Community 173 - "E Nc Test Stl Binders"
+Cohesion: 0.28
+Nodes (4): E_nc, El, times_hundred(), times_ten()
+
+### Community 174 - "Pypangolin Widget"
+Cohesion: 0.22
+Nodes (2): DerivedWidget, Widget
+
+### Community 175 - "Packetstream Writer Cpp"
+Cohesion: 0.39
+Nodes (7): AddSource(), CurrentTimeStr(), Write(), WriteEnd(), WriteHeader(), WriteMeta(), WriteSourcePacket()
+
+### Community 176 - "Glsl Addpreprocessedshader"
+Cohesion: 0.28
+Nodes (3): AddPreprocessedShader(), AddShaderFile(), PreprocessGLSL()
+
+### Community 177 - "Gltext Cpp"
+Cohesion: 0.31
+Nodes (3): Draw(), DrawWindow(), SetWindowOrthographic()
+
+### Community 178 - "Pangolinnsapplication Pangolinappdelegate"
+Cohesion: 0.22
+Nodes (7): PangolinAppDelegate, -dealloc, PangolinNSApplication, -run_pre, -run_step, PangolinWindowDelegate, -windowShouldClose
+
+### Community 179 - "Merge Cpp"
+Cohesion: 0.28
+Nodes (3): CopyBuffer(), GrabNewest(), GrabNext()
+
+### Community 180 - "Ffmpeg Convert Cpp"
+Cohesion: 0.25
+Nodes (2): FfmpegConverter(), SizeBytes()
+
+### Community 181 - "Cpp Grabnewest"
+Cohesion: 0.28
+Nodes (3): GrabNewest(), GrabNext(), setRandomData()
+
+### Community 182 - "Image View Cpp"
+Cohesion: 0.25
+Nodes (2): LoadPending(), Render()
+
+### Community 183 - "Image Io Png Cpp"
+Cohesion: 0.25
+Nodes (2): LoadPng(), pango_png_validate()
+
+### Community 184 - "Projective Ops Coords Grid"
+Cohesion: 0.33
+Nodes (6): flow_mag(), iproj(), point_cloud(), proj(), generate point cloud from patches, transform()
+
+### Community 185 - "Gil Dec Ref"
+Cohesion: 0.46
+Nodes (6): dec_ref(), disarm(), gil_scoped_acquire(), gil_scoped_release(), inc_ref(), PYBIND11_NAMESPACE_BEGIN()
+
+### Community 186 - "Test Multiple Inheritance Cpp"
+Cohesion: 0.25
+Nodes (0): 
+
+### Community 187 - "Widget Test Interpreter"
+Cohesion: 0.25
+Nodes (2): PyWidget, Widget
+
+### Community 188 - "Var Cpp"
+Cohesion: 0.25
+Nodes (1): var_t()
+
+### Community 189 - "Plotter Pangolin"
+Cohesion: 0.25
+Nodes (0): 
+
+### Community 190 - "Disableprograms Enableprogram"
+Cohesion: 0.25
+Nodes (0): 
+
+### Community 191 - "Openni Cpp"
+Cohesion: 0.39
+Nodes (5): GrabNewest(), GrabNext(), OpenNiVideo(), SizeBytes(), Start()
+
+### Community 192 - "Split Cpp"
+Cohesion: 0.29
+Nodes (2): SizeBytes(), SplitVideo()
+
+### Community 193 - "Shared Memory Cpp"
+Cohesion: 0.29
+Nodes (2): GrabNewest(), GrabNext()
+
+### Community 194 - "Truncate Cpp"
+Cohesion: 0.25
+Nodes (0): 
+
+### Community 195 - "Deinterlacevideo Grabnewest"
+Cohesion: 0.29
+Nodes (2): DeinterlaceVideo(), SizeBytes()
+
+### Community 196 - "Glutbitmap Glrasterpos2F"
+Cohesion: 0.39
+Nodes (5): glRasterPos2f(), glRasterPos2fv(), glRasterPos2i(), glRasterPos3f(), glRasterPos3fv()
+
+### Community 197 - "Simple Math Matadd"
+Cohesion: 0.25
+Nodes (0): 
+
+### Community 198 - "Stdistream Image Io Exr"
+Cohesion: 0.36
+Nodes (6): GetPixelFormat(), LoadExr(), OpenEXRPixelType(), SaveExr(), SetOpenEXRChannels(), StdIStream
+
+### Community 199 - "Loss Cov Loss"
+Cohesion: 0.57
+Nodes (5): cov_loss(), final_cov_loss(), flow_loss(), sequence_loss(), sequence_metric()
+
+### Community 200 - "Regenerate Ps1"
+Cohesion: 0.33
+Nodes (3): CMakeDocumentation, FinalDocFile(), RelativeUnixPathTo()
+
+### Community 201 - "Embed Finalize Interpreter"
+Cohesion: 0.38
+Nodes (3): finalize_interpreter(), PYBIND11_NAMESPACE_BEGIN(), scoped_interpreter()
+
+### Community 202 - "Buffer Info Compare"
+Cohesion: 0.38
+Nodes (3): compare(), PYBIND11_NAMESPACE_BEGIN(), view()
+
+### Community 203 - "Test Numpy Dtypes Cpp"
+Cohesion: 0.29
+Nodes (0): 
+
+### Community 204 - "Test Operator Overloading Need"
+Cohesion: 0.29
+Nodes (4): #393: need to return NotSupported to ensure correct arithmetic operator behavior, #328: first member in a class can't be used in operators, test_nested(), test_operators_notimplemented()
+
+### Community 205 - "Test Eigen Cpp"
+Cohesion: 0.38
+Nodes (4): get_elem(), reset_ref(), reset_refs(), TEST_SUBMODULE()
+
+### Community 206 - "Vector2 Test Operator Overloading"
+Cohesion: 0.33
+Nodes (5): abs(), C1, C2, TEST_SUBMODULE(), Vector2
+
+### Community 207 - "Destructiontester Test Custom Type Casters"
+Cohesion: 0.43
+Nodes (5): ArgAlwaysConverts, ArgInspector1, ArgInspector2, DestructionTester, TEST_SUBMODULE()
+
+### Community 208 - "Test Pickling Simplepyderived"
+Cohesion: 0.33
+Nodes (2): SimplePyDerived, test_roundtrip_simple_py_derived()
+
+### Community 209 - "Pango Video Output Cpp"
+Cohesion: 0.29
+Nodes (0): 
+
+### Community 210 - "File Extension Cpp"
+Cohesion: 0.43
+Nodes (4): FileLowercaseExtention(), FileType(), FileTypeExtension(), FileTypeMagic()
+
+### Community 211 - "Process Cpp"
+Cohesion: 0.29
+Nodes (0): 
+
+### Community 212 - "Pangolin Gl Cpp"
+Cohesion: 0.38
+Nodes (3): FinishFrame(), RenderViews(), Run()
+
+### Community 213 - "Logger Close"
+Cohesion: 0.33
+Nodes (1): Logger
+
+### Community 214 - "Evaluates Error"
+Cohesion: 0.29
+Nodes (4): evaluateROE(), evaluateRPE(), Evaluates error of rotation, Evaluates error of se(3) pose
+
+### Community 215 - "Chrono Cast"
+Cohesion: 0.6
+Nodes (4): cast(), load(), localtime_thread_safe(), PYBIND11_NAMESPACE_BEGIN()
+
+### Community 216 - "Options Global State"
+Cohesion: 0.73
+Nodes (4): global_state(), options(), show_function_signatures(), show_user_defined_docstrings()
+
+### Community 217 - "Nonzeroiterator Test Sequences And Iterators"
+Cohesion: 0.4
+Nodes (3): NonZeroIterator, NonZeroSentinel, TEST_SUBMODULE()
+
+### Community 218 - "Object M Ptr"
+Cohesion: 0.33
+Nodes (0): 
+
+### Community 219 - "Test Constants And Functions Test Bytes"
+Cohesion: 0.33
+Nodes (0): 
+
+### Community 220 - "Pybind11 Tests Cpp"
+Cohesion: 0.4
+Nodes (3): bind_ConstructorStats(), PYBIND11_MODULE(), test_initializer()
+
+### Community 221 - "Conf Clean Up"
+Cohesion: 0.53
+Nodes (4): clean_up(), generate_doxygen_xml(), prepare(), setup()
+
+### Community 222 - "Packetstream Writer Pangolin"
+Cohesion: 0.33
+Nodes (0): 
+
+### Community 223 - "Packet Cpp"
+Cohesion: 0.6
+Nodes (5): BytesRead(), BytesRemaining(), Packet(), ParsePacketHeader(), ReadRemaining()
+
+### Community 224 - "Images Out Cpp"
+Cohesion: 0.33
+Nodes (0): 
+
+### Community 225 - "Factory Registry Exception"
+Cohesion: 0.4
+Nodes (2): Exception(), ParameterMismatchException()
+
+### Community 226 - "Glgeometry Cpp"
+Cohesion: 0.53
+Nodes (5): BindGlElement(), GlDraw(), ToGlGeometry(), ToGlGeometryElement(), UnbindGlElements()
+
+### Community 227 - "Renderable Cpp"
+Cohesion: 0.4
+Nodes (2): Render(), RenderChildren()
+
+### Community 228 - "Png Pybind11-Logo"
+Cohesion: 0.6
+Nodes (0): 
+
+### Community 229 - "Macvo Get Args"
+Cohesion: 0.6
+Nodes (3): onFrameFinished(), VisualizeRerunCallback(), VisualizeVRAMUsage()
+
+### Community 230 - "Torch Float"
+Cohesion: 0.4
+Nodes (4): CalculateOnePatch(), depth_mean: (N,) torch.float     depth_var:  (N,) torch.float     selector_dist:, depth_mean: (N,) torch.float     depth_var:  (N,) torch.float     selector_dist:, SimulateOnePatch()
+
+### Community 231 - "Train Image2Gray"
+Cohesion: 0.5
+Nodes (2): kabsch_umeyama(), train()
+
+### Community 232 - "Generatebaseline Generate Baseline"
+Cohesion: 0.7
+Nodes (4): generate_baseline(), get_version_port_version(), get_version_tag(), main()
+
+### Community 233 - "Generateportversionsdb Generate Versions Db"
+Cohesion: 0.6
+Nodes (3): generate_versions_db(), get_current_git_ref(), main()
+
+### Community 234 - "Utility-Prefix Ps1"
+Cohesion: 0.7
+Nodes (4): Get-TempFilePath(), InstallMSI(), InstallZip(), PrintMsiExitCodeMessage()
+
+### Community 235 - "Computehash Deploybinary"
+Cohesion: 0.7
+Nodes (4): computeHash(), deployBinary(), getMutex(), resolve()
+
+### Community 236 - "Generate-Ports Ps1"
+Cohesion: 0.7
+Nodes (4): GeneratePort(), GeneratePortDependency(), GeneratePortManifest(), GeneratePortName()
+
+### Community 237 - "Stl Load"
+Cohesion: 0.8
+Nodes (3): load(), PYBIND11_NAMESPACE_BEGIN(), reserve_maybe()
+
+### Community 238 - "Test Stl Cpp"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 239 - "Test Iostream Cpp"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 240 - "Test Async Event Loop"
+Cohesion: 0.6
+Nodes (3): get_await_result(), test_await(), test_await_missing()
+
+### Community 241 - "Test Files Test Build Global Dist"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 242 - "Pypangoio Cpp"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 243 - "Appendcolumns Csvtableloader"
+Cohesion: 0.6
+Nodes (3): AppendColumns(), ReadRow(), SkipLines()
+
+### Community 244 - "Colourwheel Getuniquecolour"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 245 - "Glfont Cpp"
+Cohesion: 0.6
+Nodes (4): GlFont(), InitialiseFont(), InitialiseGlTexture(), Text()
+
+### Community 246 - "Glpangoglu Cpp"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 247 - "Natural Sort Hpp"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 248 - "Mask Option Type"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 249 - "Attribute Iterator Node Iterator"
+Cohesion: 0.4
+Nodes (2): attribute_iterator, node_iterator
+
+### Community 250 - "Rapidxml Utils Hpp"
+Cohesion: 0.4
+Nodes (1): file
+
+### Community 251 - "Param Set Cpp"
+Cohesion: 0.6
+Nodes (3): Contains(), FindUnrecognizedUriParams(), GetMatchingParamFromParamSet()
+
+### Community 252 - "Posixsemaphore Semaphore"
+Cohesion: 0.4
+Nodes (1): PosixSemaphore
+
+### Community 253 - "Posixsharedmemorybuffer Shared Memory Buffer"
+Cohesion: 0.4
+Nodes (1): PosixSharedMemoryBuffer
+
+### Community 254 - "Pthreadconditionvariable Create Named Condition Variable"
+Cohesion: 0.4
+Nodes (1): PThreadConditionVariable
+
+### Community 255 - "Factory Help Cpp"
+Cohesion: 0.6
+Nodes (3): HighestPriScheme(), PrintFactoryDetails(), PrintFactoryRegistryDetails()
+
+### Community 256 - "Frac Pangolin"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 257 - "Shared Image Copyfrom"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 258 - "Image Io Ppm Cpp"
+Cohesion: 0.5
+Nodes (2): LoadPpm(), PpmConsumeWhitespaceAndComments()
+
+### Community 259 - "Plot Utils Best Plotmode"
+Cohesion: 0.7
+Nodes (4): best_plotmode(), make_traj(), plot_trajectory(), save_trajectory_tum_format()
+
+### Community 260 - "Test Config Modules Test Frontend Config"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 261 - "Plotbeautifulcompare Get Color"
+Cohesion: 0.67
+Nodes (2): plot_runs(), PlotTrajectory()
+
+### Community 262 - "Point Filterpointsinrange"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 263 - "Rendertree Render Tree"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 264 - "File Script Gen All File Strings"
+Cohesion: 0.83
+Nodes (3): gen_all_file_strings(), getFiles(), main()
+
+### Community 265 - "Eval Exec"
+Cohesion: 0.67
+Nodes (2): exec(), PYBIND11_NAMESPACE_BEGIN()
+
+### Community 266 - "Complex Cast"
+Cohesion: 0.67
+Nodes (2): cast(), format()
+
+### Community 267 - "Typeid Pybind11 Namespace Begin"
+Cohesion: 0.67
+Nodes (2): PYBIND11_NAMESPACE_BEGIN(), type_id()
+
+### Community 268 - "Init No Nullptr"
+Cohesion: 0.67
+Nodes (2): no_nullptr(), PYBIND11_NAMESPACE_BEGIN()
+
+### Community 269 - "That Type"
+Cohesion: 0.5
+Nodes (2): Tests that returning a pointer to a type that gets converted with a custom type, test_custom_caster_destruction()
+
+### Community 270 - "Virtclass Test Gil Scoped"
+Cohesion: 0.5
+Nodes (1): VirtClass
+
+### Community 271 - "Test Eval Test Eval Empty Globals"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 272 - "Test Call Policies Cpp"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 273 - "Test Pickling Cpp"
+Cohesion: 0.67
+Nodes (2): TEST_SUBMODULE(), wrap()
+
+### Community 274 - "Test Opaque Types Test Pointers"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 275 - "Pytest Deprecated Call"
+Cohesion: 0.5
+Nodes (3): deprecated_call(), pytest.deprecated_call() seems broken in pytest<3.9.x; concretely, it     doesn', # TODO: Remove this when testing requires pytest>=3.9.
+
+### Community 276 - "Test Setuphelper Test Intree Extensions"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 277 - "Benchmark Generate Dummy Code Boost"
+Cohesion: 0.67
+Nodes (2): generate_dummy_code_boost(), generate_dummy_code_pybind11()
+
+### Community 278 - "Varvaluegeneric Pangolin"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 279 - "Varextra Detachvarbyname"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 280 - "Vars Cpp"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 281 - "Playback Session Cpp"
+Cohesion: 0.83
+Nodes (3): Choose(), ChooseFromParams(), Default()
+
+### Community 282 - "X11Window Glcontextinterface"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 283 - "Stream Encoder Factory Cpp"
+Cohesion: 0.83
+Nodes (3): EncoderDetailsFromString(), GetDecoder(), GetEncoder()
+
+### Community 284 - "Type Convert Pangolin"
+Cohesion: 0.67
+Nodes (2): Do(), ToString()
+
+### Community 285 - "Sigstate Cpp"
+Cohesion: 0.67
+Nodes (2): Clear(), SigState()
+
+### Community 286 - "Setfullscreen Toggleconsole"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 287 - "Image Io Tiff Cpp"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 288 - "Mouse Mousemotion"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 289 - "Geometry Obj Cpp"
+Cohesion: 0.67
+Nodes (2): GetImageWrapper(), LoadGeometryObj()
+
+### Community 290 - "Evalseq Evaluatesequences"
+Cohesion: 0.83
+Nodes (3): EvaluateSequences(), EvaluateSequencesAvg(), mean()
+
+### Community 291 - "Montecarlo Disparityvariance Montecarlo Sample Depth"
+Cohesion: 1.0
+Nodes (2): Montecarlo_sample_depth(), plot_experiment()
+
+### Community 292 - "Flops Analyzer Getflops"
+Cohesion: 1.0
+Nodes (2): GetFlops(), main()
+
+### Community 293 - "Init Build Flowformer"
+Cohesion: 0.67
+Nodes (1): build_flowformer()
+
+### Community 294 - "Main Sample"
+Cohesion: 1.0
+Nodes (2): main(), sample()
+
+### Community 295 - "Main Sample"
+Cohesion: 1.0
+Nodes (2): main(), sample()
+
+### Community 296 - "Main Sample"
+Cohesion: 1.0
+Nodes (2): main(), sample()
+
+### Community 297 - "Main Sample"
+Cohesion: 1.0
+Nodes (2): main(), sample()
+
+### Community 298 - "Main Sample"
+Cohesion: 1.0
+Nodes (2): main(), sample()
+
+### Community 299 - "Main Sample"
+Cohesion: 1.0
+Nodes (2): main(), sample()
+
+### Community 300 - "Main Sample"
+Cohesion: 1.0
+Nodes (2): main(), sample()
+
+### Community 301 - "Main Sample"
+Cohesion: 1.0
+Nodes (2): main(), sample()
+
+### Community 302 - "Simpledisplay A Callback"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 303 - "My Lib Cpp"
+Cohesion: 0.67
+Nodes (1): answer()
+
+### Community 304 - "Functional Pybind11 Namespace Begin"
+Cohesion: 0.67
+Nodes (1): PYBIND11_NAMESPACE_BEGIN()
+
+### Community 305 - "Operators Pybind11 Namespace Begin"
+Cohesion: 0.67
+Nodes (1): PYBIND11_NAMESPACE_BEGIN()
+
+### Community 306 - "Stl Bind Pybind11 Namespace Begin"
+Cohesion: 0.67
+Nodes (1): PYBIND11_NAMESPACE_BEGIN()
+
+### Community 307 - "Test Numpy Vectorize Cpp"
+Cohesion: 1.0
+Nodes (2): my_func(), TEST_SUBMODULE()
+
+### Community 308 - "Gil Acquire Initcross Module Gil Utils"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 309 - "Test Builtin Casters Cpp"
+Cohesion: 0.67
+Nodes (1): type_caster<ConstRefCasted>
+
+### Community 310 - "Test Callbacks Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 311 - "Embed Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 312 - "Window Cpp"
+Cohesion: 0.67
+Nodes (1): PyWindowInterface
+
+### Community 313 - "Cpp Bind Gl"
+Cohesion: 1.0
+Nodes (2): bind_gl(), is_packed()
+
+### Community 314 - "Plotter Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 315 - "Varinit Pango Check Wrap"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 316 - "Varvalue Init"
+Cohesion: 1.0
+Nodes (2): Init(), pangolin()
+
+### Community 317 - "Glchar Pangolin"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 318 - "Gl Es Compat Glrectf"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 319 - "Glchar Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 320 - "Video Exception Pangolin"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 321 - "Realsense2 Pangolin"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 322 - "Realsense Pangolin"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 323 - "Transform Pangolin"
+Cohesion: 0.67
+Nodes (1): pangolin()
+
+### Community 324 - "Video Help Cpp"
+Cohesion: 1.0
+Nodes (2): PrintPixelFormats(), VideoHelp()
+
+### Community 325 - "Video Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 326 - "Params Pangolin"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 327 - "Format String Formatstring"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 328 - "Handler Glbuffer Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 329 - "Image Utils Getscaleonly"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 330 - "Image Io Packed12Bit Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 331 - "Image Io Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 332 - "Image Io Bmp Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 333 - "Pixel Format Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 334 - "Image Io Pango Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 335 - "Image Io Tga Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 336 - "Image Io Zstd Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 337 - "Image Io Lz4 Cpp"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 338 - "Glgeometry Hasattribute"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 339 - "Geometry Getaxisalignedbox"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 340 - "Stream Image Stream"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 341 - "Evaldepth Evaluate Depth"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 342 - "Plotseq Plot Jointly"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 343 - "Evalflow Evaluate Flow"
+Cohesion: 0.67
+Nodes (0): 
+
+### Community 344 - "Test Config Loadable Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 345 - "Test Config Sequence Test Sequence Cfg"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 346 - "Test Config Macvo Test Macvo Config"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 347 - "Test Frontend Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 348 - "Test Stereo Depth Test Matching"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 349 - "Test Performance Macvo Test Macvo Performance"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 350 - "Test Config Tartanvo Test Tartanvo Config"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 351 - "Test Matching Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 352 - "Experiment Tartanvo Execute Experiment"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 353 - "Experiment Macvo Execute Experiment"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 354 - "Experiment Macvo Resolution Execute Experiment"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 355 - "Experiment Dpvo Execute Experiment"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 356 - "Tartanvodisparity Avgerror Main"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 357 - "Matchestimator Main"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 358 - "Visualizeflow Sparsification Plot"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 359 - "Optimization Ablation Run Frame"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 360 - "Submission Get Cfg"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 361 - "Main-Transform Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 362 - "Main-Print Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 363 - "Util Expandgloboption"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 364 - "Shader Main"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 365 - "Simpleplot Main"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 366 - "Simplevideo Main"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 367 - "Findexistingimportmoduledirectives Addposhvcpkgtopowershellp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 368 - "Invoke-Scriptwithprefix Create-Image"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 369 - "Installinteloneapi Deploy-Inteloneapi"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 370 - "Installwindowsdk Deploy-Windows-Sdks"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 371 - "New-Physicaldisk Deploy-Install-Disk"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 372 - "Installmpi Deploy-Mpi"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 373 - "Installvisualstudio Deploy-Visual-Studio"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 374 - "Format-Size Disk-Space"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 375 - "K4Adeploy Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 376 - "Gettimeofday Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 377 - "Openni2Deploy Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 378 - "Qtdeploy Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 379 - "Magnumdeploy Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 380 - "Main Check Getcontext"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 381 - "Generatefeatures Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 382 - "Set Endian Decomp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 383 - "Pyinterpreter Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 384 - "Test Union Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 385 - "Test Eval Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 386 - "Test Pytypes Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 387 - "Local Bindings Pets"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 388 - "Test Docstring Options Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 389 - "Test Buffers Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 390 - "Test Async Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 391 - "Pybind11 Cross Module Tests Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 392 - "Test Opaque Types Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 393 - "Test Chrono Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 394 - "Constructorstats Constructor Stats"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 395 - "Test Enum Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 396 - "Test Local Bindings Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 397 - "Test Modules Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 398 - "Test Tagbased Polymorphic Test Downcast"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 399 - "Test Kwargs And Defaults Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 400 - "Test Docstring Options Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 401 - "Test Union Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 402 - "External Module Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 403 - "Main Catch"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 404 - "Main Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 405 - "Pypangolin Module Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 406 - "Pypangolin Embed Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 407 - "Gl Draw Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 408 - "Viewport Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 409 - "Params Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 410 - "Handler Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 411 - "View Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 412 - "Handler Hpp"
+Cohesion: 1.0
+Nodes (1): PyHandler
+
+### Community 413 - "Bind Display Display"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 414 - "Pypangoio Py Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 415 - "Bind Attach Attach"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 416 - "Bind Datalog Datalog"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 417 - "Glvbo Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 418 - "Pixel Format Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 419 - "Bind Colour Colour"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 420 - "Hpp Bind Image"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 421 - "Opengl Render State Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 422 - "Image View Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 423 - "Varvaluet Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 424 - "Varwrapper Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 425 - "Var Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 426 - "Packetstream Reader Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 427 - "Packetstream Tags Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 428 - "Playback Session Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 429 - "Packetstream Source Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 430 - "Packet Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 431 - "Packetstream Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 432 - "Pangolin Csv Table Loader"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 433 - "Table Loader Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 434 - "Gltext Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 435 - "Viewport Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 436 - "Gltexturecache Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 437 - "Glfont Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 438 - "Glpangoglu Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 439 - "Glvbo Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 440 - "Glinclude Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 441 - "Glpixformat Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 442 - "Glcuda Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 443 - "Opengl Render State Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 444 - "Glformattraits Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 445 - "Gldraw Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 446 - "Emscriptenwindow Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 447 - "Handler Enums Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 448 - "Handler Bitsets Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 449 - "Osxwindow Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 450 - "Pangolin Display Android"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 451 - "Winwindow Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 452 - "Window Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 453 - "Stream Info Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 454 - "Iostream Operators Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 455 - "Stream Encoder Factory Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 456 - "Video Output Interface Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 457 - "Video Help Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 458 - "Video Input Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 459 - "Video Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 460 - "Video Interface Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 461 - "Video Output Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 462 - "Ffmpeg Convert Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 463 - "Pango Video Output Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 464 - "Uvc Mediafoundation Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 465 - "Ffmpeg Output Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 466 - "Pangolin Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 467 - "Pleora Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 468 - "Openni2 Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 469 - "Pangolin Debayer"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 470 - "Images Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 471 - "Teli Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 472 - "Shared Memory Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 473 - "Pangolin Deinterlace"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 474 - "Images Out Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 475 - "Unpack Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 476 - "Pangolin Depthsense"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 477 - "Ffmpeg Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 478 - "V4L Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 479 - "Split Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 480 - "Firewire Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 481 - "Uvc Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 482 - "Openni Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 483 - "Gamma Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 484 - "Merge Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 485 - "Pack Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 486 - "Shift Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 487 - "Join Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 488 - "Truncate Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 489 - "Openni Common Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 490 - "Thread Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 491 - "Mjpeg Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 492 - "Ffmpeg Common Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 493 - "Tests Video Uri Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 494 - "Json Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 495 - "Type Traits Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 496 - "File Utils Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 497 - "Memstreambuf Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 498 - "True False Toggle Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 499 - "Pangolin Compontent Cast"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 500 - "Threadedfilebuf Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 501 - "Parse Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 502 - "Param Set Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 503 - "Fix Size Buffer Queue Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 504 - "File Extension Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 505 - "Variadic All Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 506 - "Timer Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 507 - "Uri Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 508 - "Is Streamable Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 509 - "Sigstate Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 510 - "Pangolin Assert"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 511 - "Pangolin Avx Math"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 512 - "Pangolin Condition Variable"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 513 - "Semaphore Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 514 - "Shared Memory Buffer Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 515 - "Factory Help Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 516 - "Factory Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 517 - "Tests Uri Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 518 - "Uri Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 519 - "Factory Registry Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 520 - "Handler Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 521 - "Handler Glbuffer Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 522 - "Handler Image Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 523 - "Image View Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 524 - "Process Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 525 - "Pangolin Default Font"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 526 - "Pangolin Display"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 527 - "View Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 528 - "User App Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 529 - "Pangolin Consoleview"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 530 - "Interpreterinterface Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 531 - "Pangolin Gl Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 532 - "Video Viewer Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 533 - "Pangolin Copy"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 534 - "Managed Image Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 535 - "Pixel Format Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 536 - "Memcpy Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 537 - "Image Convert Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 538 - "Typed Image Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 539 - "Image Io Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 540 - "Image Io Libraw Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 541 - "Image Io Raw Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 542 - "Interactive Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 543 - "Renderable Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 544 - "Scenehandler Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 545 - "Interactive Index Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 546 - "Tree Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 547 - "Geometry Ply Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 548 - "Geometry Obj Pangolin"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 549 - "Geometry Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 550 - "Plotspeed Plot Compare Plot"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 551 - "Depthquality Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 552 - "Matchquality Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 553 - "Is Valid Config This"
+Cohesion: 1.0
+Nodes (1): `is_valid_config`                  This method is for minimum sanity check on co
+
+### Community 554 - "Name Assign"
+Cohesion: 1.0
+Nodes (1): Assign a short name for the dataset class. By default will be the class name.
+
+### Community 555 - "Init Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 556 - "Init Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 557 - "Given Sequence"
+Cohesion: 1.0
+Nodes (1): Given a sequence of frames, elaborate the trajectory (frame poses) and handle th
+
+### Community 558 - "Given Batch"
+Cohesion: 1.0
+Nodes (1): Given a batch of N observation (`TensorBundle`), the filter returns a boolean te
+
+### Community 559 - "Given Initialize"
+Cohesion: 1.0
+Nodes (1): Given config, initialize a *mutable* context object that is preserved between op
+
+### Community 560 - "Given Context"
+Cohesion: 1.0
+Nodes (1): Given context and argument, construct the optimization problem, solve it and ret
+
+### Community 561 - "Returns Immediately"
+Cohesion: 1.0
+Nodes (1): Returns immediately, indicate the status of optimizer:         - true if there
+
+### Community 562 - "Returns Concrete"
+Cohesion: 1.0
+Nodes (1): Returns the concrete type used for T_GraphInput. Raises TypeError if not explici
+
+### Community 563 - "Returns Concrete"
+Cohesion: 1.0
+Nodes (1): Returns the concrete type used for T_GraphOutput. Raises TypeError if not explic
+
+### Community 564 - "Should This"
+Cohesion: 1.0
+Nodes (1): This function should be implemented by the user.         It should return the ja
+
+### Community 565 - "Model Returns"
+Cohesion: 1.0
+Nodes (1): Returns the jacobian of the model's previous forward call with respect to model'
+
+### Community 566 - "Verifies Whether"
+Cohesion: 1.0
+Nodes (1): Verifies whether the input J_analytic coincides with autograd jacobian of the pr
+
+### Community 567 - "Given Pixel Uv"
+Cohesion: 1.0
+Nodes (1): Given a pixel_uv (Nx2) tensor, retrieve the pixel values (1, N) from scalar_map
+
+### Community 568 - "Dpvo Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 569 - "Tartanvo Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 570 - "Init Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 571 - "Setup Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 572 - "Bootstrap Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 573 - "Create-Prdiff Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 574 - "Test-Modified-Ports Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 575 - "Rearrange-Msvc-Drop-Layout Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 576 - "Install-Prerequisites Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 577 - "Setup-Vagrantmachines Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 578 - "Vagrantfile-Box Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 579 - "Vagrantfile-Vm Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 580 - "Create-Image Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 581 - "Create-Vmss Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 582 - "Provision-Entire-Image Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 583 - "Deploy-Pwsh Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 584 - "Deploy-Cuda Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 585 - "Drop-To-Admin-User-Prefix Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 586 - "Create-Vmss Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 587 - "Sysprep Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 588 - "Deploy-Psexec Ps1"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 589 - "Freeimageconfig-Static Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 590 - "Freeimageconfig-Dynamic Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 591 - "Gettimeofday Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 592 - "Magick Types Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 593 - "Angle Commit Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 594 - "String Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 595 - "Core Cluster 595"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 596 - "Arith Win64 Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 597 - "Arith Win32 Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 598 - "Arith Linux64 Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 599 - "Arith Osx Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 600 - "B64 Dynamic Config Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 601 - "B64 Static Config Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 602 - "Core Cluster 602"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 603 - "Modp B64 Data Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 604 - "Cgnsconfig Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 605 - "Core Cluster 605"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 606 - "Linux Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 607 - "Core Cluster 607"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 608 - "Libsecp256K1-Config Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 609 - "Openblas Common Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 610 - "Arith Win64 Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 611 - "Arith Win32 Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 612 - "Arith Osx Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 613 - "Core Cluster 613"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 614 - "Fficonfig Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 615 - "Core Cluster 615"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 616 - "U2F-Server-Version Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 617 - "Generate Static Link Cmd Windows Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 618 - "Generate Static Link Cmd Linux Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 619 - "Convert Lib Params Windows Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 620 - "Convert Lib Params Macos Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 621 - "Convert Lib Params Linux Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 622 - "Generate Static Link Cmd Macos Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 623 - "Chartdir Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 624 - "Common Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 625 - "Make Changelog Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 626 - "Libsize Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 627 - "Test Exceptions Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 628 - "Test Eval Call Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 629 - "Core Cluster 629"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 630 - "Cxx Standard"
+Cohesion: 1.0
+Nodes (1): The CXX standard level. If set, will add the required flags. If left         at
+
+### Community 631 - "Glvbo Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 632 - "Video Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 633 - "Widget Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 634 - "Window Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 635 - "Pixel Format Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 636 - "Glsl Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 637 - "Params Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 638 - "Display Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 639 - "View Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 640 - "Attach Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 641 - "Gl Draw Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 642 - "Datalog Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 643 - "Opengl Render State Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 644 - "Glsl Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 645 - "Cpp Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 646 - "Hpp Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 647 - "Plotter Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 648 - "Viewport Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 649 - "Image View Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 650 - "Colour Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 651 - "Test All Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 652 - "Glplatform Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 653 - "Gltexturecache Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 654 - "Gl2Engine Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 655 - "X11Glcontext Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 656 - "Display Osx Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 657 - "Video Record Repeat Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 658 - "Tests Video Loading Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 659 - "Pangolin Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 660 - "Platform Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 661 - "Log Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 662 - "Signal Slot Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 663 - "Symbol Helper Hpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 664 - "Hpp Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 665 - "Dummy Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 666 - "Avx Math Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 667 - "Default Font Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 668 - "Tinyobj Cpp"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 669 - "Core Cluster 669"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 670 - "Init Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 671 - "Common Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 672 - "Init Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 673 - "Common Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 674 - "Make Changelog Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 675 - "Libsize Cluster"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 676 - "Cxx Standard"
+Cohesion: 1.0
+Nodes (1): The CXX standard level. If set, will add the required flags. If left at
+
+### Community 677 - "Collate That"
+Cohesion: 1.0
+Nodes (1): A default collate function that will handle torch.Tensor, pp.LieTensor and
+
+## Knowledge Gaps
+- **959 isolated node(s):** `depth_mean: (N,) torch.float     depth_var:  (N,) torch.float     selector_dist:`, `depth_mean: (N,) torch.float     depth_var:  (N,) torch.float     selector_dist:`, `Design for Flowformer. Flowformer uses yacs.config.CfgNode as config container.`, `Spherical linear interpolation.`, `In:         cov_2x2: torch.Tensor of shape Nx2x2, full 2D covaraiance matrices` (+954 more)
+  These have ≤1 connection - possible missing edges or undocumented components.
+- **Thin community `Test Config Loadable Cluster`** (2 nodes): `test_config_loadable.py`, `test_config_loadable()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Config Sequence Test Sequence Cfg`** (2 nodes): `test_config_sequence.py`, `test_sequence_cfg()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Config Macvo Test Macvo Config`** (2 nodes): `test_config_macvo.py`, `test_macvo_config()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Frontend Cluster`** (2 nodes): `test_frontend.py`, `test_frontend()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Stereo Depth Test Matching`** (2 nodes): `test_stereo_depth.py`, `test_matching()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Performance Macvo Test Macvo Performance`** (2 nodes): `test_performance_macvo.py`, `test_macvo_performance()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Config Tartanvo Test Tartanvo Config`** (2 nodes): `test_config_tartanvo.py`, `test_tartanvo_config()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Matching Cluster`** (2 nodes): `test_matching.py`, `test_matching()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Experiment Tartanvo Execute Experiment`** (2 nodes): `Experiment_TartanVO.py`, `execute_experiment()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Experiment Macvo Execute Experiment`** (2 nodes): `Experiment_MACVO.py`, `execute_experiment()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Experiment Macvo Resolution Execute Experiment`** (2 nodes): `Experiment_MACVO_resolution.py`, `execute_experiment()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Experiment Dpvo Execute Experiment`** (2 nodes): `Experiment_DPVO.py`, `execute_experiment()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Tartanvodisparity Avgerror Main`** (2 nodes): `TartanVODisparity_AvgError.py`, `main()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Matchestimator Main`** (2 nodes): `MatchEstimator.py`, `main()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Visualizeflow Sparsification Plot`** (2 nodes): `VisualizeFlow.py`, `sparsification_plot()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Optimization Ablation Run Frame`** (2 nodes): `Optimization_Ablation.py`, `run_frame()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Submission Get Cfg`** (2 nodes): `submission.py`, `get_cfg()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Main-Transform Cpp`** (2 nodes): `main-transform.cpp`, `main()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Main-Print Cpp`** (2 nodes): `main-print.cpp`, `main()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Util Expandgloboption`** (2 nodes): `util.h`, `ExpandGlobOption()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Shader Main`** (2 nodes): `shader.h`, `main()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Simpleplot Main`** (2 nodes): `SimplePlot.py`, `main()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Simplevideo Main`** (2 nodes): `SimpleVideo.py`, `main()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Findexistingimportmoduledirectives Addposhvcpkgtopowershellp`** (2 nodes): `findExistingImportModuleDirectives()`, `addPoshVcpkgToPowershellProfile.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Invoke-Scriptwithprefix Create-Image`** (2 nodes): `Invoke-ScriptWithPrefix()`, `create-image.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Installinteloneapi Deploy-Inteloneapi`** (2 nodes): `InstallInteloneAPI()`, `deploy-inteloneapi.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Installwindowsdk Deploy-Windows-Sdks`** (2 nodes): `InstallWindowsDK()`, `deploy-windows-sdks.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `New-Physicaldisk Deploy-Install-Disk`** (2 nodes): `New-PhysicalDisk()`, `deploy-install-disk.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Installmpi Deploy-Mpi`** (2 nodes): `InstallMpi()`, `deploy-mpi.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Installvisualstudio Deploy-Visual-Studio`** (2 nodes): `InstallVisualStudio()`, `deploy-visual-studio.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Format-Size Disk-Space`** (2 nodes): `Format-Size()`, `disk-space.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `K4Adeploy Ps1`** (2 nodes): `k4adeploy.ps1`, `deployAzureKinectSensorSDK()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gettimeofday Cluster`** (2 nodes): `gettimeofday.c`, `gettimeofday()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Openni2Deploy Ps1`** (2 nodes): `openni2deploy.ps1`, `deployOpenNI2()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Qtdeploy Ps1`** (2 nodes): `qtdeploy.ps1`, `deployPluginsIfQt()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Magnumdeploy Ps1`** (2 nodes): `magnumdeploy.ps1`, `deployPluginsIfMagnum()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Main Check Getcontext`** (2 nodes): `main()`, `check_getcontext.cc`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Generatefeatures Ps1`** (2 nodes): `generateFeatures.ps1`, `GetDescription()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Set Endian Decomp`** (2 nodes): `set_endian()`, `decomp.c`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pyinterpreter Pangolin`** (2 nodes): `pyinterpreter.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Union Cpp`** (2 nodes): `test_union.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Eval Cpp`** (2 nodes): `test_eval.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Pytypes Cpp`** (2 nodes): `test_pytypes.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Local Bindings Pets`** (2 nodes): `local_bindings.h`, `pets()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Docstring Options Cpp`** (2 nodes): `test_docstring_options.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Buffers Cpp`** (2 nodes): `test_buffers.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Async Cpp`** (2 nodes): `test_async.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pybind11 Cross Module Tests Cpp`** (2 nodes): `pybind11_cross_module_tests.cpp`, `PYBIND11_MODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Opaque Types Cpp`** (2 nodes): `test_opaque_types.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Chrono Cpp`** (2 nodes): `test_chrono.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Constructorstats Constructor Stats`** (2 nodes): `ConstructorStats()`, `constructor_stats.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Enum Cpp`** (2 nodes): `test_enum.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Local Bindings Cpp`** (2 nodes): `test_local_bindings.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Modules Cpp`** (2 nodes): `test_modules.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Tagbased Polymorphic Test Downcast`** (2 nodes): `test_tagbased_polymorphic.py`, `test_downcast()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Kwargs And Defaults Cpp`** (2 nodes): `test_kwargs_and_defaults.cpp`, `TEST_SUBMODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Docstring Options Cluster`** (2 nodes): `test_docstring_options.py`, `test_docstring_options()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Union Cluster`** (2 nodes): `test_union.py`, `test_union()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `External Module Cpp`** (2 nodes): `external_module.cpp`, `PYBIND11_MODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Main Catch`** (2 nodes): `main()`, `catch.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Main Cpp`** (2 nodes): `main.cpp`, `PYBIND11_MODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pypangolin Module Cpp`** (2 nodes): `pypangolin_module.cpp`, `PYBIND11_MODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pypangolin Embed Cpp`** (2 nodes): `pypangolin_embed.cpp`, `PYBIND11_EMBEDDED_MODULE()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gl Draw Cpp`** (2 nodes): `gl_draw.cpp`, `bind_gl_draw()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Viewport Cpp`** (2 nodes): `viewport.cpp`, `bind_viewport()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Params Cpp`** (2 nodes): `params.cpp`, `bind_params()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Handler Cpp`** (2 nodes): `handler.cpp`, `bind_handler()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `View Cpp`** (2 nodes): `view.cpp`, `bind_view()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Handler Hpp`** (2 nodes): `handler.hpp`, `PyHandler`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Bind Display Display`** (2 nodes): `bind_display()`, `display.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pypangoio Py Pangolin`** (2 nodes): `pypangoio.h`, `py_pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Bind Attach Attach`** (2 nodes): `bind_attach()`, `attach.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Bind Datalog Datalog`** (2 nodes): `bind_datalog()`, `datalog.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glvbo Cpp`** (2 nodes): `glvbo.cpp`, `bind_glvbo()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pixel Format Cpp`** (2 nodes): `pixel_format.cpp`, `bind_pixel_format()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Bind Colour Colour`** (2 nodes): `bind_colour()`, `colour.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Hpp Bind Image`** (2 nodes): `image.hpp`, `bind_image()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Opengl Render State Cpp`** (2 nodes): `opengl_render_state.cpp`, `bind_opengl_render_state()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Image View Cpp`** (2 nodes): `image_view.cpp`, `bind_image_view()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Varvaluet Pangolin`** (2 nodes): `varvaluet.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Varwrapper Pangolin`** (2 nodes): `varwrapper.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Var Pangolin`** (2 nodes): `var.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Packetstream Reader Pangolin`** (2 nodes): `packetstream_reader.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Packetstream Tags Pangolin`** (2 nodes): `packetstream_tags.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Playback Session Pangolin`** (2 nodes): `playback_session.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Packetstream Source Pangolin`** (2 nodes): `packetstream_source.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Packet Pangolin`** (2 nodes): `packet.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Packetstream Pangolin`** (2 nodes): `packetstream.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Csv Table Loader`** (2 nodes): `pangolin()`, `csv_table_loader.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Table Loader Pangolin`** (2 nodes): `table_loader.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gltext Pangolin`** (2 nodes): `gltext.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Viewport Pangolin`** (2 nodes): `viewport.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gltexturecache Pangolin`** (2 nodes): `gltexturecache.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glfont Pangolin`** (2 nodes): `glfont.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glpangoglu Pangolin`** (2 nodes): `glpangoglu.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glvbo Pangolin`** (2 nodes): `glvbo.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glinclude Pangolin`** (2 nodes): `glinclude.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glpixformat Pangolin`** (2 nodes): `glpixformat.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glcuda Pangolin`** (2 nodes): `glcuda.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Opengl Render State Pangolin`** (2 nodes): `opengl_render_state.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glformattraits Pangolin`** (2 nodes): `glformattraits.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gldraw Cpp`** (2 nodes): `gldraw.cpp`, `glRecordGraphic()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Emscriptenwindow Pangolin`** (2 nodes): `EmscriptenWindow.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Handler Enums Pangolin`** (2 nodes): `handler_enums.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Handler Bitsets Pangolin`** (2 nodes): `handler_bitsets.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Osxwindow Pangolin`** (2 nodes): `OsxWindow.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Display Android`** (2 nodes): `pangolin()`, `display_android.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Winwindow Pangolin`** (2 nodes): `WinWindow.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Window Cpp`** (2 nodes): `window.cpp`, `ConstructWindow()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Stream Info Pangolin`** (2 nodes): `stream_info.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Iostream Operators Pangolin`** (2 nodes): `iostream_operators.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Stream Encoder Factory Pangolin`** (2 nodes): `stream_encoder_factory.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Output Interface Pangolin`** (2 nodes): `video_output_interface.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Help Pangolin`** (2 nodes): `video_help.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Input Pangolin`** (2 nodes): `video_input.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Pangolin`** (2 nodes): `video.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Interface Pangolin`** (2 nodes): `video_interface.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Output Pangolin`** (2 nodes): `video_output.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Ffmpeg Convert Pangolin`** (2 nodes): `ffmpeg_convert.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pango Video Output Pangolin`** (2 nodes): `pango_video_output.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Uvc Mediafoundation Pangolin`** (2 nodes): `uvc_mediafoundation.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Ffmpeg Output Pangolin`** (2 nodes): `ffmpeg_output.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Cluster`** (2 nodes): `test.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pleora Pangolin`** (2 nodes): `pleora.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Openni2 Pangolin`** (2 nodes): `openni2.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Debayer`** (2 nodes): `pangolin()`, `debayer.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Images Pangolin`** (2 nodes): `images.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Teli Pangolin`** (2 nodes): `teli.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Shared Memory Pangolin`** (2 nodes): `shared_memory.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Deinterlace`** (2 nodes): `pangolin()`, `deinterlace.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Images Out Pangolin`** (2 nodes): `images_out.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Unpack Pangolin`** (2 nodes): `unpack.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Depthsense`** (2 nodes): `pangolin()`, `depthsense.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Ffmpeg Pangolin`** (2 nodes): `ffmpeg.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `V4L Pangolin`** (2 nodes): `v4l.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Split Pangolin`** (2 nodes): `split.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Firewire Pangolin`** (2 nodes): `firewire.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Uvc Pangolin`** (2 nodes): `uvc.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Openni Pangolin`** (2 nodes): `openni.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gamma Pangolin`** (2 nodes): `gamma.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Merge Pangolin`** (2 nodes): `merge.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pack Pangolin`** (2 nodes): `pack.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Shift Pangolin`** (2 nodes): `shift.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Join Pangolin`** (2 nodes): `join.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Truncate Pangolin`** (2 nodes): `truncate.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Openni Common Pangolin`** (2 nodes): `openni_common.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Thread Pangolin`** (2 nodes): `thread.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Mjpeg Pangolin`** (2 nodes): `mjpeg.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Ffmpeg Common Pangolin`** (2 nodes): `ffmpeg_common.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Tests Video Uri Cpp`** (2 nodes): `tests_video_uri.cpp`, `ExpectExceptionWithMessageFromAction()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Json Cpp`** (2 nodes): `json.cpp`, `PANGOLIN_REGISTER_FACTORY()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Type Traits Pangolin`** (2 nodes): `type_traits.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `File Utils Pangolin`** (2 nodes): `file_utils.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Memstreambuf Pangolin`** (2 nodes): `memstreambuf.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `True False Toggle Pangolin`** (2 nodes): `true_false_toggle.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Compontent Cast`** (2 nodes): `pangolin()`, `compontent_cast.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Threadedfilebuf Pangolin`** (2 nodes): `threadedfilebuf.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Parse Pangolin`** (2 nodes): `parse.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Param Set Pangolin`** (2 nodes): `param_set.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Fix Size Buffer Queue Pangolin`** (2 nodes): `fix_size_buffer_queue.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `File Extension Pangolin`** (2 nodes): `file_extension.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Variadic All Pangolin`** (2 nodes): `variadic_all.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Timer Pangolin`** (2 nodes): `timer.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Uri Pangolin`** (2 nodes): `uri.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Is Streamable Pangolin`** (2 nodes): `is_streamable.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Sigstate Pangolin`** (2 nodes): `sigstate.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Assert`** (2 nodes): `pangolin()`, `assert.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Avx Math`** (2 nodes): `pangolin()`, `avx_math.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Condition Variable`** (2 nodes): `pangolin()`, `condition_variable.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Semaphore Pangolin`** (2 nodes): `semaphore.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Shared Memory Buffer Pangolin`** (2 nodes): `shared_memory_buffer.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Factory Help Pangolin`** (2 nodes): `factory_help.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Factory Pangolin`** (2 nodes): `factory.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Tests Uri Cpp`** (2 nodes): `tests_uri.cpp`, `ExpectExceptionWithMessageFromAction()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Uri Cpp`** (2 nodes): `uri.cpp`, `ParseUri()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Factory Registry Cpp`** (2 nodes): `factory_registry.cpp`, `I()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Handler Pangolin`** (2 nodes): `handler.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Handler Glbuffer Pangolin`** (2 nodes): `handler_glbuffer.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Handler Image Pangolin`** (2 nodes): `handler_image.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Image View Pangolin`** (2 nodes): `image_view.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Process Pangolin`** (2 nodes): `process.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Default Font`** (2 nodes): `pangolin()`, `default_font.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Display`** (2 nodes): `pangolin()`, `display.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `View Pangolin`** (2 nodes): `view.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `User App Pangolin`** (2 nodes): `user_app.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Consoleview`** (2 nodes): `pangolin()`, `ConsoleView.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Interpreterinterface Pangolin`** (2 nodes): `InterpreterInterface.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Gl Pangolin`** (2 nodes): `pangolin_gl.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Viewer Pangolin`** (2 nodes): `video_viewer.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Copy`** (2 nodes): `pangolin()`, `copy.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Managed Image Pangolin`** (2 nodes): `managed_image.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pixel Format Pangolin`** (2 nodes): `pixel_format.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Memcpy Pangolin`** (2 nodes): `memcpy.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Image Convert Pangolin`** (2 nodes): `image_convert.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Typed Image Pangolin`** (2 nodes): `typed_image.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Image Io Pangolin`** (2 nodes): `image_io.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Image Io Libraw Cpp`** (2 nodes): `image_io_libraw.cpp`, `LoadLibRaw()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Image Io Raw Cpp`** (2 nodes): `image_io_raw.cpp`, `LoadImage()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Interactive Pangolin`** (2 nodes): `interactive.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Renderable Pangolin`** (2 nodes): `renderable.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Scenehandler Pangolin`** (2 nodes): `scenehandler.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Interactive Index Pangolin`** (2 nodes): `interactive_index.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Tree Pangolin`** (2 nodes): `tree.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Geometry Ply Pangolin`** (2 nodes): `geometry_ply.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Geometry Obj Pangolin`** (2 nodes): `geometry_obj.h`, `pangolin()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Geometry Cpp`** (2 nodes): `geometry.cpp`, `LoadGeometry()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Plotspeed Plot Compare Plot`** (2 nodes): `PlotSpeed.py`, `plot_compare_plot()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Depthquality Cluster`** (1 nodes): `DepthQuality.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Matchquality Cluster`** (1 nodes): `MatchQuality.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Is Valid Config This`** (1 nodes): ``is_valid_config`                  This method is for minimum sanity check on co`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Name Assign`** (1 nodes): `Assign a short name for the dataset class. By default will be the class name.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Init Cluster`** (1 nodes): `__init__.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Init Cluster`** (1 nodes): `__init__.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Given Sequence`** (1 nodes): `Given a sequence of frames, elaborate the trajectory (frame poses) and handle th`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Given Batch`** (1 nodes): `Given a batch of N observation (`TensorBundle`), the filter returns a boolean te`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Given Initialize`** (1 nodes): `Given config, initialize a *mutable* context object that is preserved between op`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Given Context`** (1 nodes): `Given context and argument, construct the optimization problem, solve it and ret`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Returns Immediately`** (1 nodes): `Returns immediately, indicate the status of optimizer:         - true if there`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Returns Concrete`** (1 nodes): `Returns the concrete type used for T_GraphInput. Raises TypeError if not explici`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Returns Concrete`** (1 nodes): `Returns the concrete type used for T_GraphOutput. Raises TypeError if not explic`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Should This`** (1 nodes): `This function should be implemented by the user.         It should return the ja`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Model Returns`** (1 nodes): `Returns the jacobian of the model's previous forward call with respect to model'`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Verifies Whether`** (1 nodes): `Verifies whether the input J_analytic coincides with autograd jacobian of the pr`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Given Pixel Uv`** (1 nodes): `Given a pixel_uv (Nx2) tensor, retrieve the pixel values (1, N) from scalar_map`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Dpvo Cluster`** (1 nodes): `DPVO.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Tartanvo Cluster`** (1 nodes): `TartanVO.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Init Cluster`** (1 nodes): `__init__.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Setup Cluster`** (1 nodes): `setup.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Bootstrap Ps1`** (1 nodes): `bootstrap.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Create-Prdiff Ps1`** (1 nodes): `Create-PRDiff.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test-Modified-Ports Ps1`** (1 nodes): `test-modified-ports.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Rearrange-Msvc-Drop-Layout Ps1`** (1 nodes): `rearrange-msvc-drop-layout.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Install-Prerequisites Ps1`** (1 nodes): `Install-Prerequisites.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Setup-Vagrantmachines Ps1`** (1 nodes): `Setup-VagrantMachines.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Vagrantfile-Box Cluster`** (1 nodes): `Vagrantfile-box.rb`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Vagrantfile-Vm Cluster`** (1 nodes): `Vagrantfile-vm.rb`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Create-Image Ps1`** (1 nodes): `create-image.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Create-Vmss Ps1`** (1 nodes): `create-vmss.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Provision-Entire-Image Ps1`** (1 nodes): `provision-entire-image.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Deploy-Pwsh Ps1`** (1 nodes): `deploy-pwsh.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Deploy-Cuda Ps1`** (1 nodes): `deploy-cuda.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Drop-To-Admin-User-Prefix Ps1`** (1 nodes): `drop-to-admin-user-prefix.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Create-Vmss Ps1`** (1 nodes): `create-vmss.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Sysprep Ps1`** (1 nodes): `sysprep.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Deploy-Psexec Ps1`** (1 nodes): `deploy-psexec.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Freeimageconfig-Static Cluster`** (1 nodes): `FreeImageConfig-static.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Freeimageconfig-Dynamic Cluster`** (1 nodes): `FreeImageConfig-dynamic.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gettimeofday Cluster`** (1 nodes): `gettimeofday.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Magick Types Cluster`** (1 nodes): `magick_types.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Angle Commit Cluster`** (1 nodes): `angle_commit.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `String Cluster`** (1 nodes): `string.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Core Cluster 595`** (1 nodes): `config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Arith Win64 Cluster`** (1 nodes): `arith_win64.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Arith Win32 Cluster`** (1 nodes): `arith_win32.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Arith Linux64 Cluster`** (1 nodes): `arith_linux64.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Arith Osx Cluster`** (1 nodes): `arith_osx.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `B64 Dynamic Config Cluster`** (1 nodes): `b64_dynamic_config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `B64 Static Config Cluster`** (1 nodes): `b64_static_config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Core Cluster 602`** (1 nodes): `config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Modp B64 Data Cluster`** (1 nodes): `modp_b64_data.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Cgnsconfig Cluster`** (1 nodes): `cgnsconfig.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Core Cluster 605`** (1 nodes): `config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Linux Cluster`** (1 nodes): `config.linux.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Core Cluster 607`** (1 nodes): `config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Libsecp256K1-Config Cluster`** (1 nodes): `libsecp256k1-config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Openblas Common Cluster`** (1 nodes): `openblas_common.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Arith Win64 Cluster`** (1 nodes): `arith_win64.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Arith Win32 Cluster`** (1 nodes): `arith_win32.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Arith Osx Cluster`** (1 nodes): `arith_osx.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Core Cluster 613`** (1 nodes): `config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Fficonfig Cluster`** (1 nodes): `fficonfig.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Core Cluster 615`** (1 nodes): `config.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `U2F-Server-Version Cluster`** (1 nodes): `u2f-server-version.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Generate Static Link Cmd Windows Cluster`** (1 nodes): `generate_static_link_cmd_windows.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Generate Static Link Cmd Linux Cluster`** (1 nodes): `generate_static_link_cmd_linux.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Convert Lib Params Windows Cluster`** (1 nodes): `convert_lib_params_windows.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Convert Lib Params Macos Cluster`** (1 nodes): `convert_lib_params_macos.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Convert Lib Params Linux Cluster`** (1 nodes): `convert_lib_params_linux.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Generate Static Link Cmd Macos Cluster`** (1 nodes): `generate_static_link_cmd_macos.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Chartdir Cluster`** (1 nodes): `chartdir.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Common Cluster`** (1 nodes): `common.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Make Changelog Cluster`** (1 nodes): `make_changelog.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Libsize Cluster`** (1 nodes): `libsize.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Exceptions Cluster`** (1 nodes): `test_exceptions.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test Eval Call Cluster`** (1 nodes): `test_eval_call.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Core Cluster 629`** (1 nodes): `test.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Cxx Standard`** (1 nodes): `The CXX standard level. If set, will add the required flags. If left         at`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glvbo Hpp`** (1 nodes): `glvbo.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Hpp`** (1 nodes): `video.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Widget Hpp`** (1 nodes): `widget.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Window Hpp`** (1 nodes): `window.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pixel Format Hpp`** (1 nodes): `pixel_format.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glsl Hpp`** (1 nodes): `glsl.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Params Hpp`** (1 nodes): `params.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Display Hpp`** (1 nodes): `display.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `View Hpp`** (1 nodes): `view.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Attach Hpp`** (1 nodes): `attach.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gl Draw Hpp`** (1 nodes): `gl_draw.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Datalog Hpp`** (1 nodes): `datalog.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Opengl Render State Hpp`** (1 nodes): `opengl_render_state.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glsl Cpp`** (1 nodes): `glsl.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Cpp Cluster`** (1 nodes): `image.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Hpp Cluster`** (1 nodes): `gl.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Plotter Hpp`** (1 nodes): `plotter.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Viewport Hpp`** (1 nodes): `viewport.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Image View Hpp`** (1 nodes): `image_view.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Colour Hpp`** (1 nodes): `colour.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Test All Cpp`** (1 nodes): `test_all.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Glplatform Cluster`** (1 nodes): `glplatform.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gltexturecache Cpp`** (1 nodes): `gltexturecache.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Gl2Engine Cpp`** (1 nodes): `gl2engine.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `X11Glcontext Cluster`** (1 nodes): `X11GlContext.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Display Osx Cluster`** (1 nodes): `display_osx.mm`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Video Record Repeat Cluster`** (1 nodes): `video_record_repeat.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Tests Video Loading Cpp`** (1 nodes): `tests_video_loading.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Pangolin Cluster`** (1 nodes): `pangolin.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Platform Cluster`** (1 nodes): `platform.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Log Cluster`** (1 nodes): `log.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Signal Slot Cluster`** (1 nodes): `signal_slot.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Symbol Helper Hpp`** (1 nodes): `symbol_helper.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Hpp Cluster`** (1 nodes): `config.hpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Dummy Cpp`** (1 nodes): `dummy.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Avx Math Cpp`** (1 nodes): `avx_math.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Default Font Cpp`** (1 nodes): `default_font.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Tinyobj Cpp`** (1 nodes): `tinyobj.cpp`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Core Cluster 669`** (1 nodes): `config.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Init Cluster`** (1 nodes): `__init__.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Common Cluster`** (1 nodes): `common.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Init Cluster`** (1 nodes): `__init__.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Common Cluster`** (1 nodes): `common.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Make Changelog Cluster`** (1 nodes): `make_changelog.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Libsize Cluster`** (1 nodes): `libsize.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Cxx Standard`** (1 nodes): `The CXX standard level. If set, will add the required flags. If left at`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Collate That`** (1 nodes): `A default collate function that will handle torch.Tensor, pp.LieTensor and`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+
+## Suggested Questions
+_Questions this graph is uniquely positioned to answer:_
+
+- **Why does `IOdometry` connect `Init Estimate` to `Init Forward`, `Init Repr`, `Init Push`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Why does `coords_grid()` connect `Init Forward` to `Init Forward`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Are the 73 inferred relationships involving `Timer` (e.g. with `MACVO` and `The main process that continuously running to manage different modules in MAC-VO`) actually correct?**
+  _`Timer` has 73 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 53 inferred relationships involving `IStereoDepth` (e.g. with `Plots Gaussian distribution for some confidence interval and compare the  predic` and `Matplotlib_Visualizer`) actually correct?**
+  _`IStereoDepth` has 53 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 38 inferred relationships involving `IMatcher` (e.g. with `Matplotlib_Visualizer` and `Register a classmethod of Matplotlib Visualizer`) actually correct?**
+  _`IMatcher` has 38 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 46 inferred relationships involving `StereoFrame` (e.g. with `IDataTransform` and `NoTransform`) actually correct?**
+  _`StereoFrame` has 46 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 46 inferred relationships involving `StereoData` (e.g. with `IDataTransform` and `NoTransform`) actually correct?**
+  _`StereoData` has 46 INFERRED edges - model-reasoned connections that need verification._

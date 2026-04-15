@@ -1,0 +1,461 @@
+{
+  "nodes": [
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libcroco_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libcroco/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_minizip_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/minizip/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_gppanel_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/gppanel/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_devicenameresolver_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/devicenameresolver/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_fastfeat_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/fastfeat/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_tre_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/tre/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libpff_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libpff/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_poly2tri_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/poly2tri/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libmspack_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libmspack/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_tinycbor_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/tinycbor/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libxmp_lite_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libxmp-lite/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libunibreak_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libunibreak/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_coinutils_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/coinutils/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_lodepng_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/lodepng/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_sajson_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/sajson/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_gl3w_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/gl3w/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_breakpad_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/breakpad/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_nlohmann_fifo_map_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/nlohmann-fifo-map/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_pqp_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/pqp/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_lpeg_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/lpeg/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_secp256k1_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/secp256k1/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libodb_boost_cmakelists_file",
+      "label": "CMakeLists.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libodb-boost/CMakeLists.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libcroco_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_minizip_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libcroco/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_minizip_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_gppanel_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/minizip/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_gppanel_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_devicenameresolver_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/gppanel/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_devicenameresolver_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_fastfeat_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/devicenameresolver/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_fastfeat_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_tre_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/fastfeat/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_tre_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libpff_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/tre/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libpff_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_poly2tri_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libpff/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_poly2tri_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libmspack_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/poly2tri/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libmspack_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_tinycbor_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libmspack/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_tinycbor_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libxmp_lite_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/tinycbor/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libxmp_lite_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libunibreak_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libxmp-lite/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libunibreak_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_coinutils_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/libunibreak/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_coinutils_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_lodepng_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/coinutils/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_lodepng_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_sajson_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/lodepng/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_sajson_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_gl3w_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/sajson/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_gl3w_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_breakpad_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/gl3w/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_breakpad_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_nlohmann_fifo_map_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/breakpad/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_nlohmann_fifo_map_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_pqp_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/nlohmann-fifo-map/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_pqp_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_lpeg_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/pqp/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_lpeg_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_secp256k1_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/lpeg/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_secp256k1_cmakelists_file",
+      "target": "dynamask_vio_baseline_dpvo_pangolin_scripts_vcpkg_ports_libodb_boost_cmakelists_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/Pangolin/scripts/vcpkg/ports/secp256k1/CMakeLists.txt",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

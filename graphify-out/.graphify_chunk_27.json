@@ -1,0 +1,524 @@
+{
+  "nodes": [
+    {
+      "id": "dynamask_vio_baseline_dpvo_calib_viper_file",
+      "label": "viper.txt",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/calib/viper.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_readme_file",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000000_lcam_front_file",
+      "label": "000000_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000000_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000009_lcam_front_file",
+      "label": "000009_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000009_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000006_lcam_front_file",
+      "label": "000006_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000006_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000008_lcam_front_file",
+      "label": "000008_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000008_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000003_lcam_front_file",
+      "label": "000003_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000003_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000002_lcam_front_file",
+      "label": "000002_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000002_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000005_lcam_front_file",
+      "label": "000005_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000005_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000007_lcam_front_file",
+      "label": "000007_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000007_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000001_lcam_front_file",
+      "label": "000001_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000001_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000004_lcam_front_file",
+      "label": "000004_lcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000004_lcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000001_rcam_front_file",
+      "label": "000001_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000001_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000006_rcam_front_file",
+      "label": "000006_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000006_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000004_rcam_front_file",
+      "label": "000004_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000004_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000003_rcam_front_file",
+      "label": "000003_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000003_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000005_rcam_front_file",
+      "label": "000005_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000005_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000002_rcam_front_file",
+      "label": "000002_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000002_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000008_rcam_front_file",
+      "label": "000008_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000008_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000009_rcam_front_file",
+      "label": "000009_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000009_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000000_rcam_front_file",
+      "label": "000000_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000000_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000007_rcam_front_file",
+      "label": "000007_rcam_front.png",
+      "file_type": "image",
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000007_rcam_front.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_readme_url_1",
+      "label": "Reference: github.com",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/README.md",
+      "source_location": null,
+      "source_url": "https://github.com/princeton-vl/DPVO",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_readme_url_2",
+      "label": "Reference: hub.docker.com",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/README.md",
+      "source_location": null,
+      "source_url": "https://hub.docker.com/repository/docker/yutianchen/dpvo_docker_img/general",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dynamask_vio_baseline_dpvo_readme_url_3",
+      "label": "Reference: arxiv.org",
+      "file_type": "document",
+      "source_file": "dynamask_vio/Baseline/DPVO/README.md",
+      "source_location": null,
+      "source_url": "https://arxiv.org/pdf/2208.04726.pdf",
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "dynamask_vio_baseline_dpvo_readme_file",
+      "target": "dynamask_vio_baseline_dpvo_readme_url_1",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/Baseline/DPVO/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_readme_file",
+      "target": "dynamask_vio_baseline_dpvo_readme_url_2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/Baseline/DPVO/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_readme_file",
+      "target": "dynamask_vio_baseline_dpvo_readme_url_3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dynamask_vio/Baseline/DPVO/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_calib_viper_file",
+      "target": "dynamask_vio_baseline_dpvo_readme_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/calib/viper.txt",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_baseline_dpvo_readme_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000000_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Baseline/DPVO/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000000_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000009_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000000_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000009_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000006_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000009_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000006_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000008_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000006_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000008_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000003_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000008_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000003_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000002_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000003_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000002_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000005_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000002_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000005_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000007_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000005_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000007_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000001_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000007_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000001_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000004_lcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000001_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_lcam_front_000004_lcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000001_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_lcam_front/000004_lcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000001_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000006_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000001_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000006_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000004_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000006_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000004_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000003_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000004_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000003_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000005_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000003_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000005_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000002_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000005_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000002_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000008_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000002_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000008_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000009_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000008_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000009_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000000_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000009_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000000_rcam_front_file",
+      "target": "dynamask_vio_scripts_unittest_assets_test_sequence_tartanair2_abs_p000_image_rcam_front_000007_rcam_front_file",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "dynamask_vio/Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000/image_rcam_front/000000_rcam_front.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,41 @@
+## God Nodes (most connected - your core abstractions)
+1. `Timer` - 74 edges
+2. `IStereoDepth` - 63 edges
+3. `IMatcher` - 50 edges
+4. `StereoFrame` - 49 edges
+5. `StereoData` - 48 edges
+6. `SequenceBase` - 48 edges
+7. `LieGroup` - 42 edges
+8. `AutoScalingTensor` - 33 edges
+9. `StereoInertialFrame` - 32 edges
+10. `PangolinNSGLView` - 31 edges
+
+## Surprising Connections (you probably didn't know these)
+- `Core method for IVisualOdometry. This method handles the incoming frames and per` --uses--> `Sandbox`  [INFERRED]
+  dynamask_vio/Odometry/Interface.py → dynamask_vio/Utility/Sandbox.py
+- `Provides the VisualMap built across multiple calls of .run(...).` --uses--> `Sandbox`  [INFERRED]
+  dynamask_vio/Odometry/Interface.py → dynamask_vio/Utility/Sandbox.py
+- `Plots Gaussian distribution for some confidence interval and compare the  predic` --uses--> `IStereoDepth`  [INFERRED]
+  dynamask_vio/Scripts/AdHoc/CovarianceModel.py → dynamask_vio/Module/Frontend/StereoDepth.py
+- `IOdometry` --uses--> `ColoredTqdm`  [INFERRED]
+  dynamask_vio/Odometry/Interface.py → dynamask_vio/Utility/PrettyPrint.py
+- `Core method for IVisualOdometry. This method handles the incoming frames and per` --uses--> `ColoredTqdm`  [INFERRED]
+  dynamask_vio/Odometry/Interface.py → dynamask_vio/Utility/PrettyPrint.py
+
+## Suggested Questions
+_Questions this graph is uniquely positioned to answer:_
+
+- **Why does `IOdometry` connect `Init Estimate` to `Init Forward`, `Init Repr`, `Init Push`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Why does `coords_grid()` connect `Init Forward` to `Init Forward`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Are the 73 inferred relationships involving `Timer` (e.g. with `MACVO` and `The main process that continuously running to manage different modules in MAC-VO`) actually correct?**
+  _`Timer` has 73 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 53 inferred relationships involving `IStereoDepth` (e.g. with `Plots Gaussian distribution for some confidence interval and compare the  predic` and `Matplotlib_Visualizer`) actually correct?**
+  _`IStereoDepth` has 53 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 38 inferred relationships involving `IMatcher` (e.g. with `Matplotlib_Visualizer` and `Register a classmethod of Matplotlib Visualizer`) actually correct?**
+  _`IMatcher` has 38 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 46 inferred relationships involving `StereoFrame` (e.g. with `IDataTransform` and `NoTransform`) actually correct?**
+  _`StereoFrame` has 46 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 46 inferred relationships involving `StereoData` (e.g. with `IDataTransform` and `NoTransform`) actually correct?**
+  _`StereoData` has 46 INFERRED edges - model-reasoned connections that need verification._
