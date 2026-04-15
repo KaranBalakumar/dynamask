@@ -14,6 +14,7 @@ from Utility.Point import filterPointsInRange, pixel2point_NED
 from Utility.PrettyPrint import Logger, GlobalConsole
 from Utility.Timer import Timer
 from Utility.Visualize import fig_plt
+from Utility.Device import is_supported_device_string
 from Utility.Extensions import ConfigTestable
 
 from .Interface import IOdometry
@@ -147,7 +148,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         Module.IOptimizer.is_valid_config(config.optimizer)
         
         cls._enforce_config_spec(config.args, {
-            "device"            : lambda s: isinstance(s, str) and (("cuda" in s) or (s == "cpu")),
+            "device"            : is_supported_device_string,
             "num_point"         : lambda b: isinstance(b, int) and b > 0, 
             "edgewidth"         : lambda b: isinstance(b, int) and b > 0, 
             "match_cov_default" : lambda b: isinstance(b, (float, int)) and b > 0.0, 

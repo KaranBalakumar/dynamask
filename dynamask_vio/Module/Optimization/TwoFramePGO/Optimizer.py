@@ -12,6 +12,7 @@ from pypose.optim.strategy import TrustRegion
 from Module.Map import VisualMap
 from Utility.Timer import Timer
 from Utility.Math  import NormalizeQuat
+from Utility.Device import is_supported_device_string
 
 from ..Interface import IOptimizer
 from ..PyposeOptimizers import LM_analytic, AnalyticModule, FactorGraph
@@ -41,7 +42,7 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:
         cls._enforce_config_spec(config, {
             "graph_type": lambda s: s in {"icp", "reproj", "disp"},
-            "device": lambda v: isinstance(v, str) and (v == "cpu" or "cuda" in v),
+            "device": is_supported_device_string,
             "vectorize": lambda b: isinstance(b, bool),
             "parallel": lambda b: isinstance(b, bool),
             "autodiff": lambda b: isinstance(b, bool)

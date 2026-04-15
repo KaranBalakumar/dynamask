@@ -10,6 +10,7 @@ from Evaluation.EvalSeq import EvaluateSequences
 from Odometry.MACVO import MACVO
 
 from Utility.Config import load_config, asNamespace
+from Utility.Device import normalize_backend_device, set_odometry_device_fields
 from Utility.PrettyPrint import print_as_table, ColoredTqdm, Logger
 from Utility.Sandbox import Sandbox
 from Utility.Visualize import fig_plt, rr_plt
@@ -96,6 +97,18 @@ def get_args():
         action="store_true",
         help="Record timing for system (active Utility.Timer for global time recording)"
     )
+    parser.add_argument(
+        "--device-backend",
+        choices=["auto", "cuda", "rocm", "cpu"],
+        default="auto",
+        help="Runtime backend override for odometry modules.",
+    )
+    parser.add_argument(
+        "--device-index",
+        type=int,
+        default=0,
+        help="Device index used for CUDA/ROCm backends.",
+    )
     return parser.parse_args()
 
 
@@ -105,6 +118,8 @@ if __name__ == "__main__":
     # Metadata setup & visualizer setup
     cfg, cfg_dict = load_config(Path(args.odom))
     odomcfg, odomcfg_dict = cfg.Odometry, cfg_dict["Odometry"]
+    _, runtime_device = normalize_backend_device(args.device_backend, args.device_index)
+    set_odometry_device_fields(odomcfg_dict, runtime_device)
     datacfg, datacfg_dict = load_config(Path(args.data))
     project_name = odomcfg.name + "@" + datacfg.name
 

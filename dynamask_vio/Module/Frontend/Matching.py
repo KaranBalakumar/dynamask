@@ -13,6 +13,7 @@ from DataLoader import StereoData
 from Utility.Utils import padTo, reflect_torch_dtype
 from Utility.Extensions import ConfigTestableSubclass
 from Utility.Config import build_dynamic_config
+from Utility.Device import is_supported_device_string
 
 # Matching interface ###
 
@@ -150,7 +151,7 @@ class FlowFormerMatcher(IMatcher):
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:
         cls._enforce_config_spec(config, {
             "weight"    : lambda s: isinstance(s, str),
-            "device"    : lambda s: isinstance(s, str) and (("cuda" in s) or (s == "cpu")),
+            "device"    : is_supported_device_string,
         })
 
 
@@ -190,7 +191,7 @@ class FlowFormerCovMatcher(IMatcher):
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:
         cls._enforce_config_spec(config, {
                 "weight"    : lambda s: isinstance(s, str),
-                "device"    : lambda s: isinstance(s, str) and (("cuda" in s) or (s == "cpu")),
+                "device"    : is_supported_device_string,
                 "enc_dtype" : lambda s: s in {"fp16", "bf16", "fp32"},  # Precision casting for encoder, the network's input and output will still be in fp32.
                 "dec_dtype" : lambda s: s in {"fp16", "bf16", "fp32"},  # Precision casting for decoder, the network's input and output will still be in fp32.
             })
@@ -226,7 +227,7 @@ class TartanVOMatcher(IMatcher):
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:    
         cls._enforce_config_spec(config, {
                 "weight"    : lambda s: isinstance(s, str),
-                "device"    : lambda s: isinstance(s, str) and (("cuda" in s) or (s == "cpu")),
+                "device"    : is_supported_device_string,
             })
 
 
@@ -270,7 +271,7 @@ class TartanVOCovMatcher(IMatcher):
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:    
         cls._enforce_config_spec(config, {
                 "weight"    : lambda s: isinstance(s, str),
-                "device"    : lambda s: isinstance(s, str) and (("cuda" in s) or (s == "cpu")),
+                "device"    : is_supported_device_string,
             })
 
 
