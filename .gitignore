@@ -36,3 +36,4 @@ dynamask_vio/weights/
 # OS
 .DS_Store
 Thumbs.db
+.worktrees/
