@@ -25,6 +25,17 @@ T_GraphOutput = T.TypeVar("T_GraphOutput", bound=DataclassInstance)
 
 
 def move_dataclass_to_local(obj: T_GraphInput) -> T_GraphInput:
+    def _clone_payload(value):
+        if isinstance(value, torch.Tensor):
+            return value.clone()
+        if isinstance(value, dict):
+            return {k: _clone_payload(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [_clone_payload(v) for v in value]
+        if isinstance(value, tuple):
+            return tuple(_clone_payload(v) for v in value)
+        return value
+
     data_dict: dict = tensor_safe_asdict(obj)   # pyright: ignore
     for key, value in data_dict.items():
         if isinstance(value, torch.Tensor):
@@ -33,7 +44,7 @@ def move_dataclass_to_local(obj: T_GraphInput) -> T_GraphInput:
             value.apply(lambda x: x.clone())
             data_dict[key] = value
         else:
-            data_dict[key] = value
+            data_dict[key] = _clone_payload(value)
     return type(obj)(**data_dict)
 
 

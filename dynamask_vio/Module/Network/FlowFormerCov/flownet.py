@@ -14,6 +14,7 @@ class FlowFormerCov(FlowFormer):
         self.enc_dtype = encoder_dtype
         self.context_encoder = self.context_encoder.to(dtype=self.enc_dtype) 
         self.memory_encoder  = self.memory_encoder.to(dtype=self.enc_dtype)
+        self.last_context: torch.Tensor | None = None
 
     def forward(self, image1, image2):
         image1 = ((2 * image1) - 1.0).to(dtype=self.enc_dtype)
@@ -26,6 +27,7 @@ class FlowFormerCov(FlowFormer):
             cost_memory, cost_maps = self.memory_encoder(image1, image2, context)
             cost_maps = cost_maps.float()
             context   = context.float()
+            self.last_context = context
 
         with torch.cuda.nvtx.range("Memory Decoder"):
             flow_predictions, cov_predictions = self.memory_decoder(cost_memory, context, cost_maps)
@@ -51,4 +53,3 @@ class FlowFormerCov(FlowFormer):
             else:
                 cvt_ckpt[k] = ckpt[k]
         self.load_state_dict(cvt_ckpt, strict=False)
-

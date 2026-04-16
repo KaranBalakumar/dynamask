@@ -1,0 +1,8 @@
+type: VIODE
+name: viode_demo
+args:
+  root: /data/viode/sequence_0001
+  bag: sequence.bag
+  cam0_calib: cam0_pinhole.yaml
+  cam1_calib: cam1_pinhole.yaml
+  calib: calibration.yaml

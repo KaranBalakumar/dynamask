@@ -71,6 +71,10 @@ class DeepPatchVO(IOdometry[StereoFrame]):
             "pose": self.poses,
             "T_BS": torch.stack(self.T_BSs),
             "K"   : torch.cat(self.Ks, dim=0),
+            "baseline": torch.ones((n_frame,), dtype=torch.float32),
+            "vel_w": torch.zeros((n_frame, 3), dtype=torch.float32),
+            "bias_g": torch.zeros((n_frame, 3), dtype=torch.float32),
+            "bias_a": torch.zeros((n_frame, 3), dtype=torch.float32),
             "need_interp": torch.zeros((n_frame,), dtype=torch.bool),
             "time_ns"    : torch.tensor(self.Ts, dtype=torch.long),
         }))

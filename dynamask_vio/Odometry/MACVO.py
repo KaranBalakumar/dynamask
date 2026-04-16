@@ -22,6 +22,14 @@ from .Interface import IOdometry
 T_SensorFrame = T.TypeVar("T_SensorFrame", bound=StereoFrame)
 
 
+def _cfg_get(config: SimpleNamespace | dict | None, key: str, default):
+    if config is None:
+        return default
+    if isinstance(config, dict):
+        return config.get(key, default)
+    return getattr(config, key, default)
+
+
 class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
     # Type alias of callback hooks for MAC-VO system. Will be called by the system on
     # certain event occurs (optimization finish, for instance.)
@@ -39,6 +47,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         post_process    : Module.IMapProcessor,
         kf_selector     : Module.IKeyframeSelector[T_SensorFrame],
         optimizer       : Module.IOptimizer,
+        dynamic_gating: SimpleNamespace | dict | None = None,
         **_excessive_args,
     ) -> None:
         super().__init__(profile=profile)
@@ -49,6 +58,19 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         self.device = canonicalize_torch_device(device)
         self.mapping: bool = mapping
         self.match_cov_default: float = match_cov_default
+        self.dynamic_gating_enabled = bool(_cfg_get(dynamic_gating, "enabled", False))
+        self.min_static_conf = float(_cfg_get(dynamic_gating, "min_static_conf", 0.2))
+        self.min_static_conf = min(max(self.min_static_conf, 0.0), 1.0)
+        imu_adaptive_cfg = _cfg_get(dynamic_gating, "imu_adaptive", None)
+        self.imu_adaptive_enabled = bool(_cfg_get(imu_adaptive_cfg, "enabled", True))
+        self.imu_cov_inflation_base = float(_cfg_get(imu_adaptive_cfg, "base", 1.0))
+        self.imu_cov_inflation_max = float(_cfg_get(imu_adaptive_cfg, "max", 25.0))
+        self.imu_cov_dt_ref = float(_cfg_get(imu_adaptive_cfg, "dt_ref", 0.02))
+        self.imu_cov_innovation_ref = float(_cfg_get(imu_adaptive_cfg, "innovation_ref", 0.25))
+        self.imu_failure_innovation_threshold = float(_cfg_get(imu_adaptive_cfg, "innovation_fail", 3.0))
+        self.imu_failure_dt_threshold = float(_cfg_get(imu_adaptive_cfg, "dt_fail", 0.25))
+        self.last_imu_inflation = 1.0
+        self.imu_failure_count = 0
 
         # Modules
         self.Frontend = frontend
@@ -154,7 +176,77 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             "match_cov_default" : lambda b: isinstance(b, (float, int)) and b > 0.0, 
             "profile"           : lambda b: isinstance(b, bool),
             "mapping"           : lambda b: isinstance(b, bool),
-        })
+        }, allow_excessive_cfg=True)
+
+        dynamic_gating = getattr(config.args, "dynamic_gating", None)
+        if dynamic_gating is not None:
+            cls._enforce_config_spec(dynamic_gating, {
+                "enabled": lambda b: isinstance(b, bool),
+                "min_static_conf": lambda b: isinstance(b, (float, int)) and (0.0 <= float(b) <= 1.0),
+            }, allow_excessive_cfg=True)
+            imu_adaptive = getattr(dynamic_gating, "imu_adaptive", None)
+            if imu_adaptive is not None:
+                cls._enforce_config_spec(imu_adaptive, {
+                    "enabled": lambda b: isinstance(b, bool),
+                    "base": lambda b: isinstance(b, (float, int)) and float(b) >= 1.0,
+                    "max": lambda b: isinstance(b, (float, int)) and float(b) >= 1.0,
+                    "dt_ref": lambda b: isinstance(b, (float, int)) and float(b) > 0.0,
+                    "innovation_ref": lambda b: isinstance(b, (float, int)) and float(b) > 0.0,
+                    "innovation_fail": lambda b: isinstance(b, (float, int)) and float(b) > 0.0,
+                    "dt_fail": lambda b: isinstance(b, (float, int)) and float(b) > 0.0,
+                }, allow_excessive_cfg=True)
+
+    def _sample_static_confidence(self, kp0_uv: torch.Tensor, match_out: Module.IMatcher.Output) -> tuple[torch.Tensor, torch.Tensor]:
+        num_kp = kp0_uv.size(0)
+        default = torch.ones((num_kp, 1), device=kp0_uv.device, dtype=torch.float32)
+
+        conf_map = getattr(match_out, "static_conf", None)
+        weight_map = getattr(match_out, "static_weight", None)
+
+        if conf_map is None:
+            kp_conf = default
+        else:
+            sampled_conf = self.Frontend.retrieve_pixels(kp0_uv, conf_map.unsqueeze(1))
+            kp_conf = default if sampled_conf is None else sampled_conf.T
+
+        if weight_map is None:
+            kp_weight = kp_conf
+        else:
+            sampled_weight = self.Frontend.retrieve_pixels(kp0_uv, weight_map.unsqueeze(1))
+            kp_weight = kp_conf if sampled_weight is None else sampled_weight.T
+
+        return kp_conf.clamp(min=0.0, max=1.0), kp_weight.clamp(min=0.0, max=1.0)
+
+    def _stage1_static_keep_mask(self, kp_static_conf: torch.Tensor) -> torch.Tensor:
+        if not self.dynamic_gating_enabled:
+            return torch.ones((kp_static_conf.shape[0],), dtype=torch.bool, device=kp_static_conf.device)
+        return kp_static_conf.squeeze(-1) >= self.min_static_conf
+
+    @staticmethod
+    def _compute_imu_innovation(prev_pose: pp.LieTensor, est_pose: pp.LieTensor, delta_p: torch.Tensor) -> float:
+        rel_pose = pp.SE3(prev_pose).Inv() @ pp.SE3(est_pose)
+        rel_p = rel_pose.translation().reshape(1, 3).to(delta_p)
+        return float(torch.norm(rel_p - delta_p.reshape(1, 3), dim=-1).item())
+
+    def _adapt_imu_payload(self, payload: dict[str, torch.Tensor], dt: float, innovation_norm: float) -> tuple[dict[str, torch.Tensor], float, bool]:
+        adapted = {k: v.clone() for k, v in payload.items()}
+        if not self.imu_adaptive_enabled:
+            adapted["inflation"] = torch.tensor([[1.0]], dtype=torch.float32)
+            adapted["failed"] = torch.tensor([[False]], dtype=torch.bool)
+            return adapted, 1.0, False
+
+        dt_ratio = max(dt / max(self.imu_cov_dt_ref, 1.0e-6), 1.0)
+        innovation_ratio = max(innovation_norm / max(self.imu_cov_innovation_ref, 1.0e-6), 1.0)
+        inflation = min(self.imu_cov_inflation_max, self.imu_cov_inflation_base * max(dt_ratio ** 2, innovation_ratio ** 2))
+        failed = (innovation_norm > self.imu_failure_innovation_threshold) or (dt > self.imu_failure_dt_threshold)
+        adapted["Sigma_preint"] = adapted["Sigma_preint"] * inflation
+        if "Sigma_imu15" in adapted:
+            adapted["Sigma_imu15"] = adapted["Sigma_imu15"] * inflation
+        adapted["inflation"] = torch.tensor([[inflation]], dtype=torch.float32)
+        adapted["failed"] = torch.tensor([[failed]], dtype=torch.bool)
+        self.last_imu_inflation = inflation
+        self.imu_failure_count = int(getattr(self, "imu_failure_count", 0)) + int(failed)
+        return adapted, inflation, failed
 
     def initialize(self, frame0: T_SensorFrame):
         depth0          = self.Frontend.estimate_depth(frame0.stereo)
@@ -163,6 +255,9 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         frame_idx = self.graph.frames.push(FrameNode.init({
             "pose"        : est_pose,
             "T_BS"        : frame0.stereo.T_BS,
+            "vel_w"       : torch.zeros((1, 3), dtype=torch.float32),
+            "bias_g"      : torch.zeros((1, 3), dtype=torch.float32),
+            "bias_a"      : torch.zeros((1, 3), dtype=torch.float32),
             "need_interp" : torch.tensor([0], dtype=torch.bool),
             "time_ns"     : torch.tensor([frame0.stereo.frame_ns], dtype=torch.long),
             "K"           : frame0.stereo.K,
@@ -205,6 +300,13 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         )
         kp0_uv  = kp0_uv[inbound_mask]
         kp1_uv  = kp1_uv[inbound_mask]
+
+        kp_static_conf, kp_static_weight = self._sample_static_confidence(kp0_uv, match01)
+        keep_static = self._stage1_static_keep_mask(kp_static_conf)
+        kp0_uv = kp0_uv[keep_static]
+        kp1_uv = kp1_uv[keep_static]
+        kp_static_conf = kp_static_conf[keep_static]
+        kp_static_weight = kp_static_weight[keep_static]
         
         # Retrieve depth and depth cov for kp on frame 0 and 1 ##########################
         kp0_d               = self.Frontend.retrieve_pixels(kp0_uv, depth0.depth).squeeze(0)
@@ -265,6 +367,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             
             "obs1_covTc"     : pos0_covTc,
             "obs2_covTc"     : pos1_covTc,
+            "static_conf"    : kp_static_weight.cpu(),
         })
         assert self.OutlierFilter.verify_shape(match_obs), "The provided MatchFactor does not contain all data for outlier filter."
         mask = self.OutlierFilter.filter(match_obs, torch.device("cpu"))
@@ -283,6 +386,31 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         frame_idx      = self.push_keyframe(frame1, est_pose)
         prev_frame_idx = torch.tensor([self.prev_keyframe[1]], dtype=torch.long)
         match_idx      = self.graph.match.push(match_obs)
+
+        imu_preint = getattr(match01, "imu_preint", None)
+        if isinstance(imu_preint, dict) and len(imu_preint) > 0:
+            required = {"delta_R", "delta_v", "delta_p", "Sigma_preint", "J_R_bg", "J_v_bg", "J_v_ba", "J_p_bg", "J_p_ba"}
+            if required.issubset(set(imu_preint.keys())):
+                dt = float(frame1.stereo.frame_ns - frame0.stereo.frame_ns) / 1_000_000_000.0
+                imu_payload = {
+                    "delta_R": imu_preint["delta_R"].reshape(1, 3, 3).to(dtype=torch.float32),
+                    "delta_v": imu_preint["delta_v"].reshape(1, 3).to(dtype=torch.float32),
+                    "delta_p": imu_preint["delta_p"].reshape(1, 3).to(dtype=torch.float32),
+                    "Sigma_preint": imu_preint["Sigma_preint"].reshape(1, 9, 9).to(dtype=torch.float32),
+                    "J_R_bg": imu_preint["J_R_bg"].reshape(1, 3, 3).to(dtype=torch.float32),
+                    "J_v_bg": imu_preint["J_v_bg"].reshape(1, 3, 3).to(dtype=torch.float32),
+                    "J_v_ba": imu_preint["J_v_ba"].reshape(1, 3, 3).to(dtype=torch.float32),
+                    "J_p_bg": imu_preint["J_p_bg"].reshape(1, 3, 3).to(dtype=torch.float32),
+                    "J_p_ba": imu_preint["J_p_ba"].reshape(1, 3, 3).to(dtype=torch.float32),
+                    "dt": torch.tensor([[dt]], dtype=torch.float32),
+                }
+                innovation = self._compute_imu_innovation(prev_pose, est_pose, imu_payload["delta_p"])
+                imu_payload, inflation, failed = self._adapt_imu_payload(imu_payload, dt=dt, innovation_norm=innovation)
+                self.graph.push_imu_factor(prev_frame_idx, frame_idx, imu_payload)
+                if failed:
+                    Logger.write("warn", f"IMU factor flagged unhealthy (innovation={innovation:.3f}, dt={dt:.3f}s, inflation={inflation:.2f})")
+            else:
+                Logger.write("warn", "Frontend IMU payload incomplete; skipping backend IMU factor for this frame pair.")
         
         num_match_kp = len(match_obs)
         self.graph.point2match.add(point_idx, match_idx)    # Associate point -> match
@@ -341,6 +469,9 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         frame_idx = self.graph.frames.push(FrameNode.init({
             "pose"        : est_pose,
             "T_BS"        : frame.stereo.T_BS,
+            "vel_w"       : torch.zeros((1, 3), dtype=torch.float32),
+            "bias_g"      : torch.zeros((1, 3), dtype=torch.float32),
+            "bias_a"      : torch.zeros((1, 3), dtype=torch.float32),
             "need_interp" : torch.tensor([need_interp], dtype=torch.bool),
             "time_ns"     : torch.tensor([frame.stereo.frame_ns], dtype=torch.long),
             "K"           : frame.stereo.K,

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import torch
 import time
+import torch.nn.functional as F
 from pathlib import Path
 from types import SimpleNamespace
 from typing import overload, Literal
@@ -26,6 +27,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from DataLoader import StereoData
+from Utility.Device import canonicalize_torch_device, is_supported_device_string
 from Utility.PrettyPrint import Logger
 from Utility.Timer import Timer
 from Utility.Extensions import ConfigTestableSubclass
@@ -33,6 +35,15 @@ from Utility.Utils import reflect_torch_dtype
 
 from .StereoDepth import IStereoDepth, disparity_to_depth, disparity_to_depth_cov
 from .Matching    import IMatcher
+
+
+def _cfg_get(config: SimpleNamespace | dict | None, key: str, default):
+    if config is None:
+        return default
+    if isinstance(config, dict):
+        return config.get(key, default)
+    return getattr(config, key, default)
+
 
 # Frontend interface ###
 class IFrontend(ABC, ConfigTestableSubclass):
@@ -162,6 +173,7 @@ class FlowFormerCovFrontend(IFrontend):
     
     def __init__(self, config: SimpleNamespace):
         super().__init__(config)
+        self.config.device = canonicalize_torch_device(self.config.device)
         
         from ..Network.FlowFormer.configs.submission import get_cfg
         from ..Network.FlowFormerCov import build_flowformer
@@ -253,7 +265,7 @@ class FlowFormerCovFrontend(IFrontend):
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:
         cls._enforce_config_spec(config, {
             "weight"    : lambda s: isinstance(s, str), # Model Checkpoint path
-            "device"    : lambda s: isinstance(s, str) and (("cuda" in s) or (s == "cpu")),
+            "device"    : is_supported_device_string,
             "dec_dtype" : lambda b: isinstance(b, str) and b in ("fp32", "fp16", "bf16"),
             "enc_dtype" : lambda b: isinstance(b, str) and b in ("fp32", "fp16", "bf16"),
             "enforce_positive_disparity": lambda b: isinstance(b, bool),
@@ -351,3 +363,286 @@ class CUDAGraph_FlowFormerCovFrontend(FlowFormerCovFrontend):
             result_cov = g_context.static_ouput["flow_cov"].clone()
             
         return result_val, result_cov
+
+
+class StaticConfidence_FlowFormerCovFrontend(FlowFormerCovFrontend):
+    """
+    FlowFormerCov frontend with an additional static-confidence head.
+    """
+
+    def __init__(self, config: SimpleNamespace):
+        super().__init__(config)
+        from ..Network.DynamicHead import build_head
+
+        self.dynamic_head = build_head(getattr(config, "dynamic_head", None))
+        self.dynamic_head = self.dynamic_head.to(config.device)
+        self.dynamic_head.eval()
+        for param in self.model.parameters():
+            param.requires_grad_(False)
+
+        head_weight = _cfg_get(getattr(config, "dynamic_head", None), "weight", None)
+        if isinstance(head_weight, str) and len(head_weight) > 0 and Path(head_weight).exists():
+            state = torch.load(head_weight, map_location=config.device, weights_only=True)
+            if isinstance(state, dict) and "head_state_dict" in state:
+                state = state["head_state_dict"]
+            if isinstance(state, dict):
+                self.dynamic_head.load_state_dict(state, strict=False)
+
+        self.imu_encoder = None
+        imu_cfg = getattr(config, "imu", None)
+        if imu_cfg is not None:
+            from ..Network.AirIMU.encoder import AirIMUEncoder
+
+            self.imu_encoder = AirIMUEncoder.from_config(imu_cfg).to(config.device)
+            self.imu_encoder.eval()
+            for param in self.imu_encoder.parameters():
+                param.requires_grad_(False)
+
+        self._last_frame_ns: int | None = None
+        dt_reset_ms = float(_cfg_get(getattr(config, "dynamic_head", None), "dt_reset_ms", 500.0))
+        self._dt_reset_ns = int(max(dt_reset_ms, 0.0) * 1_000_000)
+        self._temporal_context_index = int(_cfg_get(getattr(config, "dynamic_head", None), "temporal_context_index", 1))
+
+    def reset_stream(self) -> None:
+        self.dynamic_head.reset_state()
+        self._last_frame_ns = None
+
+    def _maybe_reset_stream(self, frame_ns: int | None) -> None:
+        if frame_ns is None or self._last_frame_ns is None:
+            return
+        if frame_ns < self._last_frame_ns or (frame_ns - self._last_frame_ns) > self._dt_reset_ns:
+            self.reset_stream()
+
+    def _resolve_temporal_context(self, batch_size: int) -> torch.Tensor:
+        context = getattr(self.model, "last_context", None)
+        if context is None:
+            raise RuntimeError("FlowFormerCov model did not expose `last_context`.")
+
+        if context.ndim != 4:
+            raise RuntimeError(f"Expected `last_context` with shape [B,C,H,W], got {tuple(context.shape)}")
+
+        if context.shape[0] >= 2 * batch_size:
+            return context[batch_size: batch_size * 2].detach().float()
+
+        temporal_idx = min(max(0, self._temporal_context_index), context.shape[0] - 1)
+        return context[temporal_idx: temporal_idx + 1].detach().float()
+
+    @staticmethod
+    def _prepare_flow_and_cov(flow: torch.Tensor, cov: torch.Tensor, target_hw: tuple[int, int]) -> tuple[torch.Tensor, torch.Tensor]:
+        src_h, src_w = flow.shape[-2:]
+        dst_h, dst_w = target_hw
+        flow_lo = F.interpolate(flow, size=target_hw, mode="bilinear", align_corners=False)
+        cov_lo = F.interpolate(cov, size=target_hw, mode="bilinear", align_corners=False)
+
+        scale_x = float(dst_w) / float(src_w)
+        scale_y = float(dst_h) / float(src_h)
+        flow_lo[:, 0] *= scale_x
+        flow_lo[:, 1] *= scale_y
+        return flow_lo, cov_lo
+
+    @staticmethod
+    def _rigid_flow_from_delta_pose(
+        depth: torch.Tensor,
+        K: torch.Tensor,
+        delta_R: torch.Tensor,
+        delta_p: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        # NED camera convention: X is forward depth, Y/Z lateral axes.
+        b, _, h, w = depth.shape
+        if K.ndim == 2:
+            K = K.unsqueeze(0).expand(b, -1, -1)
+        elif K.shape[0] == 1 and b > 1:
+            K = K.expand(b, -1, -1)
+
+        fx = K[:, 0, 0].view(b, 1, 1)
+        fy = K[:, 1, 1].view(b, 1, 1)
+        cx = K[:, 0, 2].view(b, 1, 1)
+        cy = K[:, 1, 2].view(b, 1, 1)
+
+        v, u = torch.meshgrid(
+            torch.arange(h, dtype=depth.dtype, device=depth.device),
+            torch.arange(w, dtype=depth.dtype, device=depth.device),
+            indexing="ij",
+        )
+        u = u.view(1, h, w).expand(b, -1, -1)
+        v = v.view(1, h, w).expand(b, -1, -1)
+
+        x = depth.squeeze(1).clamp_min(1e-6)
+        y = (u - cx) / fx * x
+        z = (v - cy) / fy * x
+        pts = torch.stack([x, y, z], dim=-1).view(b, -1, 3)
+
+        pts_t = torch.bmm(pts, delta_R.transpose(1, 2)) + delta_p.unsqueeze(1)
+        x_t = pts_t[..., 0].clamp_min(1e-6)
+        u_t = K[:, 0, 0].view(b, 1) * (pts_t[..., 1] / x_t) + K[:, 0, 2].view(b, 1)
+        v_t = K[:, 1, 1].view(b, 1) * (pts_t[..., 2] / x_t) + K[:, 1, 2].view(b, 1)
+
+        flow_x = (u_t - u.reshape(b, -1)).view(b, 1, h, w)
+        flow_y = (v_t - v.reshape(b, -1)).view(b, 1, h, w)
+        flow = torch.cat([flow_x, flow_y], dim=1)
+
+        valid = (
+            torch.isfinite(pts_t).all(dim=-1)
+            & (u_t >= 0.0)
+            & (u_t <= (w - 1))
+            & (v_t >= 0.0)
+            & (v_t <= (h - 1))
+            & torch.isfinite(x_t)
+            & (depth.squeeze(1) > 1e-6)
+        )
+        return flow, valid.view(b, 1, h, w).to(dtype=depth.dtype)
+
+    @staticmethod
+    def _build_proxy_channels(
+        depth: torch.Tensor,
+        flow_obs: torch.Tensor,
+        K: torch.Tensor,
+        delta_R: torch.Tensor,
+        delta_p: torch.Tensor,
+    ) -> torch.Tensor:
+        rigid_flow, valid = StaticConfidence_FlowFormerCovFrontend._rigid_flow_from_delta_pose(
+            depth=depth,
+            K=K,
+            delta_R=delta_R,
+            delta_p=delta_p,
+        )
+        delta_f = flow_obs - rigid_flow
+        r_imu = torch.linalg.vector_norm(delta_f, dim=1, keepdim=True)
+
+        b = depth.shape[0]
+        trans_mag = torch.linalg.vector_norm(delta_p, dim=1).view(b, 1, 1, 1)
+        if K.ndim == 3:
+            fx = K[:, 0, 0].view(b, 1, 1, 1)
+        else:
+            fx = K[0, 0].reshape(1, 1, 1, 1).expand(b, -1, -1, -1)
+        tau = 1.0 + (fx / depth.clamp_min(1e-3)) * trans_mag
+        r_imu_norm = r_imu / tau.clamp_min(1e-3)
+        return torch.cat([delta_f, r_imu_norm, valid], dim=1)
+
+    def _extract_imu_feature(
+        self,
+        frame: StereoData,
+        ref_feat: torch.Tensor,
+    ) -> tuple[torch.Tensor | None, dict[str, torch.Tensor] | None]:
+        if self.dynamic_head.imu_fusion not in {"depth_bin_film", "film", "concat", "cross_attention"}:
+            return None, None
+
+        if self.imu_encoder is None:
+            return torch.zeros(
+                (ref_feat.shape[0], self.dynamic_head.imu_feature_dim),
+                dtype=ref_feat.dtype,
+                device=ref_feat.device,
+            ), None
+
+        imu_window = getattr(frame, "imu_window", None)
+        imu_mask = getattr(frame, "imu_mask", None)
+        imu_dt = getattr(frame, "imu_dt", None)
+
+        if imu_window is None and hasattr(frame, "imu"):
+            imu_data = getattr(frame, "imu")
+            if imu_data is not None and hasattr(imu_data, "acc") and hasattr(imu_data, "gyro"):
+                imu_window = {"acc": imu_data.acc, "gyro": imu_data.gyro}
+                if hasattr(imu_data, "time_ns"):
+                    imu_window["time_ns"] = imu_data.time_ns
+
+        if imu_window is None:
+            return torch.zeros(
+                (ref_feat.shape[0], self.dynamic_head.imu_feature_dim),
+                dtype=ref_feat.dtype,
+                device=ref_feat.device,
+            ), None
+
+        def _to_device(val):
+            if isinstance(val, torch.Tensor):
+                return val.to(self.config.device)
+            if isinstance(val, dict):
+                return {k: _to_device(v) for k, v in val.items()}
+            return val
+
+        imu_window = _to_device(imu_window)
+        imu_mask = _to_device(imu_mask)
+        imu_dt = _to_device(imu_dt)
+
+        with torch.no_grad():
+            imu_out = self.imu_encoder(imu_window, imu_mask=imu_mask, dt=imu_dt)
+        return imu_out["f_imu"].to(device=ref_feat.device, dtype=ref_feat.dtype), imu_out
+
+    @Timer.cpu_timeit("Frontend.estimate")
+    @Timer.gpu_timeit("Frontend.estimate")
+    @torch.inference_mode()
+    def estimate_pair(self, frame_t1: StereoData, frame_t2: StereoData) -> tuple[IStereoDepth.Output, IMatcher.Output]:
+        depth_out, match_out = super().estimate_pair(frame_t1, frame_t2)
+        if match_out.cov is None:
+            raise RuntimeError("StaticConfidence_FlowFormerCovFrontend requires matcher covariance from FlowFormerCov.")
+
+        f_ctx = self._resolve_temporal_context(frame_t1.imageL.shape[0]).to(match_out.flow)
+        flow_lo, cov_lo = self._prepare_flow_and_cov(match_out.flow, match_out.cov, f_ctx.shape[-2:])
+        f_imu, imu_out = self._extract_imu_feature(frame_t2, f_ctx)
+        if imu_out is not None and ("delta_R" in imu_out) and ("delta_p" in imu_out):
+            proxy_full = self._build_proxy_channels(
+                depth=depth_out.depth.to(match_out.flow),
+                flow_obs=match_out.flow,
+                K=frame_t2.K.to(match_out.flow),
+                delta_R=imu_out["delta_R"].to(match_out.flow),
+                delta_p=imu_out["delta_p"].to(match_out.flow),
+            )
+        else:
+            proxy_full = torch.zeros(
+                (match_out.flow.shape[0], 4, *match_out.flow.shape[-2:]),
+                dtype=match_out.flow.dtype,
+                device=match_out.flow.device,
+            )
+        proxy_lo = F.interpolate(proxy_full, size=f_ctx.shape[-2:], mode="bilinear", align_corners=False)
+        scale_x = float(f_ctx.shape[-1]) / float(match_out.flow.shape[-1])
+        scale_y = float(f_ctx.shape[-2]) / float(match_out.flow.shape[-2])
+        proxy_lo[:, 0] *= scale_x
+        proxy_lo[:, 1] *= scale_y
+
+        frame_ns = None
+        try:
+            frame_ns = frame_t2.frame_ns
+        except Exception:
+            frame_ns = None
+        self._maybe_reset_stream(frame_ns)
+
+        head_out = self.dynamic_head(
+            f_ctx=f_ctx,
+            flow=flow_lo,
+            cov=cov_lo,
+            f_imu=f_imu,
+            proxy=proxy_lo,
+            h_prev=None,
+            depth=depth_out.depth.to(match_out.flow),
+        )
+
+        h_full, w_full = match_out.flow.shape[-2:]
+        p_static = F.interpolate(head_out["p_static"], size=(h_full, w_full), mode="bilinear", align_corners=False).squeeze(1)
+        p_visible = F.interpolate(head_out["p_visible"], size=(h_full, w_full), mode="bilinear", align_corners=False).squeeze(1)
+        c_src = head_out["static_conf"] if "static_conf" in head_out else head_out["c_eff"]
+        w_src = head_out.get("static_weight", head_out.get("w", c_src))
+        c_eff = F.interpolate(c_src, size=(h_full, w_full), mode="bilinear", align_corners=False).squeeze(1)
+        w_map = F.interpolate(w_src, size=(h_full, w_full), mode="bilinear", align_corners=False).squeeze(1)
+
+        match_out.p_static = p_static
+        match_out.p_visible = p_visible
+        match_out.static_conf = c_eff
+        match_out.static_weight = w_map
+        if imu_out is not None:
+            match_out.imu_preint = {
+                key: value.detach().cpu() if isinstance(value, torch.Tensor) else value
+                for key, value in imu_out.items()
+                if key != "f_imu"
+            }
+
+        if frame_ns is not None:
+            self._last_frame_ns = int(frame_ns)
+        return depth_out, match_out
+
+    @classmethod
+    def is_valid_config(cls, config: SimpleNamespace | None) -> None:
+        assert config is not None
+        super().is_valid_config(config)
+        if getattr(config, "dynamic_head", None) is None:
+            raise KeyError("StaticConfidence_FlowFormerCovFrontend config requires `dynamic_head`.")
+        if getattr(config, "imu", None) is None:
+            raise KeyError("StaticConfidence_FlowFormerCovFrontend config requires `imu`.")

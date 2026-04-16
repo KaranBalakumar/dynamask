@@ -7,6 +7,9 @@ FrameFeature = T.Literal[
     "baseline",     # Nx1   , dtype=float32
     "pose",         # Nx7   , dtype=float32, pose of sensor under world frame.
     "T_BS",         # Nx7   , dtype=float32, body-to-sensor SE3 transformation.
+    "vel_w",        # Nx3   , dtype=float32, velocity in world frame.
+    "bias_g",       # Nx3   , dtype=float32, gyroscope bias.
+    "bias_a",       # Nx3   , dtype=float32, accelerometer bias.
     "need_interp",  # Nx1   , dtype=bool
     "time_ns"       # Nx1   , dtype=long
 ]
@@ -25,6 +28,7 @@ MatchingFeature = T.Literal[
     "pixel2_disp_cov",    # Nx1   , dtype=float32
     "obs1_covTc",   # Nx3x3 , dtype=float64
     "obs2_covTc",   # Nx3x3 , dtype=float64
+    "static_conf",  # Nx1   , dtype=float32
 ]
 PointFeature = T.Literal[
     "pos_Tw",       # Nx3   , dtype=float32

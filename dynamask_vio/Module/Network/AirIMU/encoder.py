@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+from pathlib import Path
+from types import SimpleNamespace
 
 from .corrector import AirIMUCorrector
 from .preintegration import ForsterPreintegrator
@@ -42,6 +44,38 @@ class AirIMUEncoder(nn.Module):
         self.corrector.freeze()
 
     @staticmethod
+    def _cfg_get(config: SimpleNamespace | dict | None, key: str, default):
+        if config is None:
+            return default
+        if isinstance(config, dict):
+            return config.get(key, default)
+        return getattr(config, key, default)
+
+    @classmethod
+    def from_config(cls, config: SimpleNamespace | dict | None) -> "AirIMUEncoder":
+        feature_dim = int(cls._cfg_get(config, "feature_dim", 128))
+        hidden_dim = int(cls._cfg_get(config, "hidden_dim", 64))
+        freeze_corrector = bool(cls._cfg_get(config, "freeze_corrector", True))
+
+        encoder = cls(
+            feature_dim=feature_dim,
+            hidden_dim=hidden_dim,
+            freeze_corrector=False,
+        )
+
+        weight_path = cls._cfg_get(config, "airimu_weights", None)
+        if isinstance(weight_path, str) and len(weight_path) > 0 and Path(weight_path).exists():
+            state = torch.load(weight_path, map_location="cpu", weights_only=True)
+            if isinstance(state, dict) and "state_dict" in state:
+                state = state["state_dict"]
+            if isinstance(state, dict):
+                encoder.load_state_dict(state, strict=False)
+
+        if freeze_corrector:
+            encoder.freeze_corrector()
+        return encoder
+
+    @staticmethod
     def _dt_summary(dt: torch.Tensor | float, batch: int, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
         if isinstance(dt, (float, int)):
             return torch.full((batch, 1), float(dt), dtype=dtype, device=device)
@@ -54,7 +88,61 @@ class AirIMUEncoder(nn.Module):
             return dt.sum(dim=1, keepdim=True).to(device=device, dtype=dtype)
         raise ValueError("dt must be scalar, [T], [B], [B, 1], or [B, T].")
 
-    def forward(self, acc: torch.Tensor, gyro: torch.Tensor, dt: torch.Tensor | float) -> dict[str, torch.Tensor]:
+    @staticmethod
+    def _dt_from_time_ns(time_ns: torch.Tensor, steps: int) -> torch.Tensor:
+        # time_ns: [B, T] or [B, T, 1]
+        ts = time_ns.squeeze(-1).to(dtype=torch.float32)
+        if ts.shape[1] <= 1:
+            return torch.full((ts.shape[0], steps), 0.01, device=ts.device, dtype=ts.dtype)
+        dt = (ts[:, 1:] - ts[:, :-1]).clamp(min=1.0) * 1e-9
+        if dt.shape[1] == steps:
+            return dt
+        # Most windows provide T samples -> T-1 intervals. Extend with last interval.
+        if dt.shape[1] == steps - 1:
+            return torch.cat([dt, dt[:, -1:]], dim=1)
+        mean_dt = dt.mean(dim=1, keepdim=True)
+        return mean_dt.expand(-1, steps)
+
+    def _unpack_imu_inputs(
+        self,
+        imu_or_acc: torch.Tensor | dict[str, torch.Tensor],
+        gyro: torch.Tensor | None,
+        dt: torch.Tensor | float | None,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | float]:
+        if isinstance(imu_or_acc, dict):
+            acc = imu_or_acc["acc"]
+            gyro_val = imu_or_acc["gyro"]
+            if dt is None:
+                dt = imu_or_acc.get("dt", None)
+            if dt is None and "time_ns" in imu_or_acc:
+                dt = self._dt_from_time_ns(imu_or_acc["time_ns"], acc.shape[1])
+            if dt is None:
+                dt = 0.01
+            return acc, gyro_val, dt
+
+        if gyro is None:
+            raise ValueError("gyro tensor must be provided when imu window dict is not used")
+        if dt is None:
+            dt = 0.01
+        return imu_or_acc, gyro, dt
+
+    def forward(
+        self,
+        acc: torch.Tensor | dict[str, torch.Tensor],
+        gyro: torch.Tensor | None = None,
+        dt: torch.Tensor | float | None = None,
+        imu_mask: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
+        acc, gyro, dt = self._unpack_imu_inputs(acc, gyro, dt)
+
+        if imu_mask is not None:
+            mask = imu_mask
+            if mask.ndim == 2:
+                mask = mask.unsqueeze(-1)
+            mask = mask.to(device=acc.device, dtype=acc.dtype)
+            acc = acc * mask
+            gyro = gyro * mask
+
         corrected = self.corrector(acc=acc, gyro=gyro)
         preint = self.preintegrator(
             acc=corrected["acc"],

@@ -68,6 +68,44 @@ def test_static_confidence_head_supports_recurrent_pathway():
     assert not torch.allclose(out_t0["h_new"], out_t1["h_new"])
 
 
+def test_static_confidence_head_supports_depth_bin_film_fusion():
+    torch.manual_seed(11)
+    f_ctx, flow, cov, proxy = _make_head_inputs(batch=1)
+    depth_near = torch.full((1, 1, 20, 30), 2.0)
+    depth_far = torch.full((1, 1, 20, 30), 30.0)
+    head = StaticConfidenceHead(
+        hidden_dim=32,
+        imu_feature_dim=16,
+        imu_fusion="depth_bin_film",
+        depth_bins=[0.0, 5.0, 20.0, 1e6],
+    )
+
+    f_imu = torch.randn(1, 16)
+    out_near = head(f_ctx=f_ctx, flow=flow, cov=cov, f_imu=f_imu, proxy=proxy, h_prev=None, depth=depth_near)
+    out_far = head(f_ctx=f_ctx, flow=flow, cov=cov, f_imu=f_imu, proxy=proxy, h_prev=None, depth=depth_far)
+
+    assert out_near["static_conf"].shape == (1, 1, 20, 30)
+    assert out_far["static_conf"].shape == (1, 1, 20, 30)
+    assert not torch.allclose(out_near["static_conf"], out_far["static_conf"])
+
+
+def test_static_confidence_head_supports_cross_attention_fusion():
+    torch.manual_seed(12)
+    f_ctx, flow, cov, proxy = _make_head_inputs(batch=1)
+    head = StaticConfidenceHead(hidden_dim=32, imu_feature_dim=16, imu_fusion="cross_attention")
+
+    out = head(
+        f_ctx=f_ctx,
+        flow=flow,
+        cov=cov,
+        f_imu=torch.randn(1, 16),
+        proxy=proxy,
+        h_prev=None,
+    )
+    assert out["p_static"].shape == (1, 1, 20, 30)
+    assert out["p_visible"].shape == (1, 1, 20, 30)
+
+
 def test_film_layer_uses_imu_conditioning():
     torch.manual_seed(2)
     film = FiLM(feature_dim=8, cond_dim=4)

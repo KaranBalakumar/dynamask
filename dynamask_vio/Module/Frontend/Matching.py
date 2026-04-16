@@ -25,6 +25,10 @@ class IMatcher(ABC, ConfigTestableSubclass):
         flow: Jt.Float32[torch.Tensor, "B 2 H W"]                 # B x 2 x H x W, float32
         cov : Jt.Float32[torch.Tensor, "B 3 H W"] | None = None   # B x 3 x H x W, float32 OR None if not applicable
         mask: Jt.Bool   [torch.Tensor, "B 1 H W"] | None = None   # B x 1 x H x W, bool    OR None if not applicable
+        static_conf  : Jt.Float32[torch.Tensor, "B H W"] | None = None
+        static_weight: Jt.Float32[torch.Tensor, "B H W"] | None = None
+        p_static     : Jt.Float32[torch.Tensor, "B H W"] | None = None
+        p_visible    : Jt.Float32[torch.Tensor, "B H W"] | None = None
         
         @classmethod
         def from_partial_cov(cls,
