@@ -76,6 +76,7 @@ else:
                 assert init_tensor is not None
                 self._tensor = init_tensor
                 self._curr_max_size = self._tensor.size(grow_on)
+                self.current_size = self._curr_max_size
         
         def _alloc_new_tensor(self, shape, **kwargs):
             if self.init_val is None:

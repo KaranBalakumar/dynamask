@@ -1,10 +1,12 @@
 import torch
 import pypose as pp
 import typing as T
+import torch.nn as nn
 from dataclasses import dataclass
 
-from Module.Map import MatchObs, PointNode
+from Module.Map import MatchObs, PointNode, IMUEdgeNode
 from Utility.Point import pixel2point_NED, point2pixel_NED
+from Module.Network.AirIMU.preintegration import so3_exp, so3_log
 from ..PyposeOptimizers import AnalyticModule, FactorGraph
 
 
@@ -19,6 +21,16 @@ class GraphInput:
     images_intrinsic  : torch.Tensor
     edges_index       : torch.Tensor
     device            : str
+    from_pose         : torch.Tensor | None = None
+    T_BS              : torch.Tensor | None = None
+    imu_edge          : IMUEdgeNode | None = None
+    init_v_i          : torch.Tensor | None = None
+    init_v_j          : torch.Tensor | None = None
+    init_bg_i         : torch.Tensor | None = None
+    init_bg_j         : torch.Tensor | None = None
+    init_ba_i         : torch.Tensor | None = None
+    init_ba_j         : torch.Tensor | None = None
+    gravity           : torch.Tensor | None = None
 
 
 @dataclass
@@ -26,6 +38,9 @@ class GraphOutput:
     motion   : torch.Tensor
     from_idx : torch.Tensor
     frame_idx: torch.Tensor
+    vel      : torch.Tensor | None = None
+    bias_g   : torch.Tensor | None = None
+    bias_a   : torch.Tensor | None = None
 
 
 ############## Optimization Graphs
@@ -146,6 +161,97 @@ class ReprojDisp_TwoFramePGO(Reproj_TwoFramePGO):
     @torch.inference_mode()
     def covariance_array(self) -> torch.Tensor:
         return T.cast(torch.Tensor, self.cov)
+
+
+class Reproj_TwoFramePGO_IMU(Reproj_TwoFramePGO):
+    def __init__(self, graph_data: GraphInput) -> None:
+        super().__init__(graph_data)
+        assert graph_data.imu_edge is not None, "IMU edge required for reproj_imu graph."
+        assert graph_data.from_pose is not None and graph_data.T_BS is not None
+        assert graph_data.init_v_i is not None and graph_data.init_v_j is not None
+        assert graph_data.init_bg_i is not None and graph_data.init_bg_j is not None
+        assert graph_data.init_ba_i is not None and graph_data.init_ba_j is not None
+        assert graph_data.gravity is not None
+
+        self.v_j = nn.Parameter(graph_data.init_v_j.double())
+        self.b_gj = nn.Parameter(graph_data.init_bg_j.double())
+        self.b_aj = nn.Parameter(graph_data.init_ba_j.double())
+
+        self.register_buffer("v_i", graph_data.init_v_i.double())
+        self.register_buffer("b_gi", graph_data.init_bg_i.double())
+        self.register_buffer("b_ai", graph_data.init_ba_i.double())
+        self.register_buffer("g_W", graph_data.gravity.double())
+
+        T_BS = pp.SE3(graph_data.T_BS).double()
+        T_WC_i = pp.SE3(graph_data.from_pose).double()
+        T_WB_i = T_WC_i @ T_BS.Inv()
+        self.register_buffer("R_i", T_WB_i.rotation().matrix()[0])
+        self.register_buffer("p_i", T_WB_i.translation()[0])
+        self.register_buffer("T_BS", graph_data.T_BS.double())
+
+        e = graph_data.imu_edge
+        self.register_buffer("imu_delta_R", e.data["delta_R"][0].double())
+        self.register_buffer("imu_delta_v", e.data["delta_v"][0].double())
+        self.register_buffer("imu_delta_p", e.data["delta_p"][0].double())
+        self.register_buffer("imu_Sigma", e.data["Sigma"][0].double())
+        self.register_buffer("imu_dt", e.data["dt"][0].double())
+        self.register_buffer("imu_bias_ref", e.data["bias_ref"][0].double())
+        self.register_buffer("imu_J_R_bg", e.data["J_R_bg"][0].double())
+        self.register_buffer("imu_J_v_bg", e.data["J_v_bg"][0].double())
+        self.register_buffer("imu_J_v_ba", e.data["J_v_ba"][0].double())
+        self.register_buffer("imu_J_p_bg", e.data["J_p_bg"][0].double())
+        self.register_buffer("imu_J_p_ba", e.data["J_p_ba"][0].double())
+
+    def _compute_imu_residual(self) -> torch.Tensor:
+        T_WC_j = pp.SE3(self.pose2opt)
+        T_BS = pp.SE3(self.T_BS)
+        T_WB_j = T_WC_j @ T_BS.Inv()
+        R_j = T_WB_j.rotation().matrix()[0]
+        p_j = T_WB_j.translation()[0]
+
+        dbg = self.b_gi - self.imu_bias_ref[:3]
+        dba = self.b_ai - self.imu_bias_ref[3:]
+
+        dR_corr = self.imu_delta_R @ so3_exp((self.imu_J_R_bg @ dbg).unsqueeze(0))[0]
+        dv_corr = self.imu_delta_v + self.imu_J_v_bg @ dbg + self.imu_J_v_ba @ dba
+        dp_corr = self.imu_delta_p + self.imu_J_p_bg @ dbg + self.imu_J_p_ba @ dba
+
+        r_R = so3_log((dR_corr.transpose(-1, -2) @ (self.R_i.transpose(-1, -2) @ R_j)).unsqueeze(0))[0]
+        r_v = self.R_i.transpose(-1, -2) @ (self.v_j - self.v_i - self.g_W * self.imu_dt) - dv_corr
+        r_p = self.R_i.transpose(-1, -2) @ (p_j - self.p_i - self.v_i * self.imu_dt - 0.5 * self.g_W * (self.imu_dt ** 2)) - dp_corr
+        r_bg = self.b_gj - self.b_gi
+        r_ba = self.b_aj - self.b_ai
+        return torch.cat([r_R, r_v, r_p, r_bg, r_ba], dim=0)
+
+    def forward(self) -> torch.Tensor:
+        vis = super().forward().reshape(-1)
+        r_imu = self._compute_imu_residual()
+        return torch.cat([vis, r_imu], dim=0)
+
+    @torch.no_grad()
+    @torch.inference_mode()
+    def covariance_array(self) -> list[torch.Tensor]:
+        vis_cov = super().covariance_array()
+        dt = torch.clamp(self.imu_dt, min=1e-5)
+        sigma_bgw2 = 1e-4
+        sigma_baw2 = 1e-3
+        imu_cov = torch.zeros((15, 15), dtype=self.imu_Sigma.dtype, device=self.imu_Sigma.device)
+        imu_cov[:9, :9] = self.imu_Sigma
+        imu_cov[9:12, 9:12] = torch.eye(3, dtype=imu_cov.dtype, device=imu_cov.device) * (sigma_bgw2 * dt)
+        imu_cov[12:15, 12:15] = torch.eye(3, dtype=imu_cov.dtype, device=imu_cov.device) * (sigma_baw2 * dt)
+        return [*torch.unbind(vis_cov, dim=0), imu_cov]
+
+    @torch.no_grad()
+    @torch.inference_mode()
+    def write_back(self) -> GraphOutput:
+        return GraphOutput(
+            motion=self.pose2opt,
+            frame_idx=self.frame_idx,
+            from_idx=self.from_idx,
+            vel=self.v_j.detach(),
+            bias_g=self.b_gj.detach(),
+            bias_a=self.b_aj.detach(),
+        )
 
 
 class Analytic_ICP_TwoframePGO(ICP_TwoframePGO, AnalyticModule):

@@ -16,7 +16,7 @@ from Utility.Math  import NormalizeQuat
 from ..Interface import IOptimizer
 from ..PyposeOptimizers import LM_analytic, AnalyticModule, FactorGraph
 from .Graphs import GraphInput, GraphOutput
-from .Graphs import ICP_TwoframePGO, Reproj_TwoFramePGO, ReprojDisp_TwoFramePGO
+from .Graphs import ICP_TwoframePGO, Reproj_TwoFramePGO, ReprojDisp_TwoFramePGO, Reproj_TwoFramePGO_IMU
 from .Graphs import Analytic_ICP_TwoframePGO, Analytic_Reproj_TwoFramePGO, Analytic_ReprojDisp_TwoFramePGO
 
 
@@ -29,18 +29,39 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
         obs = global_map.get_frame2match(frame2opt)
         pts = global_map.get_match2point(obs)
         im_intrinsics = frame2opt.data["K"][0]
+        from_candidates = global_map.match2frame1.project(obs.index)
+        if from_candidates.numel() == 0:
+            from_idx = frame_idx - 1
+        else:
+            from_idx = torch.unique(from_candidates)[:1]
 
         lengths = global_map.frame2match.ranges[frame2opt.index, :, 1].flatten()
         lengths = lengths[lengths >= 0]
         edges_idx = torch.repeat_interleave(torch.arange(lengths.size(0)), lengths.long())
         init_motion = pp.SE3(frame2opt.data["pose"])
         baseline = frame2opt.data["baseline"]
-        return GraphInput(frame_idx, frame_idx - 1, init_motion, baseline, obs, pts, im_intrinsics, edges_idx, "cpu")
+        graph_data = GraphInput(frame_idx, from_idx, init_motion, baseline, obs, pts, im_intrinsics, edges_idx, "cpu")
+        if self.config.graph_type == "reproj_imu":
+            from_pose = global_map.frames.data["pose"][from_idx]
+            imu_edge = global_map.get_imu_edge(from_idx, frame_idx)
+            if imu_edge is None:
+                raise RuntimeError(f"Missing IMU edge for frames ({int(from_idx.item())}, {int(frame_idx.item())})")
+            graph_data.from_pose = from_pose
+            graph_data.T_BS = frame2opt.data["T_BS"]
+            graph_data.imu_edge = imu_edge
+            graph_data.init_v_i = global_map.frames.data["vel"][from_idx].double().reshape(-1)
+            graph_data.init_v_j = frame2opt.data["vel"][0].double()
+            graph_data.init_bg_i = global_map.frames.data["bias_g"][from_idx].double().reshape(-1)
+            graph_data.init_bg_j = frame2opt.data["bias_g"][0].double()
+            graph_data.init_ba_i = global_map.frames.data["bias_a"][from_idx].double().reshape(-1)
+            graph_data.init_ba_j = frame2opt.data["bias_a"][0].double()
+            graph_data.gravity = getattr(global_map, "gravity", torch.tensor([0.0, 0.0, -9.81], dtype=torch.float64))
+        return graph_data
 
     @classmethod
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:
         cls._enforce_config_spec(config, {
-            "graph_type": lambda s: s in {"icp", "reproj", "disp"},
+            "graph_type": lambda s: s in {"icp", "reproj", "disp", "reproj_imu"},
             "device": lambda v: isinstance(v, str) and (v == "cpu" or "cuda" in v),
             "vectorize": lambda b: isinstance(b, bool),
             "parallel": lambda b: isinstance(b, bool),
@@ -56,12 +77,16 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
                 PoseGraphClass = Reproj_TwoFramePGO
             case (True, "disp"):
                 PoseGraphClass = ReprojDisp_TwoFramePGO
+            case (True, "reproj_imu"):
+                PoseGraphClass = Reproj_TwoFramePGO_IMU
             case (False, "icp"):
                 PoseGraphClass = Analytic_ICP_TwoframePGO
             case (False, "reproj"):
                 PoseGraphClass = Analytic_Reproj_TwoFramePGO
             case (False, "disp"):
                 PoseGraphClass = Analytic_ReprojDisp_TwoFramePGO
+            case (False, "reproj_imu"):
+                PoseGraphClass = Reproj_TwoFramePGO_IMU
             case _:
                 raise ValueError(f"Graph type of {config.graph_type} is not supported")
 
@@ -93,9 +118,13 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
             scheduler = StopOnPlateau(optimizer, steps=10, patience=2, decreasing=1e-5, verbose=False)
 
             while scheduler.continual():
-                weight = torch.block_diag(*(
-                    torch.pinverse(graph.covariance_array().to(context["device"]).double())
-                ))
+                cov_blocks = graph.covariance_array()
+                if isinstance(cov_blocks, list):
+                    inv_blocks = [torch.pinverse(c.to(context["device"]).double()) for c in cov_blocks]
+                else:
+                    inv_stacked = torch.pinverse(cov_blocks.to(context["device"]).double())
+                    inv_blocks = [*torch.unbind(inv_stacked, dim=0)]
+                weight = torch.block_diag(*inv_blocks)
                 loss = optimizer.step(input=(), weight=weight)
                 scheduler.step(loss)
 
@@ -106,6 +135,12 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
         
         to_pose     = pp.SE3(result.motion[0].data.double().cpu())
         global_map.frames.data["pose"][result.frame_idx] = to_pose.float()
+        if result.vel is not None:
+            global_map.frames.data["vel"][result.frame_idx] = result.vel.float().cpu()
+        if result.bias_g is not None:
+            global_map.frames.data["bias_g"][result.frame_idx] = result.bias_g.float().cpu()
+        if result.bias_a is not None:
+            global_map.frames.data["bias_a"][result.frame_idx] = result.bias_a.float().cpu()
 
 
 class Local_TwoFrame_PGO(TwoFrame_PGO):

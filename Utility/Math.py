@@ -159,3 +159,25 @@ def MahalanobisDist_Inv(x: torch.Tensor, mu: torch.Tensor, sigma_inv: torch.Tens
         dist     : torch.Tensor of shape N x 1
     """
     return torch.bmm(torch.bmm((x - mu).unsqueeze(1), sigma_inv), (x - mu).unsqueeze(2)).sqrt()
+
+
+def body2cam_se3(delta_R_body: torch.Tensor, delta_p_body: torch.Tensor, T_BS: pp.LieTensor | torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Convert relative motion from body frame to camera frame using extrinsic T_BS (body->sensor/camera).
+    Returns:
+        delta_R_cam: [B, 3, 3]
+        delta_p_cam: [B, 3]
+    """
+    if not isinstance(T_BS, pp.LieTensor):
+        T_BS = pp.SE3(T_BS)
+    B = delta_R_body.size(0)
+    if T_BS.shape[0] == 1 and B > 1:
+        T_BS = pp.SE3(T_BS.repeat(B, 1))
+
+    mat = torch.eye(4, dtype=delta_R_body.dtype, device=delta_R_body.device).unsqueeze(0).repeat(B, 1, 1)
+    mat[:, :3, :3] = delta_R_body
+    mat[:, :3, 3] = delta_p_body
+    delta_body = pp.from_matrix(mat, pp.SE3_type)
+
+    delta_cam = T_BS.Inv().to(delta_body) @ delta_body @ T_BS.to(delta_body)
+    return delta_cam.rotation().matrix(), delta_cam.translation()

@@ -65,12 +65,30 @@ class TensorBundle(T.Generic[T_Fields]):
     
     @classmethod
     def deserialize(cls, prefix: str, value: dict[str, np.ndarray]) -> Self:
-        allowed_fields: T_Fields | None = T.get_args(cls.__orig_bases__[0].__args__[0])  # type: ignore
+        allowed_fields: T_Fields | tuple[str, ...] | None = None
+        if hasattr(cls, "__orig_bases__"):
+            try:
+                allowed_fields = T.get_args(cls.__orig_bases__[0].__args__[0])  # type: ignore
+            except Exception:
+                allowed_fields = None
         if not allowed_fields:
-            raise Exception("T_Fields must be specified with concrete string literal types.")
+            discovered_fields: list[str] = []
+            for k in value.keys():
+                if k.startswith(f"{prefix}/"):
+                    discovered_fields.append(k[len(prefix) + 1 :])
+                elif k.startswith(prefix):
+                    rem = k[len(prefix):]
+                    if rem.startswith("/"):
+                        rem = rem[1:]
+                    discovered_fields.append(rem)
+            if len(discovered_fields) == 0:
+                raise Exception("No fields found to deserialize TensorBundle.")
+            allowed_fields = tuple(sorted(set(discovered_fields)))
         
         data: dict[T_Fields, torch.Tensor] = T.cast(dict[T_Fields, torch.Tensor], {
-            k : torch.tensor(value[f"{prefix}/k"])
+            k: torch.tensor(
+                value[f"{prefix}/{k}"] if f"{prefix}/{k}" in value else value[f"{prefix}{k}"]
+            )
             for k in allowed_fields
         })
         return cls.init(data)
