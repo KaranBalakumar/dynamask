@@ -1,277 +1,387 @@
-# <div align="center">MAC-VO: Metrics-aware Covariance for Learning-based Stereo Visual Odometry</div>
-
-### <div align="center">🥇 ICRA 2025 Best Conference Paper Award<br/>🥇 ICRA 2025 Best Paper Award on Robot Perception</div>
-
-<p align="center">
-  <a href="https://mac-vo.github.io"><img src="https://img.shields.io/badge/Homepage-4385f4?style=flat&logo=googlehome&logoColor=white"></a>
-  <a href="https://arxiv.org/abs/2409.09479v2"><img src="https://img.shields.io/badge/arXiv-b31b1b?style=flat&logo=arxiv&logoColor=white"></a>
-  <a href="https://www.youtube.com/watch?v=O_HowJk-GDw"><img src="https://img.shields.io/badge/YouTube-b31b1b?style=flat&logo=youtube&logoColor=white"></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
-</p>
-
-
-<p align="center">
-  <img src="asset/ICRAvideo.gif" alt="ICRA floor 3" width="600" />
-</p>
-
-
-> [!NOTE]  
-> We plan to release TensorRT accelerated implementation and adapting more matching networks for MAC-VO. If you are interested, please star ⭐ this repo to stay tuned.
-
-> [!NOTE]
->
-> We provide **[documentation for extending MAC-VO](https://mac-vo.github.io/wiki/)** for extending MAC-VO or using this repository as a boilerplate for *your* learning-based Visual Odometry.
->
-
-## 🔥 Updates
-
-* [Nov 2025] We release the trajectories we collected with ZedX Stereo camera on ICRA 2025 conference. See the *Additional Trajectory Release* in README for more details.
-* [Jun 2025] We release the **MAC-VO Fast Mode** - with faster pose graph optimization and mixed-precision inference, we achieve 2x speedup compared to previous version and reach speed of 12.5fps on 480x640 images. 
-
-  See `Config/Experiment/MACVO/MACVO_Fast.yaml` for detail. 
-  
-  Original example is also boosted from 5fps to 7fps and the config file is moved to `MACVO_Performant.yaml`.
-* [Apr 2025] Our work was nominated as the **ICRA 2025 Best Paper Award Finalist** (top 1%)! Keep an eye on our presentation on May 20, 16:35-16:40 Room 302. We also plan to provide a real-world demo at the conference.
-* [Mar 2025] We boost the performance of MAC-VO with a new backend optimizer, the MAC-VO now also supports *dense mapping* without any additional computation.
-* [Jan 2025] Our work is accepted by the IEEE International Conference on Robotics and Automation (ICRA) 2025. We will present our work at ICRA 2025 in Atlanta, Georgia, USA.
-* [Nov 2024] We released the ROS-2 integration at https://github.com/MAC-VO/MAC-VO-ROS2 along with the documentation at https://mac-vo.github.io/wiki/ROS/
-
-## Download the Repo
-
-Clone the repository using the following command to include all submodules automatically.
-
-`git clone https://github.com/MAC-VO/MAC-VO.git --recursive`
-
-
-## 🔧 Minimum Requirements
-
-| Component        | Minimum Version | Notes                                            |
-|------------------|-----------------|--------------------------------------------------|
-| **CUDA Runtime** | ≥ 12.4          | Dockerfile installs correct version              |
-| **Python**       | ≥ 3.10          |                                                  |
-| **VRAM**         | ≥ 6 GB          | 640×480; fast mode (mixed precision) needs 2.7GB |
-
-
-## 📦 Installation & Environment
-
-### Environment
-
-1. **Docker Image**
-
-    ```bash
-    $ docker build --network=host -t macvo:latest -f Docker/Dockerfile .
-    ```
-
-2. **Virtual Environment**
-
-    You can setup the dependencies in your native system. MAC-VO codebase can only run on Python 3.10+. See `requirements.txt` for environment requirements.
-
-    <details>
-      <summary>How to adapt MAC-VO codebase to Python &lt; 3.10?</summary>
-      
-      The Python version requirement we required is mostly due to the [`match`](https://peps.python.org/pep-0634/) syntax used and the [type annotations](https://peps.python.org/pep-0604/).
-
-      The `match` syntax can be easily replaced with `if ... elif ... else` while the type annotations can be simply removed as it does not interfere runtime behavior.
-    </details>
-
-### Pretrained Models
-
-All pretrained models for MAC-VO, stereo TartanVO and DPVO are in our [release page](https://github.com/MAC-VO/MAC-VO/releases/tag/model). Please create a new folder `Model` in the root directory and put the pretrained models in the folder.
-
-    $ mkdir Model
-    $ wget -O Model/MACVO_FrontendCov.pth https://github.com/MAC-VO/MAC-VO/releases/download/model/MACVO_FrontendCov.pth
-    $ wget -O Model/MACVO_posenet.pkl https://github.com/MAC-VO/MAC-VO/releases/download/model/MACVO_posenet.pkl
-
-## 🚀 Quick Start: Run MAC-VO on Demo Sequence
-
-Test MAC-VO immediately using the provided demo sequence. The demo sequence is a selected from the TartanAir v2 dataset.
-
-### 1/4 Download the Data
-
-1. Download a demo sequence through [Google Drive](https://drive.google.com/file/d/1kCTNMW2EnV42eH8g2STJHcVWEbVKbh_r/view?usp=sharing).
-2. Download pre-trained model for [frontend model](https://github.com/MAC-VO/MAC-VO/releases/download/model/MACVO_FrontendCov.pth) and [posenet](https://github.com/MAC-VO/MAC-VO/releases/download/model/MACVO_posenet.pkl).
-
-### 2/4 Start the Docker
-To run the Docker: 
-
-    $ docker run --gpus all -it --rm  -v [DATA_PATH]:/data -v [CODE_PATH]:/home/macvo/workspace macvo:latest
-
-To run the Docker with visualization: 
-
-    $ xhost +local:docker; docker run --gpus all -it --rm  -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix  -v [DATA_PATH]:/data -v [CODE_PATH]:/home/macvo/workspace macvo:latest
-
-
-### 3/4 Run MAC-VO
-
-We will use `Config/Experiment/MACVO/MACVO_example.yaml` as the configuration file for MAC-VO.
-
-1. Change the `root` in the data config file 'Config/Sequence/TartanAir_example.yaml' to reflect the actual path to the demo sequence downloaded.
-2. Run with one of the following command:
-
-    *Performant Mode* - best performance with moderate speed (7.5fps on 480x640 image)
-
-    ```bash
-    $ cd workspace
-    $ python3 MACVO.py --odom Config/Experiment/MACVO/MACVO_Performant.yaml --data Config/Sequence/TartanAir_example.yaml
-    ```
-
-    *Fast Mode* - slightly degraded performance (<5% increase in RTE and ROE) with most speed (12.5fps on 480x640 image)
-
-    ```bash
-    $ cd workspace
-    $ python3 MACVO.py --odom Config/Experiment/MACVO/MACVO_Fast.yaml --data Config/Sequence/TartanAir_example.yaml
-    ```
-
-> [!NOTE]
->
-> See `python MACVO.py --help` for more flags and configurations.
->
-> The demo sequence is RGB‑only. If your dataset includes depth.npy and/or flow.npy, set both flags to true.
->
-
-### 4/4 Visualize and Evaluate Result
-
-Every run will produce a `Sandbox` (or `Space`). A `Sandbox` is a storage unit that contains all the results and meta-information of an experiment. The evaluation and plotting script usually requires one or more paths of sandbox(es).
-
-#### **Evaluate Trajectory**
-
-  Calculate the absolute translate error (ATE, m); relative translation error (RTE, m/frame); relative orientation error (ROE, deg/frame); relative pose error (per frame on se(3)).
-
-  ```bash
-  $ python -m Evaluation.EvalSeq --spaces SPACE_0, [SPACE, ...]
-  ```
-
-#### **Plot Trajectory**
-
-  Plot sequences, translation, translation error, rotation and rotation error.
-
-  ```bash
-  $ python -m Evaluation.PlotSeq --spaces SPACE_0, [SPACE, ...]
-  ```
-
-## 🛠️ Additional Commands and Utility
-
-* **Run MAC-VO (*Ours* method) on a Single Sequence**
-    ```bash
-    $ python MACVO.py --odom ./Config/Experiment/MACVO/MACVO.yaml --data ./Config/Sequence/TartanAir_abandonfac_001.yaml
-    ```
-
-* **Run MAC-VO for Ablation Studies**
-    ```bash
-    $ python MACVO.py --odom ./Config/Experiment/MACVO/Ablation_Study/[CHOOSE_ONE_CFG].yaml --data ./Config/Sequence/TartanAir_abandonfac_001.yaml
-    ```
-
-* **Run MAC-VO on Test Dataset**
-
-  ```bash
-  $ python -m Scripts.Experiment.Experiment_MACVO --odom [PATH_TO_ODOM_CONFIG]
-  ```
-
-* **Run MAC-VO Mapping Mode**
-
-  ```bash
-  $ python MACVO.py --odom ./Config/Experiment/MACVO/MACVO_MappingMode.yaml --data ./Config/Sequence/TartanAir_abandonfac_001.yaml
-  ```
-
-### 📊 Plotting and Visualization
-
-We used [the Rerun](https://rerun.io) visualizer to visualize 3D space including camera pose, point cloud and trajectory.
-
-* **On Machine with GUI**
-
-  1. Run `MACVO.py` with the following command line
-    
-        ```bash
-        $ python MACVO.py --useRR --odom [ODOM_CONFIG] --data [DATA_CONFIG]
-        ```
-     
-        A rerun visualizer should pop up with the trajectory and *per-frame* point cloud & tracking features visualized.
-  2. To accumulate the point cloud for dense mapping visualization, please follow the instruction here: https://github.com/MAC-VO/MAC-VO/issues/4#issuecomment-2495620352
-
-* **On Headless Machine**
-
-  1. Install the `rerun_sdk` python package on both your machine (with GUI) and remote headless environment. Also setup a port forwarding from remote port `9877` to your local machine port `9877`.
-  2. Start a rerun server by rerun --serve & on the headless machine
-  3. On your machine (with GUI), run rerun ws://localhost:9877 to connect to the remote visualization server. You should see "2 sources connected" on the top right corner of visualizer if everything works smoothly.
-  4. On the headless machine, run
-      ```bash
-      $ python MACVO.py --useRR --odom [ODOM_CONFIG] --data [DATA_CONFIG]
-      ```
-  5. To accumulate the point cloud for dense mapping visualization, please follow the instruction here: https://github.com/MAC-VO/MAC-VO/issues/4#issuecomment-2495620352
-
-### 📈 Baseline Methods
-
-We also integrated two baseline methods (DPVO, TartanVO Stereo) into the codebase for evaluation, visualization and comparison.
-
-<details>
-<summary>
-Expand All (2 commands)
-</summary>
-
-* **Run DPVO on Test Dataset**
-
-  ```bash
-  $ python -m Scripts.Experiment.Experiment_DPVO --odom ./Config/Experiment/Baseline/DPVO/DPVO.yaml
-  ```
-
-* **Run TartanVO (Stereo) on Test Dataset**
-
-  ```bash
-  $ python -m Scripts.Experiment.Experiment_TartanVO --odom ./Config/Experiment/Baseline/TartanVO/TartanVOStereo.yaml
-  ```
-
-</details>
-
-
-## 🤗 Customization, Extension and Future Developement
-
-> This codebase is designed with *modularization* in mind so it's easy to modify, replace, and re-configure modules of MAC-VO. One can easily use or replase the provided modules like flow estimator, depth estimator, keypoint selector, etc. to create a new visual odometry.
-
-We welcome everyone to extend and redevelop the MAC-VO. For documentation please visit the [Documentation Site](https://mac-vo.github.io/wiki/)
-
-### Custom Data Format
-
-To test MAC-VO on your custom data format, you use `GeneralStereo` dataloader class in `DataLoader/Dataset/GeneralStereo.py` as a starting point.
-
-This dataloader class corresponds to the `Config/Sequence/Example_GeneralStereo.yaml` configuration file, where you can manually set the camera intrinsic and stereo basline etc.
-
-### Coordinate System in this Project
-
-**PyTorch Tensor Data** - All images are stored in `BxCxHxW` format following the convention. Batch dimension is always the first dimension of tensor.
-
-**Pixels on Camera Plane** - All pixel coordinates are stored in `uv` format following the OpenCV convention, where the direction of uv are "east-down". *Note that this requires us to access PyTorch tensor in `data[..., v, u]`* indexing.
-
-**World Coordinate** - `NED` convention, `+x -> North`, `+y -> East`, `+z -> Down` with the first frame being world origin having identity SE3 pose.
-
-## ➕ Additional Trajectories Release
-
-Upon [request](https://github.com/MAC-VO/MAC-VO/issues/27) we released the Zed Stereo dataset we collected on the ICRA 2025 conference. You can now download them using the command:
-
-```bash
-pip install minio
-
-python -m Scripts.AdHoc.Download_ICRA25_Zed_Data --dst [Download_Destination]
+# MAC-VO (Dynamic-VIO Branch): DRT Initialization + Shared AirIMU + IMU Backend Factors
+
+This README documents the **current branch implementation** in this repository (not the original upstream paper-only README).  
+It explains what was added, why it was added, how to run it, and how to configure the new VIO pipeline pieces.
+
+---
+
+## 1. What changed in this branch
+
+This branch adds a VIO-oriented extension on top of MAC-VO:
+
+1. **Shared AirIMU context path**
+   - New package: `Module/Network/AirIMU/`
+   - Files:
+     - `corrector.py`
+     - `preintegration.py`
+     - `encoder.py`
+     - `proxy.py`
+   - Goal: produce one consistent IMU preintegration output used by both frontend conditioning and backend factors.
+
+2. **DRT loosely-coupled initializer**
+   - New package: `Module/Initialization/DRTLoose/`
+   - Files:
+     - `drt_loose.py`
+     - `gyro_bias_solver.py`
+     - `linear_alignment.py`
+     - `gravity_refine.py`
+   - Integrated into `Odometry/MACVO.py` as staged bootstrap (`method: drt_loose`).
+
+3. **IMU preintegration edges in map state**
+   - `Module/Map/Template.py`, `VisualMap.py`, `__init__.py`
+   - New edge store: `imu_edges` with `(delta_R, delta_v, delta_p, Sigma, dt, bias_ref, J_*)`.
+   - Frame schema extended with `vel`, `bias_g`, `bias_a`.
+   - Match schema extended with confidence `c`.
+
+4. **Two-frame IMU backend factor**
+   - `graph_type: reproj_imu` in `Module/Optimization/TwoFramePGO/`
+   - New graph class: `Reproj_TwoFramePGO_IMU`.
+   - Visual residual + 15D IMU residual in one optimization graph.
+
+5. **Sliding-window backend skeleton**
+   - New package: `Module/Optimization/SlidingWindow/`
+   - Class: `SlidingWindow_VIO_PGO`
+   - Windowed multi-pair optimization flow with IMU-capable graph selection.
+
+6. **VIODE memory-safe data path**
+   - Rosbag converter: `Scripts/AdHoc/convert_viode_rosbag.py`
+   - Stream loader: `DataLoader/Dataset/VIODE.py` (`VIODE_StreamSequence`)
+   - Avoids loading rosbag into RAM directly.
+
+7. **Dependency updates**
+   - Updated:
+     - repo root `requirements.txt`
+     - repo root `environment.yml`
+     - `MAC-VO/requirements.txt`
+   - Added explicit CUDA/ROCm install guidance.
+
+---
+
+## 2. High-level architecture (current branch)
+
+```text
+Stereo + IMU sequence
+      |
+      v
+MACVO bootstrap stage (optional: DRT loose)
+  - collect first N init frames
+  - estimate bg, R/p/v, gravity
+  - write initial frame states + imu_edges
+      |
+      v
+Normal run_pair loop
+  - frontend depth/flow
+  - match + map updates
+  - IMU edge push (shared preintegrator output)
+  - backend optimize:
+      a) TwoFrame_PGO (legacy)
+      b) TwoFrame_PGO with graph_type: reproj_imu
+      c) SlidingWindow_VIO_PGO (windowed backend)
 ```
 
-After download, unzip the trajectories and modify the path in `Config/Sequence/ICRA25_Zed_0250.yaml`. Run MAC-VO (fast mode) with:
+Core design intent: **single IMU preintegration definition** reused across initialization, frontend conditioning data, and backend factors.
+
+---
+
+## 3. New/updated files you should know first
+
+### IMU and initialization
+- `Module/Network/AirIMU/preintegration.py`
+- `Module/Network/AirIMU/encoder.py`
+- `Module/Initialization/DRTLoose/drt_loose.py`
+- `Module/Initialization/DRTLoose/gyro_bias_solver.py`
+
+### Odometry integration
+- `Odometry/MACVO.py`
+
+### Backend
+- `Module/Optimization/TwoFramePGO/Graphs.py`
+- `Module/Optimization/TwoFramePGO/Optimizer.py`
+- `Module/Optimization/SlidingWindow/Optimizer.py`
+
+### Map/state
+- `Module/Map/Template.py`
+- `Module/Map/VisualMap.py`
+- `Module/Map/Graph.py`
+- `Utility/Extensions/TensorExtension.py`
+
+### Data conversion and loading
+- `Scripts/AdHoc/convert_viode_rosbag.py`
+- `DataLoader/Dataset/VIODE.py`
+
+---
+
+## 4. Environment setup
+
+Use Python 3.10+ (tested in this branch with Python 3.12 runtime).
+
+### 4.1 Install PyTorch first (choose one backend)
 
 ```bash
-python MACVO.py --data ./Config/Sequence/ICRA25_Zed_0250.yaml --odom ./Config/Experiment/MACVO/MACVO_Fast.yaml --useRR
+# CUDA 12.1
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# CUDA 12.4
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+
+# ROCm 6.2
+pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm6.2
+
+# CPU
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 ```
 
-> ⚠️ To reproduce the result we show on website and presentation, it is recommended to run the trajectory in its full resolution `980x980`.
+### 4.2 Install project dependencies
 
-## Citation / BibTex
+From repository root:
 
-If you find our work useful, please consider cite us with
+```bash
+pip install -r requirements.txt
+```
+
+From `MAC-VO/` (module-local requirements):
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 5. Running MAC-VO normally
+
+From `MAC-VO/`:
+
+```bash
+python3 MACVO.py \
+  --odom Config/Experiment/MACVO/MACVO_Performant.yaml \
+  --data Config/Sequence/TartanAir_example.yaml
+```
+
+For fast mode:
+
+```bash
+python3 MACVO.py \
+  --odom Config/Experiment/MACVO/MACVO_Fast.yaml \
+  --data Config/Sequence/TartanAir_example.yaml
+```
+
+---
+
+## 6. Enabling the new VIO components
+
+## 6.1 DRT bootstrap in odometry config
+
+Add this under `Odometry.args` in your odom config:
+
+```yaml
+Odometry:
+  args:
+    # existing fields ...
+    init:
+      method: drt_loose      # or identity
+      drt_window_len: 10
+      g_mag: 9.81
+      gyro_max_iter: 200
+      gyro_cauchy_delta: 1e-5
+      track_stride: 16
+      min_pair_tracks: 40
+      min_pair_tracks_depth: 12
+      gravity_refine_iters: 5
+      accept_criteria:
+        max_bg_norm: 0.5
+      imu:
+        ckpt_path: null
+        jacobian_eps: 1e-5
+        sigma_repr_mode: diag
+        feature_dim: 64
+        emit_jacobians: true
+```
+
+Notes:
+- `drt_loose` requires IMU-bearing sequence types (e.g., EuRoC with IMU, TartanAirV2, VIODE stream).
+- If bootstrap fails repeatedly, odometry falls back to identity bootstrap.
+
+## 6.2 Two-frame backend with IMU factor
+
+Set optimizer graph type:
+
+```yaml
+Odometry:
+  optimizer:
+    type: TwoFrame_PGO
+    args:
+      device: cpu
+      vectorize: true
+      parallel: true
+      graph_type: reproj_imu
+      autodiff: false
+```
+
+## 6.3 Sliding-window backend
+
+Switch optimizer type:
+
+```yaml
+Odometry:
+  optimizer:
+    type: SlidingWindow_VIO_PGO
+    args:
+      device: cpu
+      vectorize: true
+      parallel: true
+      graph_type: reproj_imu
+      autodiff: false
+      window_size: 5
+```
+
+---
+
+## 7. VIODE rosbag -> stream conversion (memory-safe path)
+
+Convert rosbag2 into chunked HDF5:
+
+```bash
+python3 Scripts/AdHoc/convert_viode_rosbag.py \
+  --bag /path/to/viode_rosbag2 \
+  --out /path/to/viode_stream.h5 \
+  --left-topic /stereo/left/image_raw \
+  --right-topic /stereo/right/image_raw \
+  --imu-topic /imu/data \
+  --stereo-sync-tol-ms 5.0 \
+  --fx 320 --fy 320 --cx 320 --cy 320 \
+  --baseline 0.25 \
+  --gravity 9.81
+```
+
+Key behavior:
+- Uses message header time when available (`header.stamp`), otherwise bag timestamp.
+- Stereo pairing uses nearest-neighbor within tolerance (not exact timestamp equality).
+- Writes:
+  - `stereo/{left,right,time_ns}`
+  - `imu/{acc,gyro,time_ns}`
+  - `calib/{K,T_BS,baseline,gravity}`
+
+### 7.1 Sequence config for VIODE stream
+
+Create a sequence config (example):
+
+```yaml
+type: VIODE_Stream
+name: VIODE_stream_seq
+args:
+  path: /path/to/viode_stream.h5
+```
+
+Then run:
+
+```bash
+python3 MACVO.py --odom /path/to/your_odom.yaml --data /path/to/viode_stream.yaml
+```
+
+---
+
+## 8. State semantics in this branch
+
+### Frame state (`VisualMap.frames`)
+- `pose` (camera pose in world)
+- `T_BS` (body->sensor extrinsic)
+- `vel` (body velocity in world)
+- `bias_g`, `bias_a`
+- `need_interp`, `time_ns`, `K`, `baseline`
+
+### Match state (`VisualMap.match`)
+- Existing pixel/depth/disparity/covariance fields
+- New confidence field: `c`
+
+### IMU edges (`VisualMap.imu_edges`)
+- `from_frame`, `to_frame`
+- `delta_R`, `delta_v`, `delta_p`
+- `Sigma`, `dt`
+- `bias_ref`
+- `J_R_bg`, `J_v_bg`, `J_v_ba`, `J_p_bg`, `J_p_ba`
+
+---
+
+## 9. Math and validation tests (what was run)
+
+All targeted tests were run from `MAC-VO/` with:
+
+```bash
+python3 -m pytest -q -o addopts='' \
+  Scripts/UnitTest/test_preintegration_math.py \
+  Scripts/UnitTest/test_drt_linear_alignment.py \
+  Scripts/UnitTest/test_map_schema_compat.py \
+  Scripts/UnitTest/test_reproj_imu_graph.py \
+  Scripts/UnitTest/test_config_macvo.py \
+  Scripts/UnitTest/test_config_modules.py \
+  Scripts/UnitTest/test_config_sequence.py
+```
+
+Result in this branch: **42 passed**.
+
+### What these tests cover
+- `test_preintegration_math.py`
+  - preintegration output shapes
+  - zero-motion behavior
+  - covariance PSD check
+- `test_drt_linear_alignment.py`
+  - synthetic linear alignment recovery
+  - gravity refine consistency
+- `test_reproj_imu_graph.py`
+  - `2N + 15` residual dimension
+  - IMU covariance block shape
+- `test_map_schema_compat.py`
+  - backward-compatible map deserialization for new fields
+- config tests
+  - odometry/module/sequence config loadability
+
+---
+
+## 10. Practical limitations and current status
+
+1. `SlidingWindow_VIO_PGO` is implemented and usable, but this branch does **not** yet ship a full Schur marginalization module/API in production form.
+2. `AirIMUCorrector` currently supports fallback identity correction if no compatible checkpoint is provided.
+3. VIODE converter currently writes identity `T_BS` by default unless you inject calibrated extrinsics through conversion workflow.
+4. This branch focuses on initialization/backend math and integration; large-scale model training scripts are intentionally not run as part of this implementation pass.
+
+---
+
+## 11. Troubleshooting
+
+### Pytest fails due to project addopts / import hook
+Use:
+
+```bash
+python3 -m pytest -o addopts='' ...
+```
+
+### Missing IMU edge error in `reproj_imu`
+Ensure:
+- sequence has IMU data,
+- IMU edges are being pushed (`MACVO.run_pair`),
+- graph type is set consistently with initializer/backend.
+
+### DRT bootstrap keeps failing
+Try:
+- increasing `drt_window_len`,
+- relaxing `accept_criteria.max_bg_norm`,
+- increasing feature tracks (`track_stride` smaller),
+- checking stereo/IMU timestamp quality.
+
+---
+
+## 12. Citation
+
+If you use MAC-VO, please cite the original paper:
 
 ```bibtex
 @inproceedings{qiu2025mac,
- title={MAC-VO: Metrics-Aware Covariance for Learning-Based Stereo Visual Odometry mac-vo. github. io},
- author={Qiu, Yuheng and Chen, Yutian and Zhang, Zihao and Wang, Wenshan and Scherer, Sebastian},
- booktitle={2025 IEEE International Conference on Robotics and Automation (ICRA)},
- pages={3803--3814},
- year={2025},
- organization={IEEE}
+  title={MAC-VO: Metrics-Aware Covariance for Learning-Based Stereo Visual Odometry},
+  author={Qiu, Yuheng and Chen, Yutian and Zhang, Zihao and Wang, Wenshan and Scherer, Sebastian},
+  booktitle={2025 IEEE International Conference on Robotics and Automation (ICRA)},
+  pages={3803--3814},
+  year={2025},
+  organization={IEEE}
 }
 ```
+
