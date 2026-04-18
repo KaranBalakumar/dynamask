@@ -75,4 +75,3 @@ def test_slidingwindow_writeback_emits_logging():
     optimizer.write_graph_data(result, gmap)
     assert logger.log_scalars.call_count >= 2
     logger.dump_artifact.assert_called_once()
-

@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import pypose as pp
+import typing as T
 
 from Utility.Extensions import OnCallCompiler
 
@@ -179,5 +180,5 @@ def body2cam_se3(delta_R_body: torch.Tensor, delta_p_body: torch.Tensor, T_BS: p
     mat[:, :3, 3] = delta_p_body
     delta_body = pp.from_matrix(mat, pp.SE3_type)
 
-    delta_cam = T_BS.Inv().to(delta_body) @ delta_body @ T_BS.to(delta_body)
+    delta_cam = T.cast(pp.LieTensor, T_BS.Inv().to(delta_body) @ delta_body @ T_BS.to(delta_body))
     return delta_cam.rotation().matrix(), delta_cam.translation()

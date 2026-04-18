@@ -5,6 +5,7 @@ import torch.nn as nn
 from typing import Any
 from pathlib import Path
 
+from .contracts import narrow_corrector_output
 from .corrector import AirIMUCorrector
 from .preintegration import DifferentiablePreintegrator, so3_log
 
@@ -47,7 +48,7 @@ class IMUEncoder(nn.Module):
         logger: Any | None = None,
         log_step: int | None = None,
     ) -> tuple[dict, torch.Tensor]:
-        corr = self.corrector.inference(imu_seq)
+        corr = narrow_corrector_output(self.corrector.inference(imu_seq))
         pre = self.preint(
             corrected_acc=imu_seq["acc"] + corr["correction_acc"],
             corrected_gyro=imu_seq["gyro"] + corr["correction_gyro"],

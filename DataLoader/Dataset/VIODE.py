@@ -5,9 +5,10 @@ from types import SimpleNamespace
 from typing import Any
 
 import h5py
-import torch
-import pypose as pp
 import numpy as np
+import pypose as pp
+import torch
+from numpy.typing import NDArray
 
 from ..Interface import StereoData, IMUData, StereoInertialFrame
 from ..SequenceBase import SequenceBase
@@ -24,16 +25,23 @@ class VIODE_StreamSequence(SequenceBase[StereoInertialFrame]):
         assert self.path.exists(), f"VIODE stream file does not exist: {self.path}"
         self.h5 = h5py.File(self.path, "r")
 
-        self.cam_time = self.h5["stereo/time_ns"][:].astype(np.int64)
-        self.imu_time = self.h5["imu/time_ns"][:].astype(np.int64)
-        self.gt_pose = self.h5["stereo/gt_pose"][:] if "stereo/gt_pose" in self.h5 else None
+        self.cam_time: NDArray[np.int64] = np.asarray(self._dataset("stereo/time_ns")[:], dtype=np.int64)
+        self.imu_time: NDArray[np.int64] = np.asarray(self._dataset("imu/time_ns")[:], dtype=np.int64)
+        self.gt_pose: np.ndarray[Any, Any] | None = (
+            np.asarray(self._dataset("stereo/gt_pose")[:]) if "stereo/gt_pose" in self.h5 else None
+        )
 
-        self.K = torch.from_numpy(self.h5["calib/K"][:]).float().unsqueeze(0)
-        self.T_BS = pp.SE3(torch.from_numpy(self.h5["calib/T_BS"][:]).float().unsqueeze(0))
-        self.baseline = torch.tensor([float(self.h5["calib/baseline"][()])], dtype=torch.float32)
-        self.gravity = float(self.h5["calib/gravity"][()]) if "calib/gravity" in self.h5 else 9.81
+        self.stereo_left = self._dataset("stereo/left")
+        self.stereo_right = self._dataset("stereo/right")
+        self.imu_acc_ds = self._dataset("imu/acc")
+        self.imu_gyro_ds = self._dataset("imu/gyro")
 
-        left_shape = self.h5["stereo/left"].shape
+        self.K = torch.from_numpy(np.asarray(self._dataset("calib/K")[:])).float().unsqueeze(0)
+        self.T_BS = pp.SE3(torch.from_numpy(np.asarray(self._dataset("calib/T_BS")[:])).float().unsqueeze(0))
+        self.baseline = torch.tensor([self._scalar_float("calib/baseline")], dtype=torch.float32)
+        self.gravity = self._scalar_float("calib/gravity") if "calib/gravity" in self.h5 else 9.81
+
+        left_shape = self.stereo_left.shape
         self.height, self.width = int(left_shape[1]), int(left_shape[2])
 
         super().__init__(len(self.cam_time))
@@ -53,20 +61,36 @@ class VIODE_StreamSequence(SequenceBase[StereoInertialFrame]):
         end = int(np.searchsorted(self.imu_time, self.cam_time[index], side="right"))
         return start, end
 
+    def _dataset(self, path: str) -> h5py.Dataset:
+        node = self.h5[path]
+        if not isinstance(node, h5py.Dataset):
+            raise TypeError(f"Expected HDF5 dataset at '{path}', got {type(node).__name__}")
+        return node
+
+    def _scalar_float(self, path: str) -> float:
+        value = self._dataset(path)[()]
+        return float(np.asarray(value).item())
+
     def __getitem__(self, local_index: int) -> StereoInertialFrame:
         index = self.get_index(local_index)
-        left = self.h5["stereo/left"][index]
-        right = self.h5["stereo/right"][index]
+        left = np.asarray(self.stereo_left[index])
+        right = np.asarray(self.stereo_right[index])
 
         left_t = torch.from_numpy(left).permute(2, 0, 1).unsqueeze(0).float() / 255.0
         right_t = torch.from_numpy(right).permute(2, 0, 1).unsqueeze(0).float() / 255.0
 
         i0, i1 = self._imu_range(index)
         imu_t = torch.from_numpy(self.imu_time[i0:i1]).long().view(1, -1, 1)
-        imu_acc = torch.from_numpy(self.h5["imu/acc"][i0:i1]).float().view(1, -1, 3)
-        imu_gyro = torch.from_numpy(self.h5["imu/gyro"][i0:i1]).float().view(1, -1, 3)
+        imu_acc = torch.from_numpy(np.asarray(self.imu_acc_ds[i0:i1])).float().view(1, -1, 3)
+        imu_gyro = torch.from_numpy(np.asarray(self.imu_gyro_ds[i0:i1])).float().view(1, -1, 3)
 
         t_ns = int(self.cam_time[index].item())
+        gt_pose = None
+        if self.gt_pose is not None:
+            gt_pose_np = self.gt_pose[index]
+            if np.isfinite(gt_pose_np).all():
+                gt_pose = pp.SE3(torch.from_numpy(np.asarray(gt_pose_np)).float().unsqueeze(0))
+
         stereo = StereoData(
             T_BS=self.T_BS,
             K=self.K,
@@ -88,11 +112,7 @@ class VIODE_StreamSequence(SequenceBase[StereoInertialFrame]):
         return StereoInertialFrame(
             idx=[local_index],
             time_ns=[t_ns],
-            gt_pose=(
-                None
-                if self.gt_pose is None or not np.isfinite(self.gt_pose[index]).all()
-                else pp.SE3(torch.from_numpy(self.gt_pose[index]).float().unsqueeze(0))
-            ),
+            gt_pose=gt_pose,
             stereo=stereo,
             imu=imu,
             gt_attitude=None,

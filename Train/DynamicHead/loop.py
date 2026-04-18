@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
+import pypose as pp
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -21,6 +22,14 @@ def _cfg_get(cfg: SimpleNamespace | dict[str, Any], key: str, default: Any) -> A
     if isinstance(cfg, dict):
         return cfg.get(key, default)
     return getattr(cfg, key, default)
+
+
+def _require_gt_pose(pair: DataFramePair[StereoInertialFrame], device: torch.device) -> tuple[pp.LieTensor, pp.LieTensor]:
+    gt_pose_t = pair.cur.gt_pose
+    gt_pose_t1 = pair.nxt.gt_pose
+    if gt_pose_t is None or gt_pose_t1 is None:
+        raise RuntimeError("DynamicHead training requires gt_pose on both current and next frames")
+    return cast(pp.LieTensor, pp.SE3(gt_pose_t).to(device)), cast(pp.LieTensor, pp.SE3(gt_pose_t1).to(device))
 
 
 @dataclass
@@ -115,6 +124,7 @@ class DynamicHeadTrainer:
             h8_prev=None,
             return_probs=True,
         )
+        gt_pose_t, gt_pose_t1 = _require_gt_pose(pair, self.device)
         loss, metrics = compute_dynamic_head_loss(
             logits_4=head_out.logits_4,
             c_pred=head_out.c,
@@ -122,8 +132,8 @@ class DynamicHeadTrainer:
             flow_bwd=flow_bwd,
             depth_t1=depth_t,
             K=pair.cur.stereo.K.to(self.device, dtype=torch.float32),
-            gt_pose_t=pair.cur.gt_pose.to(self.device),
-            gt_pose_t1=pair.nxt.gt_pose.to(self.device),
+            gt_pose_t=gt_pose_t,
+            gt_pose_t1=gt_pose_t1,
             T_BS=pair.cur.stereo.T_BS.to(self.device),
             cfg=_cfg_get(self.cfg, "loss", {}),
         )
@@ -162,6 +172,7 @@ class DynamicHeadTrainer:
             cfg=_cfg_get(self.cfg, "proxy", {}),
         )
         head_out = self.head(phi8=phi8, h4=h4, z_hat=depth_t, e_raw=proxy[:, :1], f_imu=f_imu, h8_prev=None, return_probs=True)
+        gt_pose_t, gt_pose_t1 = _require_gt_pose(pair, self.device)
         loss, metrics = compute_dynamic_head_loss(
             logits_4=head_out.logits_4,
             c_pred=head_out.c,
@@ -169,8 +180,8 @@ class DynamicHeadTrainer:
             flow_bwd=flow_bwd,
             depth_t1=depth_t,
             K=pair.cur.stereo.K.to(self.device, dtype=torch.float32),
-            gt_pose_t=pair.cur.gt_pose.to(self.device),
-            gt_pose_t1=pair.nxt.gt_pose.to(self.device),
+            gt_pose_t=gt_pose_t,
+            gt_pose_t1=gt_pose_t1,
             T_BS=pair.cur.stereo.T_BS.to(self.device),
             cfg=_cfg_get(self.cfg, "loss", {}),
         )
@@ -178,7 +189,10 @@ class DynamicHeadTrainer:
 
 
 def build_dataloader(cfg: SimpleNamespace | dict[str, Any], shuffle: bool) -> DataLoader[DataFramePair[StereoInertialFrame]]:
-    dataset = DynamicHeadTrainDataset(_cfg_get(cfg, "dataset"))
+    dataset_cfg = _cfg_get(cfg, "dataset", None)
+    if dataset_cfg is None:
+        raise ValueError("DynamicHead dataloader requires dataset config")
+    dataset = DynamicHeadTrainDataset(dataset_cfg)
     return DataLoader(
         dataset,
         batch_size=int(_cfg_get(cfg, "batch_size", 1)),
@@ -187,4 +201,3 @@ def build_dataloader(cfg: SimpleNamespace | dict[str, Any], shuffle: bool) -> Da
         collate_fn=DataFramePair.collate,
         drop_last=bool(_cfg_get(cfg, "drop_last", True)),
     )
-

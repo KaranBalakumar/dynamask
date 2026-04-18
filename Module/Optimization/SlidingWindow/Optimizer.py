@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 import math
 import time
+import typing as T
 from contextlib import nullcontext
 
 import torch
@@ -153,9 +154,12 @@ class SlidingWindow_VIO_PGO(IOptimizer[SWGraphInput, dict, SWGraphOutput]):
         gpu_ctx = Timer.GPUTimingContext("SlidingWindowPGO", torch.cuda.current_stream()) if torch.cuda.is_available() else nullcontext()
         with Timer.CPUTimingContext("SlidingWindowPGO"), gpu_ctx:
             for pair in graph_data.pairs:
-                graph: FactorGraph = context["pose_graph_class"](pair).to(device=torch.device(context["device"]), dtype=torch.double)
+                graph_obj = context["pose_graph_class"](pair).to(device=torch.device(context["device"]), dtype=torch.double)
+                graph = T.cast(FactorGraph, graph_obj)
+                covariance_array = T.cast(T.Callable[[], torch.Tensor | list[torch.Tensor]], graph.covariance_array)
+                write_back = T.cast(T.Callable[[], PairGraphOutput], graph.write_back)
                 res_init = graph().detach().reshape(-1)
-                cov_init = graph.covariance_array()
+                cov_init = covariance_array()
                 if isinstance(graph, AnalyticModule):
                     optimizer = LM_analytic(graph, min=1e-6, **context["optimizer_cfg"])
                 else:
@@ -164,7 +168,7 @@ class SlidingWindow_VIO_PGO(IOptimizer[SWGraphInput, dict, SWGraphOutput]):
                 lm_iters = 0
 
                 while scheduler.continual():
-                    cov_blocks = graph.covariance_array()
+                    cov_blocks = covariance_array()
                     if isinstance(cov_blocks, list):
                         inv_blocks = [torch.pinverse(c.to(context["device"]).double()) for c in cov_blocks]
                     else:
@@ -176,13 +180,15 @@ class SlidingWindow_VIO_PGO(IOptimizer[SWGraphInput, dict, SWGraphOutput]):
                     lm_iters += 1
 
                 res_final = graph().detach().reshape(-1)
-                cov_final = graph.covariance_array()
+                cov_final = covariance_array()
                 if isinstance(cov_init, list):
+                    if not isinstance(cov_final, list):
+                        raise TypeError("Expected list covariance blocks for IMU graph.")
                     n_imu_factors += 1 if len(cov_init) > 0 else 0
                     off = 0
                     pair_init = 0.0
                     pair_final = 0.0
-                    for c0, c1 in zip(cov_init, cov_final if isinstance(cov_final, list) else cov_init):
+                    for c0, c1 in zip(cov_init, cov_final):
                         dim = int(c0.shape[0])
                         r0 = res_init[off : off + dim].unsqueeze(-1)
                         r1 = res_final[off : off + dim].unsqueeze(-1)
@@ -191,6 +197,8 @@ class SlidingWindow_VIO_PGO(IOptimizer[SWGraphInput, dict, SWGraphOutput]):
                         off += dim
                 else:
                     inv0 = torch.pinverse(cov_init.double())
+                    if isinstance(cov_final, list):
+                        raise TypeError("Expected tensor covariance blocks for non-IMU graph.")
                     inv1 = torch.pinverse(cov_final.double())
                     dim = int(cov_init.shape[1])
                     r0 = res_init.view(-1, dim)
@@ -200,7 +208,7 @@ class SlidingWindow_VIO_PGO(IOptimizer[SWGraphInput, dict, SWGraphOutput]):
                 chi2_init_sum += pair_init
                 chi2_final_sum += pair_final
                 total_iters += float(lm_iters)
-                results.append(graph.write_back())
+                results.append(write_back())
         diagnostics = {
             "backend.swf.W_kf": float(len(graph_data.pairs)),
             "backend.swf.n_visual_factors": float(len(graph_data.pairs)),

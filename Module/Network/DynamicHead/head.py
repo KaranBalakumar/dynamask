@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
+import typing as T
 
 import torch
 import torch.nn as nn
@@ -115,13 +116,15 @@ class StaticConfidenceHead(nn.Module):
 
         logits_8 = self.classifier8(h8).clamp(min=-self.max_logit, max=self.max_logit)
         logits_4 = self.classifier4(h8).clamp(min=-self.max_logit, max=self.max_logit)
+        temp_static = torch.clamp(T.cast(torch.Tensor, self.temperature), min=1e-3)
+        temp_visible = torch.clamp(T.cast(torch.Tensor, self.temperature_visible), min=1e-3)
         if self.factorize:
-            p_static = torch.sigmoid(logits_4[:, :1] / self.temperature.clamp(min=1e-3))
-            p_visible = torch.sigmoid(logits_4[:, 1:2] / self.temperature_visible.clamp(min=1e-3))
+            p_static = torch.sigmoid(logits_4[:, :1] / temp_static)
+            p_visible = torch.sigmoid(logits_4[:, 1:2] / temp_visible)
             c = p_static * p_visible
             return HeadOut(c=c, logits_8=logits_8, logits_4=logits_4, h8_new=h8_new, p_static=p_static, p_visible=p_visible)
 
-        c = torch.sigmoid(logits_4 / self.temperature.clamp(min=1e-3))
+        c = torch.sigmoid(logits_4 / temp_static)
         if return_probs:
             p_visible = (z_hat > self.visible_eps).to(dtype=z_hat.dtype)
             return HeadOut(c=c, logits_8=logits_8, logits_4=logits_4, h8_new=h8_new, p_static=c, p_visible=p_visible)

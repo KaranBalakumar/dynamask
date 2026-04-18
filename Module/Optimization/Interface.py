@@ -63,6 +63,7 @@ class IOptimizer(ABC, T.Generic[T_GraphInput, T_Context, T_GraphOutput], ConfigT
         
         self.config: SimpleNamespace = config
         self.is_parallel_mode = config.parallel
+        self.debug_logger: T.Any | None = None
         
         # For sequential mode
         self.context     : None | T_Context  = None

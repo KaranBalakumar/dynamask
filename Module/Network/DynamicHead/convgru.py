@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 def _maybe_spectral(module: nn.Module, enabled: bool) -> nn.Module:
@@ -50,5 +49,5 @@ class ConvGRUStack(nn.Module):
         for layer in self.layers:
             h = layer(x, h)
             x = h
+        assert h is not None
         return h, h
-

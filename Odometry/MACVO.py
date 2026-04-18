@@ -8,8 +8,9 @@ from rich.panel import Panel
 from typing import Callable
 
 import Module
-from DataLoader import StereoFrame, IMUData
+from DataLoader import StereoFrame, IMUData, StereoInertialFrame
 from Module.Map import VisualMap, FrameNode, MatchObs, PointNode, IMUEdgeNode
+from Module.Network.AirIMU.contracts import narrow_corrector_output
 from Utility.Point import filterPointsInRange, pixel2point_NED
 from Utility.PrettyPrint import Logger, GlobalConsole
 from Utility.Timer import Timer
@@ -21,6 +22,21 @@ from Utility.Observability.cadence import CadenceConfig
 from .Interface import IOdometry
 
 T_SensorFrame = T.TypeVar("T_SensorFrame", bound=StereoFrame)
+
+
+@T.runtime_checkable
+class _FrontendWithResetStream(T.Protocol):
+    def reset_stream(self) -> None: ...
+
+
+@T.runtime_checkable
+class _FrontendWithIMUWindow(T.Protocol):
+    def set_imu_window(self, imu_window: IMUData | None, bias_ref: torch.Tensor | None = None) -> None: ...
+
+
+@T.runtime_checkable
+class _VisualMapWithGravity(T.Protocol):
+    gravity: torch.Tensor
 
 
 class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
@@ -75,7 +91,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         self._init_fail_count: int = 0
         self._init_complete: bool = self.init_method != "drt_loose"
         self.g_W = torch.tensor([0.0, 0.0, -9.81], dtype=torch.float64)
-        self.graph.gravity = self.g_W
+        T.cast(_VisualMapWithGravity, self.graph).gravity = self.g_W
         self._drt_initializer = None
         self._imu_encoder = None
         self._imu_since_keyframe: IMUData | None = None
@@ -242,12 +258,13 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             )
 
         init_step = int(getattr(frame, "frame_idx", len(self._init_frames)))
-        init_out = self._drt_initializer.run(self._init_frames, self._init_depths, logger=self.debug_logger, log_step=init_step)
+        init_frames = T.cast(list[StereoInertialFrame], self._init_frames)
+        init_out = self._drt_initializer.run(init_frames, self._init_depths, logger=self.debug_logger, log_step=init_step)
         if init_out.ok:
             self._write_init_to_map(init_out)
             self._init_complete = True
             self.isinitiated = True
-            if hasattr(self.Frontend, "reset_stream"):
+            if isinstance(self.Frontend, _FrontendWithResetStream):
                 self.Frontend.reset_stream()
             return
 
@@ -312,14 +329,14 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
 
     def _write_init_to_map(self, init_out) -> None:
         self.graph = VisualMap()
-        self.graph.gravity = init_out.gravity.to(torch.float64)
+        T.cast(_VisualMapWithGravity, self.graph).gravity = init_out.gravity.to(torch.float64)
         for k, frame in enumerate(self._init_frames):
             R_B = init_out.rotation[k].double()
             p_B = init_out.position[k].double()
-            q_B = pp.mat2SO3(R_B.unsqueeze(0)).tensor()[0]
+            q_B = T.cast(pp.LieTensor, pp.mat2SO3(R_B.unsqueeze(0))).tensor()[0]
             T_WB = pp.SE3(torch.cat([p_B, q_B], dim=-1).unsqueeze(0))
             T_BS = pp.SE3(frame.stereo.T_BS).double()
-            T_WC = (T_WB @ T_BS).float()
+            T_WC = T.cast(pp.LieTensor, (T_WB @ T_BS).float())
             self.graph.frames.push(FrameNode.init({
                 "pose"        : T_WC.tensor(),
                 "T_BS"        : frame.stereo.T_BS,
@@ -342,7 +359,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         )
         self._imu_since_keyframe = None
         self.g_W = init_out.gravity.to(torch.float64)
-        self.graph.gravity = self.g_W
+        T.cast(_VisualMapWithGravity, self.graph).gravity = self.g_W
         Logger.write(
             "info",
             f"DRT-loose init OK: N_init={len(self._init_frames)}, "
@@ -429,7 +446,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
                 ],
                 dim=-1,
             )
-            corr = self._imu_encoder.corrector.inference({"acc": imu.acc, "gyro": imu.gyro})
+            corr = narrow_corrector_output(self._imu_encoder.corrector.inference({"acc": imu.acc, "gyro": imu.gyro}))
             pre = self._imu_encoder.preint(
                 corrected_acc=imu.acc + corr["correction_acc"],
                 corrected_gyro=imu.gyro + corr["correction_gyro"],
@@ -456,10 +473,12 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             ))
         elif hasattr(frame1, "imu"):
             imu_n = self._imu_sample_count(imu)
+            from_idx = int(prev_frame_idx.item())
+            to_idx = int(frame_idx.item())
             if imu_n == 0:
-                Logger.write("warn", f"Missing IMU window for keyframe pair {self.prev_keyframe[1]}->{int(frame_idx.item())}, skipping IMU edge")
+                Logger.write("warn", f"Missing IMU window for keyframe pair {from_idx}->{to_idx}, skipping IMU edge")
             else:
-                Logger.write("warn", f"Insufficient IMU samples ({imu_n}) for keyframe pair {self.prev_keyframe[1]}->{int(frame_idx.item())}, skipping IMU edge")
+                Logger.write("warn", f"Insufficient IMU samples ({imu_n}) for keyframe pair {from_idx}->{to_idx}, skipping IMU edge")
 
     def run_pair(self, frame0: T_SensorFrame, frame1: T_SensorFrame) -> None:
         assert self.prev_keyframe is not None
@@ -474,7 +493,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             return
         
         depth0 = self.prev_keyframe[2]
-        if hasattr(self.Frontend, "set_imu_window"):
+        if isinstance(self.Frontend, _FrontendWithIMUWindow):
             bias_ref = torch.cat(
                 [
                     self.graph.frames.data["bias_g"][self.prev_keyframe[1]].float(),

@@ -48,9 +48,10 @@ class IOdometry(ABC, Generic[T_Data]):
             T_BS         = pp.SE3(global_map.frames.data["T_BS"].tensor)
             body_poses: np.ndarray = (T_BS @ sensor_poses @ T_BS.Inv()).tensor().cpu().numpy()
             time_ns   : np.ndarray = global_map.frames.data["time_ns"].tensor.cpu().numpy()[:, np.newaxis]
+            serialized_map: dict[str, np.ndarray] = global_map.serialize()
             
             np.save(saveto.path("poses.npy"), np.concatenate([time_ns, body_poses], axis=-1))
-            np.savez_compressed(saveto.path("tensor_map.npz"), **global_map.serialize())
+            np.savez_compressed(saveto.path("tensor_map.npz"), **serialized_map)
             
             if len(reference_poses) > 1:    # At least two poses for a non-trivial trajectory
                 ref_body_poses: np.ndarray = torch.cat(reference_poses, dim=0).numpy()

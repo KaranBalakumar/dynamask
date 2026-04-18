@@ -9,6 +9,8 @@ from pypose.optim.solver import Cholesky
 from pypose.optim.corrector import FastTriggs
 from pypose.optim.optimizer import _Optimizer, Trivial, RobustModel
 
+CovarianceArray: typing.TypeAlias = torch.Tensor | list[torch.Tensor]
+
 
 class FactorGraph(nn.Module, ABC):
     def __init__(self, *args, **kwargs) -> None:
@@ -18,7 +20,7 @@ class FactorGraph(nn.Module, ABC):
     def write_back(self) -> typing.Any: ...
 
     @abstractmethod
-    def covariance_array(self) -> torch.Tensor: ...
+    def covariance_array(self) -> CovarianceArray: ...
 
 
 class AnalyticModule(nn.Module, ABC):

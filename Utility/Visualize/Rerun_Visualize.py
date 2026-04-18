@@ -1,4 +1,5 @@
 from functools import wraps
+from importlib import import_module
 from Utility.PrettyPrint import Logger
 import typing as T
 import pypose as pp
@@ -6,7 +7,7 @@ import numpy  as np
 import torch
 
 try:
-    import rerun as rr
+    rr = import_module("rerun")
 except ImportError:
     rr = None
 
@@ -30,7 +31,8 @@ class Rerun_Visualizer:
     def init_connect(application_id: str):
         assert rr is not None, "Can't initialize rerun since rerun is not installed or have incorrect version."
         rr.init(application_id, spawn=True)
-        rr.connect_tcp()
+        if hasattr(rr, "connect_tcp"):
+            rr.connect_tcp()
         rr.log("/", rr.ViewCoordinates(xyz=rr.ViewCoordinates.FRD), static=True)
     
     @staticmethod

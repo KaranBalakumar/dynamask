@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import cast
 
+import pypose as pp
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -89,9 +90,13 @@ def calibrate_temperature(
             Sigma_imu=pre.Sigma,
             cfg=_cfg_get(trainer.cfg, "proxy", {}),
         )
+        gt_pose_t = pair.cur.gt_pose
+        gt_pose_t1 = pair.nxt.gt_pose
+        if gt_pose_t is None or gt_pose_t1 is None:
+            continue
         dR_cam, dp_cam = relative_cam_motion_from_gt(
-            pair.cur.gt_pose.to(trainer.device),
-            pair.nxt.gt_pose.to(trainer.device),
+            cast(pp.LieTensor, pp.SE3(gt_pose_t).to(trainer.device)),
+            cast(pp.LieTensor, pp.SE3(gt_pose_t1).to(trainer.device)),
             pair.cur.stereo.T_BS.to(trainer.device),
         )
         flow_rigid, geom_valid = rigid_flow_from_motion(depth_t, pair.cur.stereo.K.to(trainer.device), dR_cam.to(depth_t), dp_cam.to(depth_t))
@@ -127,7 +132,8 @@ def calibrate_temperature(
     nlls = torch.stack([F.binary_cross_entropy_with_logits(logits_cat / t, labels_cat) for t in T_grid])
     i_best = int(torch.argmin(nlls).item())
     best_t = float(T_grid[i_best].item())
-    trainer.head.temperature.fill_(best_t)
+    temperature = trainer.head.get_buffer("temperature")
+    temperature.copy_(torch.tensor(best_t, device=temperature.device, dtype=temperature.dtype))
 
     best_t_vis = None
     if vis_logits_all:
@@ -136,11 +142,14 @@ def calibrate_temperature(
         nlls_vis = torch.stack([F.binary_cross_entropy_with_logits(v_logits / t, v_labels) for t in T_grid])
         i_vis = int(torch.argmin(nlls_vis).item())
         best_t_vis = float(T_grid[i_vis].item())
-        trainer.head.temperature_visible.fill_(best_t_vis)
+        temperature_visible = trainer.head.get_buffer("temperature_visible")
+        temperature_visible.copy_(
+            torch.tensor(best_t_vis, device=temperature_visible.device, dtype=temperature_visible.dtype)
+        )
 
-    ece = _ece_binary(logits_cat / trainer.head.temperature, labels_cat)
+    ece = _ece_binary(logits_cat / temperature, labels_cat)
     return CalibrationResult(
-        temperature=float(trainer.head.temperature.item()),
+        temperature=float(temperature.item()),
         temperature_visible=best_t_vis,
         nll=float(nlls[i_best].item()),
         ece=ece,

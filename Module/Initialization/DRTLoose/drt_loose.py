@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import torch
 import pypose as pp
 
 from DataLoader import StereoInertialFrame
 from Module.Frontend.Frontend import IFrontend
+from Module.Network.AirIMU.contracts import narrow_corrector_output
 from Module.Network.AirIMU.encoder import IMUEncoder
 from Utility.PrettyPrint import Logger
 
@@ -169,7 +170,7 @@ class DRTLooseInitializer:
 
         device = frames[0].stereo.K.device
         dtype = frames[0].stereo.K.dtype
-        T_BS = pp.SE3(frames[0].stereo.T_BS).to(device=device)
+        T_BS = cast(pp.LieTensor, pp.SE3(frames[0].stereo.T_BS).to(device=device))
         R_bc = T_BS.rotation().matrix()[0].to(dtype=dtype)
         p_bs = T_BS.translation()[0].to(dtype=dtype)
 
@@ -232,7 +233,7 @@ class DRTLooseInitializer:
                     [],
                     diagnostics,
                 )
-            corr = self.imu_encoder.corrector.inference({"acc": imu.acc, "gyro": imu.gyro})
+            corr = narrow_corrector_output(self.imu_encoder.corrector.inference({"acc": imu.acc, "gyro": imu.gyro}))
             pre = self.imu_encoder.preint(
                 corrected_acc=imu.acc + corr["correction_acc"],
                 corrected_gyro=imu.gyro + corr["correction_gyro"],

@@ -71,12 +71,14 @@ def train_dynamic_head(config_path: Path) -> None:
         cal = calibrate_temperature(trainer, val_loader, max_batches=int(getattr(model_cfg, "calibration_batches", 100)))
         Logger.write("info", f"[calibrate] T={cal.temperature:.4f}, T_vis={cal.temperature_visible}, nll={cal.nll:.6f}, ece={cal.ece:.6f}")
         cal_path = save_dir / "dynamic_head_calibrated.pth"
+        temperature = trainer.head.get_buffer("temperature")
+        temperature_visible = trainer.head.get_buffer("temperature_visible")
         torch.save(
             {
                 "head": trainer.head.state_dict(),
                 "imu_encoder_head": trainer.imu_encoder.head.state_dict(),
-                "temperature": float(trainer.head.temperature.item()),
-                "temperature_visible": float(trainer.head.temperature_visible.item()),
+                "temperature": float(temperature.item()),
+                "temperature_visible": float(temperature_visible.item()),
             },
             cal_path,
         )
@@ -92,4 +94,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

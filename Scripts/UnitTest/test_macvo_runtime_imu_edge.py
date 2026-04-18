@@ -1,10 +1,17 @@
 from types import SimpleNamespace
+import typing as T
+from typing import TYPE_CHECKING
 
 import pypose as pp
 import torch
 
 from DataLoader import IMUData
 import Odometry.MACVO as macvo_module
+
+if TYPE_CHECKING:
+    from Module.Network.AirIMU.encoder import IMUEncoder
+else:
+    IMUEncoder = T.Any
 
 
 def _imu_window_with_samples(n_samples: int) -> IMUData:
@@ -22,7 +29,6 @@ def test_runtime_keyframe_skips_imu_edge_when_window_has_lt2_samples(monkeypatch
     macvo = object.__new__(macvo_module.MACVO)
     macvo._imu_since_keyframe = imu
     macvo._imu_encoder = None
-    macvo.prev_keyframe = (None, 4, None)
     macvo.init_cfg = SimpleNamespace()
     macvo.debug_logger = None
 
@@ -42,7 +48,6 @@ def test_runtime_keyframe_skips_imu_edge_when_window_missing(monkeypatch):
     macvo = object.__new__(macvo_module.MACVO)
     macvo._imu_since_keyframe = None
     macvo._imu_encoder = None
-    macvo.prev_keyframe = (None, 7, None)
     macvo.init_cfg = SimpleNamespace()
     macvo.debug_logger = None
 
@@ -62,7 +67,6 @@ def test_runtime_keyframe_inserts_imu_edge_on_boundary_two_samples():
     imu = _imu_window_with_samples(2)
     macvo = object.__new__(macvo_module.MACVO)
     macvo._imu_since_keyframe = imu
-    macvo.prev_keyframe = (None, 4, None)
     macvo.init_cfg = SimpleNamespace()
     macvo.debug_logger = None
 
@@ -98,14 +102,16 @@ def test_runtime_keyframe_inserts_imu_edge_on_boundary_two_samples():
                 J_p_ba=None,
             )
 
-    macvo._imu_encoder = _FakeEncoder()
-    macvo.graph = SimpleNamespace(
+    macvo._imu_encoder = T.cast(IMUEncoder, _FakeEncoder())
+    macvo.graph = T.cast(
+        macvo_module.VisualMap,
+        SimpleNamespace(
         frames=SimpleNamespace(
             data={
                 "bias_g": torch.zeros((6, 3)),
                 "bias_a": torch.zeros((6, 3)),
             }
-        )
+        ))
     )
 
     pushed_edges: list[tuple] = []

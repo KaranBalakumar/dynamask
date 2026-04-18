@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -8,15 +9,21 @@ import torch
 from .base import Sink
 
 try:
-    from torch.utils.tensorboard import SummaryWriter
-except Exception:  # pragma: no cover
-    SummaryWriter = None
+    _tb_mod = import_module("torch.utils.tensorboard")
+except Exception:
+    _tb_mod = None
+SummaryWriter = getattr(_tb_mod, "SummaryWriter", None)
 
 
 class TensorBoardSink(Sink):
     def __init__(self, run_dir: Path, flush_secs: int = 30, max_queue: int = 2000) -> None:
-        self.enabled = SummaryWriter is not None
-        self.writer = SummaryWriter(log_dir=str(run_dir / "tensorboard"), flush_secs=flush_secs, max_queue=max_queue) if self.enabled else None
+        self.writer: Any | None
+        if SummaryWriter is None:
+            self.enabled = False
+            self.writer = None
+        else:
+            self.enabled = True
+            self.writer = SummaryWriter(log_dir=str(run_dir / "tensorboard"), flush_secs=flush_secs, max_queue=max_queue)
 
     def on_scalar(self, key: str, value: float, step: int) -> None:
         if self.writer is not None:
@@ -52,4 +59,3 @@ class TensorBoardSink(Sink):
     def close(self) -> None:
         if self.writer is not None:
             self.writer.close()
-

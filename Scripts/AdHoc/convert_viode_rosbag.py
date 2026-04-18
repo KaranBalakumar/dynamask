@@ -3,12 +3,24 @@ from __future__ import annotations
 
 import argparse
 import json
+import typing as T
 from pathlib import Path
 
 import cv2
 import h5py
 import numpy as np
 from rosbags.highlevel import AnyReader
+
+
+class _Vec3Like(T.Protocol):
+    x: float
+    y: float
+    z: float
+
+
+class _IMUMsgLike(T.Protocol):
+    linear_acceleration: _Vec3Like
+    angular_velocity: _Vec3Like
 
 
 def decode_image(msg) -> np.ndarray:
@@ -213,10 +225,31 @@ def main():
             for conn, timestamp, rawdata in reader.messages(connections=conns):
                 msg = reader.deserialize(rawdata, conn.msgtype)
                 if conn.topic == args.imu_topic:
+                    imu_msg = T.cast(_IMUMsgLike, msg)
                     t_ns = msg_time_ns(msg, timestamp)
                     append_scalar(ds_imu_t, np.int64(t_ns))
-                    append_row(ds_imu_a, np.array([msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z], dtype=np.float32))
-                    append_row(ds_imu_g, np.array([msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z], dtype=np.float32))
+                    append_row(
+                        ds_imu_a,
+                        np.array(
+                            [
+                                imu_msg.linear_acceleration.x,
+                                imu_msg.linear_acceleration.y,
+                                imu_msg.linear_acceleration.z,
+                            ],
+                            dtype=np.float32,
+                        ),
+                    )
+                    append_row(
+                        ds_imu_g,
+                        np.array(
+                            [
+                                imu_msg.angular_velocity.x,
+                                imu_msg.angular_velocity.y,
+                                imu_msg.angular_velocity.z,
+                            ],
+                            dtype=np.float32,
+                        ),
+                    )
                     continue
                 if args.gt_topic and conn.topic == args.gt_topic:
                     gt_cache[msg_time_ns(msg, timestamp)] = decode_pose(msg)

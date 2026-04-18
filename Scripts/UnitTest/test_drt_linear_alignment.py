@@ -1,5 +1,7 @@
 import torch
 import pypose as pp
+import typing as T
+from typing import TYPE_CHECKING
 from types import SimpleNamespace
 
 from Module.Initialization.DRTLoose.linear_alignment import solve_linear_alignment
@@ -7,6 +9,13 @@ from Module.Initialization.DRTLoose.gravity_refine import refine_gravity_on_sphe
 from Module.Initialization.DRTLoose import drt_loose as drt_mod
 from Module.Initialization.DRTLoose.drt_loose import DRTLooseInitializer
 from DataLoader import StereoData, IMUData, StereoInertialFrame
+
+if TYPE_CHECKING:
+    from Module import IFrontend
+    from Module.Network.AirIMU.encoder import IMUEncoder
+else:
+    IFrontend = T.Any
+    IMUEncoder = T.Any
 
 
 def test_linear_alignment_recovers_gravity_direction():
@@ -85,7 +94,11 @@ def test_drt_initializer_rejects_insufficient_imu_and_emits_no_edges(monkeypatch
         def preint(self, *_args, **_kwargs):
             raise AssertionError("Preintegration must not run for insufficient IMU window")
 
-    init = DRTLooseInitializer(frontend=_DummyFrontend(), imu_encoder=_DummyEncoder(), cfg=SimpleNamespace())
+    init = DRTLooseInitializer(
+        frontend=T.cast(IFrontend, _DummyFrontend()),
+        imu_encoder=T.cast(IMUEncoder, _DummyEncoder()),
+        cfg=SimpleNamespace(),
+    )
 
     def _fake_pair_measurements(_self, _fi, _fj, _di, _dj):
         b = torch.tensor([[0.0, 0.0, 1.0], [0.1, 0.0, 0.99]], dtype=torch.float32)
