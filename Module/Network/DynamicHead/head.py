@@ -63,12 +63,15 @@ class StaticConfidenceHead(nn.Module):
         self.gru = ConvGRUStack(c_hid, c_hid, num_layers=2, use_spectral_norm=use_spectral_norm)
         out_ch = 2 if self.factorize else 1
         self.classifier8 = nn.Conv2d(c_hid, out_ch, kernel_size=3, padding=1)
-        self.classifier4 = nn.Sequential(
-            nn.Upsample(scale_factor=2.0, mode="bilinear", align_corners=False),
+        # Residual refinement at 1/4: logits_4 = upsample(logits_8) + refine4(upsample(h8)).
+        # Zero-init the final conv so at start of training logits_4 ≡ upsampled logits_8.
+        self.refine4 = nn.Sequential(
             nn.Conv2d(c_hid, c_hid // 2, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(c_hid // 2, out_ch, kernel_size=3, padding=1),
         )
+        nn.init.zeros_(self.refine4[-1].weight)
+        nn.init.zeros_(self.refine4[-1].bias)
         self.refiner = ReprojectionRefiner(in_ch=2, hidden_ch=32, out_ch=2)
 
     @staticmethod
@@ -115,7 +118,9 @@ class StaticConfidenceHead(nn.Module):
         h8, h8_new = self.gru(h_in, h8_prev)
 
         logits_8 = self.classifier8(h8).clamp(min=-self.max_logit, max=self.max_logit)
-        logits_4 = self.classifier4(h8).clamp(min=-self.max_logit, max=self.max_logit)
+        logits_8_up = F.interpolate(logits_8, scale_factor=2.0, mode="bilinear", align_corners=False)
+        h8_up = F.interpolate(h8, scale_factor=2.0, mode="bilinear", align_corners=False)
+        logits_4 = (logits_8_up + self.refine4(h8_up)).clamp(min=-self.max_logit, max=self.max_logit)
         temp_static = torch.clamp(T.cast(torch.Tensor, self.temperature), min=1e-3)
         temp_visible = torch.clamp(T.cast(torch.Tensor, self.temperature_visible), min=1e-3)
         if self.factorize:

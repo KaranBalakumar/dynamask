@@ -61,7 +61,10 @@ def relative_cam_motion_from_gt(
     gt_pose_t1: pp.LieTensor,
     T_BS: pp.LieTensor | torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    T_rel_body = gt_pose_t.Inv() @ gt_pose_t1
+    # Returns (R, t) = T_{C_{t+1} C_t}: transforms cam_t points to cam_{t+1}.
+    # Pose convention: gt_pose = T_WB (body in world).
+    # T_{B_{t+1} B_t} = T_{W B_{t+1}}^{-1} @ T_{W B_t} = gt_pose_t1.Inv() @ gt_pose_t.
+    T_rel_body = gt_pose_t1.Inv() @ gt_pose_t
     dR_body = T_rel_body.rotation().matrix()
     dp_body = T_rel_body.translation()
     return body2cam_se3(dR_body, dp_body, T_BS)

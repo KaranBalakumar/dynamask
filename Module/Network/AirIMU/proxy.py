@@ -58,7 +58,11 @@ def build_imu_proxy(
     )
     X_flat = X.reshape(B, 3, -1)
 
-    X1 = torch.bmm(delta_R_cam, X_flat) + delta_p_cam.unsqueeze(-1)
+    # Forster preintegration yields delta_R, delta_p such that, in camera frame,
+    # (delta_R_cam, delta_p_cam) represents T_{C_t C_{t+1}} (maps C_{t+1} -> C_t).
+    # To project a cam_t point into cam_{t+1}, apply the inverse:
+    #   X_{C_{t+1}} = delta_R_cam^T @ (X_{C_t} - delta_p_cam).
+    X1 = torch.bmm(delta_R_cam.transpose(-2, -1), X_flat - delta_p_cam.unsqueeze(-1))
     X1 = X1.reshape(B, 3, H, W)
 
     z1 = X1[:, 2:3]

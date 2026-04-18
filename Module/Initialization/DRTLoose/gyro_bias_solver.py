@@ -68,7 +68,9 @@ def solve_gyro_bias_lbfgs(
         loss = torch.zeros((), device=device, dtype=dtype)
         for (x_i, x_j), seg in zip(pair_bearings, imu_segments):
             dR_body = _integrate_rotation(seg["gyro"], seg["dt"], bg)
-            dR_cam = R_bc @ dR_body @ R_bc.transpose(-1, -2)
+            # R_bc = R_BS maps camera-frame vectors to body-frame. Given dR_body = R_{B_i B_j},
+            # the camera-frame relative rotation is R_{C_i C_j} = R_bc^T @ dR_body @ R_bc.
+            dR_cam = R_bc.transpose(-1, -2) @ dR_body @ R_bc
             pred = torch.matmul(dR_cam.transpose(-1, -2), x_i.transpose(0, 1)).transpose(0, 1)
             r2 = ((pred - x_j) ** 2).sum(dim=1)
             loss = loss + (c2 * torch.log1p(r2 / c2)).mean()

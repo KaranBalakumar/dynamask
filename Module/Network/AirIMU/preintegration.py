@@ -29,6 +29,26 @@ def so3_exp(w: torch.Tensor) -> torch.Tensor:
     return I + a * K + b * (K @ K)
 
 
+def so3_right_jacobian(phi: torch.Tensor) -> torch.Tensor:
+    """
+    SO(3) right Jacobian Jr(phi): Exp(phi + dphi) ≈ Exp(phi) · Exp(Jr(phi) · dphi).
+    Jr(phi) = I - (1 - cos θ)/θ² · K + (θ - sin θ)/θ³ · K²  with K = [phi]_×, θ = ||phi||.
+    """
+    B = phi.shape[0]
+    I = torch.eye(3, dtype=phi.dtype, device=phi.device).unsqueeze(0).expand(B, -1, -1)
+    theta = torch.linalg.vector_norm(phi, dim=-1, keepdim=True)  # [B, 1]
+    K = _skew(phi)
+    K2 = torch.bmm(K, K)
+    small = theta < 1e-5                                            # [B, 1]
+    safe_theta = theta.clamp(min=1e-12)
+    coef1_large = (1.0 - torch.cos(safe_theta)) / (safe_theta * safe_theta)
+    coef2_large = (safe_theta - torch.sin(safe_theta)) / (safe_theta ** 3)
+    # Small-angle Taylor: Jr ≈ I - 0.5 K + (1/6) K²
+    coef1 = torch.where(small, torch.full_like(coef1_large, 0.5), coef1_large).view(B, 1, 1)
+    coef2 = torch.where(small, torch.full_like(coef2_large, 1.0 / 6.0), coef2_large).view(B, 1, 1)
+    return I - coef1 * K + coef2 * K2
+
+
 def so3_log(R: torch.Tensor) -> torch.Tensor:
     tr = R[..., 0, 0] + R[..., 1, 1] + R[..., 2, 2]
     cos_theta = ((tr - 1.0) * 0.5).clamp(-1.0, 1.0)
@@ -150,32 +170,67 @@ class DifferentiablePreintegrator(nn.Module):
             dt = dt.squeeze(-1)
         b_g_ref, b_a_ref = bias_ref[:, :3], bias_ref[:, 3:]
 
-        delta_R, delta_v, delta_p = self._integrate_mean(corrected_acc, corrected_gyro, dt, b_g_ref, b_a_ref)
-
         B, N, _ = corrected_acc.shape
         M = min(N, dt.shape[1])
-        rot_var = torch.zeros((B, 3), dtype=corrected_acc.dtype, device=corrected_acc.device)
-        vel_var = torch.zeros((B, 3), dtype=corrected_acc.dtype, device=corrected_acc.device)
-        pos_var = torch.zeros((B, 3), dtype=corrected_acc.dtype, device=corrected_acc.device)
+        device = corrected_acc.device
+        dtype = corrected_acc.dtype
         dt_total = dt[:, :M].sum(dim=1)
 
-        for k in range(M):
-            dt_k = dt[:, k].unsqueeze(-1)
-            rot_var = rot_var + gyro_cov[:, k] * (dt_k ** 2)
-            vel_var_prev = vel_var
-            vel_var = vel_var + acc_cov[:, k] * (dt_k ** 2)
-            pos_var = pos_var + acc_cov[:, k] * (0.5 * dt_k ** 2) ** 2 + vel_var_prev * (dt_k ** 2)
+        # Joint mean + full-covariance propagation (Forster et al., Eq. A.9-A.11):
+        #   state error ξ = [δφ, δv, δp] ∈ R^9
+        #   Σ_{k+1} = A_k Σ_k A_k^T + B_k Σ_η B_k^T
+        # A_k and B_k couple rotation errors into velocity/position via -R_{i,k}·[â]_× · dt.
+        R = torch.eye(3, dtype=dtype, device=device).view(1, 3, 3).repeat(B, 1, 1)
+        v = torch.zeros((B, 3), dtype=dtype, device=device)
+        p = torch.zeros((B, 3), dtype=dtype, device=device)
+        Sigma = torch.zeros((B, 9, 9), dtype=dtype, device=device)
+        I3 = torch.eye(3, dtype=dtype, device=device).view(1, 3, 3).expand(B, -1, -1)
 
-        Sigma = torch.zeros((B, 9, 9), dtype=corrected_acc.dtype, device=corrected_acc.device)
-        Sigma[:, 0, 0] = rot_var[:, 0] + 1e-10
-        Sigma[:, 1, 1] = rot_var[:, 1] + 1e-10
-        Sigma[:, 2, 2] = rot_var[:, 2] + 1e-10
-        Sigma[:, 3, 3] = vel_var[:, 0] + 1e-10
-        Sigma[:, 4, 4] = vel_var[:, 1] + 1e-10
-        Sigma[:, 5, 5] = vel_var[:, 2] + 1e-10
-        Sigma[:, 6, 6] = pos_var[:, 0] + 1e-10
-        Sigma[:, 7, 7] = pos_var[:, 1] + 1e-10
-        Sigma[:, 8, 8] = pos_var[:, 2] + 1e-10
+        for k in range(M):
+            dt_k = dt[:, k].view(B, 1, 1)            # [B,1,1]
+            dt_k_vec = dt[:, k].unsqueeze(-1)        # [B,1] for mean update
+            w_k = corrected_gyro[:, k] - b_g_ref
+            a_k = corrected_acc[:, k] - b_a_ref
+            phi = w_k * dt_k_vec                     # [B,3]
+            dR = so3_exp(phi)
+            Jr = so3_right_jacobian(phi)
+            Ra_skew = torch.bmm(R, _skew(a_k))       # R_{i,k} · [a_k - b_a]_× : [B,3,3]
+
+            # Build A (9x9)
+            A = torch.zeros((B, 9, 9), dtype=dtype, device=device)
+            A[:, 0:3, 0:3] = dR.transpose(-2, -1)
+            A[:, 3:6, 3:6] = I3
+            A[:, 6:9, 6:9] = I3
+            A[:, 3:6, 0:3] = -Ra_skew * dt_k
+            A[:, 6:9, 0:3] = -0.5 * Ra_skew * (dt_k * dt_k)
+            A[:, 6:9, 3:6] = I3 * dt_k
+
+            # Build B_noise (9x6) acting on η = [η_g, η_a]
+            Bn = torch.zeros((B, 9, 6), dtype=dtype, device=device)
+            Bn[:, 0:3, 0:3] = Jr * dt_k
+            Bn[:, 3:6, 3:6] = R * dt_k
+            Bn[:, 6:9, 3:6] = 0.5 * R * (dt_k * dt_k)
+
+            Sigma_eta = torch.zeros((B, 6, 6), dtype=dtype, device=device)
+            Sigma_eta[:, 0, 0] = gyro_cov[:, k, 0]
+            Sigma_eta[:, 1, 1] = gyro_cov[:, k, 1]
+            Sigma_eta[:, 2, 2] = gyro_cov[:, k, 2]
+            Sigma_eta[:, 3, 3] = acc_cov[:, k, 0]
+            Sigma_eta[:, 4, 4] = acc_cov[:, k, 1]
+            Sigma_eta[:, 5, 5] = acc_cov[:, k, 2]
+
+            Sigma = (
+                torch.bmm(torch.bmm(A, Sigma), A.transpose(-2, -1))
+                + torch.bmm(torch.bmm(Bn, Sigma_eta), Bn.transpose(-2, -1))
+            )
+
+            Ra = torch.bmm(R, a_k.unsqueeze(-1)).squeeze(-1)
+            p = p + v * dt_k_vec + 0.5 * Ra * (dt_k_vec ** 2)
+            v = v + Ra * dt_k_vec
+            R = torch.bmm(R, dR)
+
+        delta_R, delta_v, delta_p = R, v, p
+        Sigma = Sigma + 1e-10 * torch.eye(9, dtype=dtype, device=device).view(1, 9, 9)
 
         if emit_jacobians:
             J_R_bg, J_v_bg, J_v_ba, J_p_bg, J_p_ba = self._jacobians_fd(

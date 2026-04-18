@@ -45,9 +45,14 @@ class ConvGRUStack(nn.Module):
         self.layers = nn.ModuleList(layers)
 
     def forward(self, x: torch.Tensor, h_prev: torch.Tensor | None) -> tuple[torch.Tensor, torch.Tensor]:
-        h = h_prev
-        for layer in self.layers:
-            h = layer(x, h)
-            x = h
-        assert h is not None
-        return h, h
+        # h_prev is stacked per-layer state with shape [L, B, C, H, W]; None => zeros per layer.
+        L = len(self.layers)
+        h_new_list: list[torch.Tensor] = []
+        for i, layer in enumerate(self.layers):
+            h_prev_i = None if h_prev is None else h_prev[i]
+            h_i = layer(x, h_prev_i)
+            h_new_list.append(h_i)
+            x = h_i
+        h_top = h_new_list[-1]
+        h_new = torch.stack(h_new_list, dim=0)
+        return h_top, h_new
