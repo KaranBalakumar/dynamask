@@ -8,13 +8,15 @@ from rich.panel import Panel
 from typing import Callable
 
 import Module
-from DataLoader import StereoFrame
+from DataLoader import StereoFrame, IMUData
 from Module.Map import VisualMap, FrameNode, MatchObs, PointNode, IMUEdgeNode
 from Utility.Point import filterPointsInRange, pixel2point_NED
 from Utility.PrettyPrint import Logger, GlobalConsole
 from Utility.Timer import Timer
 from Utility.Visualize import fig_plt
 from Utility.Extensions import ConfigTestable
+from Utility.Observability import DebugLogger, collect_runtime_dump, should_dump, cadence_reason
+from Utility.Observability.cadence import CadenceConfig
 
 from .Interface import IOdometry
 
@@ -76,6 +78,20 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         self.graph.gravity = self.g_W
         self._drt_initializer = None
         self._imu_encoder = None
+        self._imu_since_keyframe: IMUData | None = None
+        self.debug_logger: DebugLogger | None = None
+        self._log_cadence = CadenceConfig()
+        log_cfg = getattr(self.config, "logging", None)
+        if log_cfg is not None and bool(getattr(log_cfg, "enabled", False)):
+            self.debug_logger = DebugLogger.from_config(log_cfg, seed=int(getattr(log_cfg, "seed", 0)))
+            self.debug_logger.assert_all_sinks_writable()
+            local_cfg = getattr(log_cfg, "local", SimpleNamespace())
+            self._log_cadence = CadenceConfig(
+                dump_every=int(getattr(local_cfg, "dump_every", 200)),
+                forced_first_n=int(getattr(local_cfg, "forced_first_n", 10)),
+                on_anomaly=bool(getattr(local_cfg, "on_anomaly", True)),
+            )
+            setattr(self.Optimizer, "debug_logger", self.debug_logger)
         
         # Context for tracking
         # [0] - Frame Source Data
@@ -187,6 +203,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         }))
         self.OutlierFilter.set_meta(frame0.stereo)
         self.prev_keyframe = (frame0, int(frame_idx.item()), depth0)
+        self._imu_since_keyframe = None
         self.isinitiated = True
 
     def _bootstrap_collect(self, frame: T_SensorFrame) -> None:
@@ -224,7 +241,8 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
                 cfg=self.init_cfg,
             )
 
-        init_out = self._drt_initializer.run(self._init_frames, self._init_depths)
+        init_step = int(getattr(frame, "frame_idx", len(self._init_frames)))
+        init_out = self._drt_initializer.run(self._init_frames, self._init_depths, logger=self.debug_logger, log_step=init_step)
         if init_out.ok:
             self._write_init_to_map(init_out)
             self._init_complete = True
@@ -235,6 +253,22 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
 
         self._init_fail_count += 1
         Logger.write("warn", f"DRT-loose init failed ({self._init_fail_count}): {init_out.reason}")
+        if self.debug_logger is not None:
+            self.debug_logger.log_scalars(
+                {
+                    "init.drt.window_len": float(len(self._init_frames)),
+                    "init.drt.accept": 0.0,
+                    "init.drt.scale_s": 1.0,
+                    "init.drt.gW.mag": float(torch.linalg.vector_norm(init_out.gravity).item()) if init_out.gravity.numel() == 3 else 0.0,
+                    "init.drt.gW.mag_err": float(abs(torch.linalg.vector_norm(init_out.gravity).item() - 9.81007)) if init_out.gravity.numel() == 3 else 9.81007,
+                    "init.drt.bg.norm": float(torch.linalg.vector_norm(init_out.bias_g).item()) if init_out.bias_g.numel() == 3 else 0.0,
+                    "init.drt.bg_solver.residual": float(init_out.diagnostics.get("bg_solver_residual", 0.0)) if init_out.diagnostics else 0.0,
+                    "init.drt.n_views.total": float(init_out.diagnostics.get("n_views_total", 0.0)) if init_out.diagnostics else 0.0,
+                    "init.drt.parallax_px.p50": float(init_out.diagnostics.get("parallax_p50", 0.0)) if init_out.diagnostics else 0.0,
+                    "init.drt.parallax_px.p5": float(init_out.diagnostics.get("parallax_p5", 0.0)) if init_out.diagnostics else 0.0,
+                },
+                init_step,
+            )
         self._init_frames.pop(0)
         self._init_depths.pop(0)
 
@@ -255,6 +289,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
                 "baseline"    : frame.stereo.baseline,
             }))
             self.prev_keyframe = (frame, int(frame_idx.item()), depth0)
+            self._imu_since_keyframe = None
             self._init_complete = True
             self.isinitiated = True
 
@@ -305,6 +340,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             len(self._init_frames) - 1,
             self._init_depths[-1],
         )
+        self._imu_since_keyframe = None
         self.g_W = init_out.gravity.to(torch.float64)
         self.graph.gravity = self.g_W
         Logger.write(
@@ -312,17 +348,146 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             f"DRT-loose init OK: N_init={len(self._init_frames)}, "
             f"|b_g|={init_out.bias_g.norm():.4g}, |g|={init_out.gravity.norm():.4g}",
         )
+        if self.debug_logger is not None:
+            step = int(getattr(self._init_frames[-1], "frame_idx", len(self._init_frames)))
+            drt_dump = {
+                "accept": torch.tensor([1], dtype=torch.bool),
+                "n_views": torch.tensor([init_out.diagnostics.get("n_views_total", 0) if init_out.diagnostics else 0], dtype=torch.int64),
+                "parallax_px_med": torch.tensor([init_out.diagnostics.get("parallax_p50", 0.0) if init_out.diagnostics else 0.0], dtype=torch.float32),
+                "bg_final": init_out.bias_g.float(),
+                "gW": init_out.gravity.float(),
+                "scale_s": torch.tensor([1.0], dtype=torch.float32),
+            }
+            self.debug_logger.dump_artifact("dumps", collect_runtime_dump(
+                step=step,
+                epoch=0,
+                seq_id="bootstrap",
+                frame_idx=step,
+                batch_idx=0,
+                cadence="forced_early",
+                drt=drt_dump,
+            ), step)
+
+    @staticmethod
+    def _append_imu_window(base: IMUData | None, window: IMUData | None) -> IMUData | None:
+        if window is None:
+            return base
+        if base is None:
+            return window
+
+        base_time = base.time_ns[..., 0] if base.time_ns.ndim == 3 else base.time_ns
+        window_time = window.time_ns[..., 0] if window.time_ns.ndim == 3 else window.time_ns
+
+        append_start = 0
+        if base_time.shape[0] == 1 and window_time.shape[0] == 1:
+            append_start = int(torch.searchsorted(window_time[0], base_time[0, -1], right=True).item())
+        elif torch.equal(base_time[:, -1:], window_time[:, :1]):
+            append_start = 1
+
+        if append_start >= window_time.shape[1]:
+            return base
+
+        return IMUData(
+            T_BS=base.T_BS,
+            time_ns=torch.cat([base.time_ns, window.time_ns[:, append_start:]], dim=1),
+            gravity=base.gravity,
+            acc=torch.cat([base.acc, window.acc[:, append_start:, :]], dim=1),
+            gyro=torch.cat([base.gyro, window.gyro[:, append_start:, :]], dim=1),
+        )
+
+    @staticmethod
+    def _imu_sample_count(imu: IMUData | None) -> int:
+        if imu is None:
+            return 0
+        if imu.time_ns.ndim < 2 or imu.time_ns.shape[0] == 0:
+            return 0
+        return int(imu.time_ns.shape[1])
+
+    def _insert_runtime_imu_edge(
+        self,
+        frame1: T_SensorFrame,
+        prev_frame_idx: torch.Tensor,
+        frame_idx: torch.Tensor,
+        step: int,
+    ) -> None:
+        imu = self._imu_since_keyframe
+        if imu is not None and self._imu_sample_count(imu) >= 2:
+            if self._imu_encoder is None:
+                from Module.Network.AirIMU.encoder import IMUEncoder
+                imu_cfg = getattr(self.init_cfg, "imu", SimpleNamespace(
+                    ckpt_path=None,
+                    jacobian_eps=1e-5,
+                    sigma_repr_mode="diag",
+                    feature_dim=64,
+                    emit_jacobians=True,
+                ))
+                self._imu_encoder = IMUEncoder(imu_cfg)
+            bias_ref = torch.cat(
+                [
+                    self.graph.frames.data["bias_g"][prev_frame_idx].float(),
+                    self.graph.frames.data["bias_a"][prev_frame_idx].float(),
+                ],
+                dim=-1,
+            )
+            corr = self._imu_encoder.corrector.inference({"acc": imu.acc, "gyro": imu.gyro})
+            pre = self._imu_encoder.preint(
+                corrected_acc=imu.acc + corr["correction_acc"],
+                corrected_gyro=imu.gyro + corr["correction_gyro"],
+                acc_cov=corr["cov_state"]["acc_cov"],
+                gyro_cov=corr["cov_state"]["gyro_cov"],
+                dt=imu.time_delta.float() * 1e-9,
+                bias_ref=bias_ref,
+                emit_jacobians=True,
+                logger=self.debug_logger,
+                log_step=step,
+            )
+            self._push_imu_edge(int(prev_frame_idx.item()), int(frame_idx.item()), SimpleNamespace(
+                delta_R=pre.delta_R[0].cpu(),
+                delta_v=pre.delta_v[0].cpu(),
+                delta_p=pre.delta_p[0].cpu(),
+                Sigma=pre.Sigma[0].cpu(),
+                dt=pre.dt_total[0].cpu(),
+                bias_ref=pre.bias_ref[0].cpu(),
+                J_R_bg=pre.J_R_bg[0].cpu() if pre.J_R_bg is not None else torch.zeros((3, 3)),
+                J_v_bg=pre.J_v_bg[0].cpu() if pre.J_v_bg is not None else torch.zeros((3, 3)),
+                J_v_ba=pre.J_v_ba[0].cpu() if pre.J_v_ba is not None else torch.zeros((3, 3)),
+                J_p_bg=pre.J_p_bg[0].cpu() if pre.J_p_bg is not None else torch.zeros((3, 3)),
+                J_p_ba=pre.J_p_ba[0].cpu() if pre.J_p_ba is not None else torch.zeros((3, 3)),
+            ))
+        elif hasattr(frame1, "imu"):
+            imu_n = self._imu_sample_count(imu)
+            if imu_n == 0:
+                Logger.write("warn", f"Missing IMU window for keyframe pair {self.prev_keyframe[1]}->{int(frame_idx.item())}, skipping IMU edge")
+            else:
+                Logger.write("warn", f"Insufficient IMU samples ({imu_n}) for keyframe pair {self.prev_keyframe[1]}->{int(frame_idx.item())}, skipping IMU edge")
 
     def run_pair(self, frame0: T_SensorFrame, frame1: T_SensorFrame) -> None:
         assert self.prev_keyframe is not None
+        step = int(getattr(frame1, "frame_idx", len(self.graph.frames)))
+        self._imu_since_keyframe = self._append_imu_window(
+            self._imu_since_keyframe, getattr(frame1, "imu", None)
+        )
         
         # Check if current frame is the keyframe ########################################
         if not self.KeyframeSelector.isKeyframe(frame1):            
             self.push_keyframe(frame1, self.graph.frames.data["pose"][self.prev_keyframe[1]].unsqueeze(0), need_interp=True)
             return
         
-        depth0          = self.prev_keyframe[2]
-        depth1, match01 = self.Frontend.estimate_pair(frame0.stereo, frame1.stereo)
+        depth0 = self.prev_keyframe[2]
+        if hasattr(self.Frontend, "set_imu_window"):
+            bias_ref = torch.cat(
+                [
+                    self.graph.frames.data["bias_g"][self.prev_keyframe[1]].float(),
+                    self.graph.frames.data["bias_a"][self.prev_keyframe[1]].float(),
+                ],
+                dim=-1,
+            ).unsqueeze(0) if len(self.graph.frames) > 0 else None
+            self.Frontend.set_imu_window(self._imu_since_keyframe, bias_ref=bias_ref)
+        if self.debug_logger is None:
+            depth1, match01 = self.Frontend.estimate_pair(frame0.stereo, frame1.stereo)
+        else:
+            with self.debug_logger.phase("frontend", step):
+                depth1, match01 = self.Frontend.estimate_pair(frame0.stereo, frame1.stereo)
 
         # Receive optimization result from previous step (if exists) ####################
         # NOTE: should always writeback optimized pose to global map before selecting new 
@@ -407,7 +572,11 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             
             "obs1_covTc"     : pos0_covTc,
             "obs2_covTc"     : pos1_covTc,
-            "c"              : torch.ones((num_kp, 1), dtype=torch.float32),
+            "c"              : (
+                torch.ones((num_kp, 1), dtype=torch.float32)
+                if not hasattr(match01, "c") or getattr(match01, "c") is None
+                else self.Frontend.retrieve_pixels(kp0_uv, getattr(match01, "c")).T.float().cpu()
+            ),
         })
         assert self.OutlierFilter.verify_shape(match_obs), "The provided MatchFactor does not contain all data for outlier filter."
         mask = self.OutlierFilter.filter(match_obs, torch.device("cpu"))
@@ -434,48 +603,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         self.graph.frame2match.add(frame_idx     , torch.tensor([num_match_orig], dtype=torch.long), torch.tensor([num_match_kp], dtype=torch.long))   # Associate frame -> match
         self.graph.match2frame1.set(match_idx    , torch.empty((num_match_kp,), dtype=torch.long).fill_(prev_frame_idx.item()))    # Associate match -> frame1
         self.graph.match2frame2.set(match_idx    , torch.empty((num_match_kp,), dtype=torch.long).fill_(frame_idx.item()     ))    # Associate match -> frame2
-        if hasattr(frame1, "imu"):
-            if self._imu_encoder is None:
-                from Module.Network.AirIMU.encoder import IMUEncoder
-                imu_cfg = getattr(self.init_cfg, "imu", SimpleNamespace(
-                    ckpt_path=None,
-                    jacobian_eps=1e-5,
-                    sigma_repr_mode="diag",
-                    feature_dim=64,
-                    emit_jacobians=True,
-                ))
-                self._imu_encoder = IMUEncoder(imu_cfg)
-            imu = frame1.imu
-            bias_ref = torch.cat(
-                [
-                    self.graph.frames.data["bias_g"][prev_frame_idx].float(),
-                    self.graph.frames.data["bias_a"][prev_frame_idx].float(),
-                ],
-                dim=-1,
-            )
-            corr = self._imu_encoder.corrector.inference({"acc": imu.acc, "gyro": imu.gyro})
-            pre = self._imu_encoder.preint(
-                corrected_acc=imu.acc + corr["correction_acc"],
-                corrected_gyro=imu.gyro + corr["correction_gyro"],
-                acc_cov=corr["cov_state"]["acc_cov"],
-                gyro_cov=corr["cov_state"]["gyro_cov"],
-                dt=imu.time_delta.float() * 1e-9,
-                bias_ref=bias_ref,
-                emit_jacobians=True,
-            )
-            self._push_imu_edge(int(prev_frame_idx.item()), int(frame_idx.item()), SimpleNamespace(
-                delta_R=pre.delta_R[0].cpu(),
-                delta_v=pre.delta_v[0].cpu(),
-                delta_p=pre.delta_p[0].cpu(),
-                Sigma=pre.Sigma[0].cpu(),
-                dt=pre.dt_total[0].cpu(),
-                bias_ref=pre.bias_ref[0].cpu(),
-                J_R_bg=pre.J_R_bg[0].cpu() if pre.J_R_bg is not None else torch.zeros((3, 3)),
-                J_v_bg=pre.J_v_bg[0].cpu() if pre.J_v_bg is not None else torch.zeros((3, 3)),
-                J_v_ba=pre.J_v_ba[0].cpu() if pre.J_v_ba is not None else torch.zeros((3, 3)),
-                J_p_bg=pre.J_p_bg[0].cpu() if pre.J_p_bg is not None else torch.zeros((3, 3)),
-                J_p_ba=pre.J_p_ba[0].cpu() if pre.J_p_ba is not None else torch.zeros((3, 3)),
-            ))
+        self._insert_runtime_imu_edge(frame1, prev_frame_idx, frame_idx, step)
 
         # Visualization #################################################################
         fig_plt.plot_imatcher("matching", match01, frame0, frame1)
@@ -484,6 +612,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
 
         # Update the tracking context ###################################################
         self.prev_keyframe = (frame1, int(frame_idx.item()), depth1)
+        self._imu_since_keyframe = None
 
         # Launch Optimization task  #####################################################
         if match_idx.size(0) < self.min_num_point:
@@ -492,9 +621,15 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             self.graph.frames.data["need_interp"][frame_idx] = True
             return
         else:
-            self.Optimizer.start_optimize(
-                self.Optimizer.get_graph_data(self.graph, frame_idx)
-            )
+            if self.debug_logger is None:
+                self.Optimizer.start_optimize(
+                    self.Optimizer.get_graph_data(self.graph, frame_idx)
+                )
+            else:
+                with self.debug_logger.phase("backend", step):
+                    self.Optimizer.start_optimize(
+                        self.Optimizer.get_graph_data(self.graph, frame_idx)
+                    )
         
         # Add (dense) mapping points to the map #########################################
         if self.mapping:
@@ -521,6 +656,37 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
                 "color" : map0_color,
             }))
             self.graph.frame2map.add(frame_idx, torch.tensor([num_map_orig], dtype=torch.long), torch.tensor([num_mappoint], dtype=torch.long))   # Associate frame -> map
+
+        if self.debug_logger is not None and should_dump(step, self._log_cadence):
+            imu_window = getattr(frame1, "imu", None)
+            data_dump = {
+                "image_L": frame1.stereo.imageL[0].detach().cpu(),
+                "image_R": frame1.stereo.imageR[0].detach().cpu(),
+                "K": frame1.stereo.K[0].detach().cpu(),
+                "T_BS": frame1.stereo.T_BS[0].detach().cpu(),
+            }
+            if imu_window is not None:
+                data_dump["imu_window"] = torch.cat([imu_window.acc[0], imu_window.gyro[0]], dim=-1).detach().cpu()
+                data_dump["imu_dts"] = (imu_window.time_delta[0].float() * 1e-9).detach().cpu()
+            frontend_dump = {
+                "depth": depth1.depth[0].detach().cpu(),
+                "disparity": depth1.disparity[0].detach().cpu() if depth1.disparity is not None else torch.empty((1,)),
+                "flow": match01.flow[0].detach().cpu(),
+                "flow_cov": match01.cov[0].detach().cpu() if match01.cov is not None else torch.empty((1,)),
+            }
+            dump_payload = collect_runtime_dump(
+                step=step,
+                epoch=0,
+                seq_id=str(getattr(frame1, "seq_id", "unknown")),
+                frame_idx=step,
+                batch_idx=0,
+                cadence=cadence_reason(step, self._log_cadence),
+                data=data_dump,
+                frontend=frontend_dump,
+            )
+            self.debug_logger.dump_artifact("dumps", dump_payload, step)
+        if self.debug_logger is not None:
+            self.debug_logger.on_step_end(step)
 
     def push_keyframe(self, frame: T_SensorFrame, est_pose: pp.LieTensor | torch.Tensor, need_interp: bool=False) -> torch.Tensor:
         frame_idx = self.graph.frames.push(FrameNode.init({
@@ -564,6 +730,8 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             self.Optimizer.write_map(self.graph)
         self.Optimizer.terminate()
         self.MapRefiner.elaborate_map(self.graph.frames)
+        if self.debug_logger is not None:
+            self.debug_logger.close()
 
     def register_on_optimize_finish(self, func: T_SYSHOOK):
         """

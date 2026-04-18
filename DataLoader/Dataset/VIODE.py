@@ -26,6 +26,7 @@ class VIODE_StreamSequence(SequenceBase[StereoInertialFrame]):
 
         self.cam_time = self.h5["stereo/time_ns"][:].astype(np.int64)
         self.imu_time = self.h5["imu/time_ns"][:].astype(np.int64)
+        self.gt_pose = self.h5["stereo/gt_pose"][:] if "stereo/gt_pose" in self.h5 else None
 
         self.K = torch.from_numpy(self.h5["calib/K"][:]).float().unsqueeze(0)
         self.T_BS = pp.SE3(torch.from_numpy(self.h5["calib/T_BS"][:]).float().unsqueeze(0))
@@ -47,11 +48,9 @@ class VIODE_StreamSequence(SequenceBase[StereoInertialFrame]):
     def _imu_range(self, index: int) -> tuple[int, int]:
         if index == 0:
             end = int(np.searchsorted(self.imu_time, self.cam_time[index], side="right"))
-            return 0, max(end, 2)
+            return 0, end
         start = int(np.searchsorted(self.imu_time, self.cam_time[index - 1], side="left"))
         end = int(np.searchsorted(self.imu_time, self.cam_time[index], side="right"))
-        if end - start < 2:
-            end = min(len(self.imu_time), start + 2)
         return start, end
 
     def __getitem__(self, local_index: int) -> StereoInertialFrame:
@@ -89,7 +88,11 @@ class VIODE_StreamSequence(SequenceBase[StereoInertialFrame]):
         return StereoInertialFrame(
             idx=[local_index],
             time_ns=[t_ns],
-            gt_pose=None,
+            gt_pose=(
+                None
+                if self.gt_pose is None or not np.isfinite(self.gt_pose[index]).all()
+                else pp.SE3(torch.from_numpy(self.gt_pose[index]).float().unsqueeze(0))
+            ),
             stereo=stereo,
             imu=imu,
             gt_attitude=None,
@@ -100,4 +103,3 @@ class VIODE_StreamSequence(SequenceBase[StereoInertialFrame]):
         cls._enforce_config_spec(config, {
             "path": lambda s: isinstance(s, str),
         }, allow_excessive_cfg=True)
-

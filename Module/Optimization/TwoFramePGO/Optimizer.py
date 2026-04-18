@@ -1,6 +1,9 @@
 import torch
 from types import SimpleNamespace
+import time
+import math
 import pypose as pp
+from contextlib import nullcontext
 
 from pypose.optim import LM
 from pypose.optim.corrector import FastTriggs
@@ -21,6 +24,72 @@ from .Graphs import Analytic_ICP_TwoframePGO, Analytic_Reproj_TwoFramePGO, Analy
 
 
 class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
+    @staticmethod
+    def _weighted_chi2(residual: torch.Tensor, cov_blocks: torch.Tensor | list[torch.Tensor]) -> float:
+        r = residual.detach().double().reshape(-1)
+        if isinstance(cov_blocks, list):
+            off = 0
+            val = 0.0
+            for cov in cov_blocks:
+                dim = int(cov.shape[0])
+                rr = r[off : off + dim].unsqueeze(-1)
+                inv = torch.pinverse(cov.double())
+                val += float((rr.transpose(0, 1) @ inv @ rr).item())
+                off += dim
+            return val
+
+        block = cov_blocks.double()
+        n = int(block.shape[0])
+        dim = int(block.shape[1])
+        rr = r.view(n, dim)
+        inv = torch.pinverse(block)
+        maha = torch.einsum("ni,nij,nj->n", rr, inv, rr)
+        return float(maha.sum().item())
+
+    @staticmethod
+    def _vis_from_residual(residual: torch.Tensor, prefer_dim: int = 2) -> torch.Tensor:
+        flat = residual.detach().double().reshape(-1)
+        if prefer_dim > 0 and flat.numel() % prefer_dim == 0:
+            return flat.view(-1, prefer_dim)
+        if flat.numel() % 3 == 0:
+            return flat.view(-1, 3)
+        return flat.unsqueeze(-1)
+
+    @staticmethod
+    def _percentile(values: torch.Tensor, q: float) -> float:
+        if values.numel() == 0:
+            return 0.0
+        return float(torch.quantile(values.double(), q).item())
+
+    @staticmethod
+    def _safe_cond(mat: torch.Tensor) -> float:
+        try:
+            return float(torch.linalg.cond(mat.double()).item())
+        except Exception:
+            return float("nan")
+
+    @staticmethod
+    def _mahalanobis_per_obs(
+        residual_rows: torch.Tensor,
+        cov_blocks: torch.Tensor | list[torch.Tensor],
+        imu_appended: bool,
+    ) -> torch.Tensor:
+        if residual_rows.numel() == 0:
+            return torch.zeros((0,), dtype=torch.float64)
+        if isinstance(cov_blocks, list):
+            visual_covs = cov_blocks[:-1] if imu_appended and len(cov_blocks) > 0 else cov_blocks
+            n = min(len(visual_covs), residual_rows.shape[0])
+            out = torch.zeros((n,), dtype=torch.float64, device=residual_rows.device)
+            for i in range(n):
+                r = residual_rows[i].double().unsqueeze(-1)
+                inv = torch.pinverse(visual_covs[i].double())
+                out[i] = torch.sqrt(torch.clamp((r.transpose(0, 1) @ inv @ r).squeeze(), min=0.0))
+            return out
+        inv = torch.pinverse(cov_blocks.double())
+        rr = residual_rows.double()
+        maha_sq = torch.einsum("ni,nij,nj->n", rr, inv, rr)
+        return torch.sqrt(torch.clamp(maha_sq, min=0.0))
+
     @torch.no_grad()
     def get_graph_data(self, global_map: VisualMap, frame_idx: torch.Tensor,
                        observations: torch.Tensor | None = None, edges: torch.Tensor | None = None) -> GraphInput:
@@ -105,10 +174,14 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
 
     @staticmethod
     def _optimize(context: dict, graph_data: GraphInput) -> tuple[dict, GraphOutput]:
-        with Timer.CPUTimingContext("TwoframePGO"), Timer.GPUTimingContext("TwoframePGO", torch.cuda.current_stream()):
+        t0 = time.perf_counter()
+        gpu_ctx = Timer.GPUTimingContext("TwoframePGO", torch.cuda.current_stream()) if torch.cuda.is_available() else nullcontext()
+        with Timer.CPUTimingContext("TwoframePGO"), gpu_ctx:
             graph: FactorGraph = context["pose_graph_class"](graph_data)\
                 .to(device=torch.device(context["device"]), dtype=torch.double)
             assert isinstance(graph, FactorGraph)
+            residual_init = graph().detach().reshape(-1)
+            cov_init = graph.covariance_array()
 
             if isinstance(graph, AnalyticModule):
                 optimizer = LM_analytic(graph, min=1e-6, **context["optimizer_cfg"])
@@ -116,6 +189,7 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
                 optimizer = LM(graph, min=1e-6, **context["optimizer_cfg"])
 
             scheduler = StopOnPlateau(optimizer, steps=10, patience=2, decreasing=1e-5, verbose=False)
+            lm_iters = 0
 
             while scheduler.continual():
                 cov_blocks = graph.covariance_array()
@@ -127,12 +201,108 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
                 weight = torch.block_diag(*inv_blocks)
                 loss = optimizer.step(input=(), weight=weight)
                 scheduler.step(loss)
+                lm_iters += 1
+            residual_final = graph().detach().reshape(-1)
+            cov_final = graph.covariance_array()
 
-        return context, graph.write_back()
+        out = graph.write_back()
+        chi2_init = TwoFrame_PGO._weighted_chi2(residual_init, cov_init)
+        chi2_final = TwoFrame_PGO._weighted_chi2(residual_final, cov_final)
+        chi2_delta = (chi2_init - chi2_final) / max(chi2_init, 1e-12)
+        vis_res_init = residual_init
+        vis_res_final = residual_final
+        imu_appended = isinstance(graph, Reproj_TwoFramePGO_IMU)
+        if isinstance(graph, Reproj_TwoFramePGO_IMU):
+            vis_len = int(graph.kp2.shape[0] * 2)
+            vis_res_init = residual_init[:vis_len]
+            vis_res_final = residual_final[:vis_len]
+        if isinstance(cov_final, list):
+            visual_covs = cov_final[:-1] if imu_appended and len(cov_final) > 0 else cov_final
+            vis_dim = int(visual_covs[0].shape[0]) if len(visual_covs) > 0 else 1
+            vis_before = vis_res_init.view(-1, vis_dim) if vis_res_init.numel() % max(vis_dim, 1) == 0 else vis_res_init.unsqueeze(-1)
+            vis_after = vis_res_final.view(-1, vis_dim) if vis_res_final.numel() % max(vis_dim, 1) == 0 else vis_res_final.unsqueeze(-1)
+        else:
+            vis_dim = int(cov_final.shape[1]) if cov_final.ndim == 3 else 1
+            vis_before = vis_res_init.view(-1, vis_dim) if vis_res_init.numel() % max(vis_dim, 1) == 0 else vis_res_init.unsqueeze(-1)
+            vis_after = vis_res_final.view(-1, vis_dim) if vis_res_final.numel() % max(vis_dim, 1) == 0 else vis_res_final.unsqueeze(-1)
+        vis_norm_after = torch.linalg.vector_norm(vis_after, dim=-1)
+        vis_maha = TwoFrame_PGO._mahalanobis_per_obs(vis_after, cov_final, imu_appended=imu_appended)
+        jac_cond = 0.0
+        if isinstance(graph, AnalyticModule):
+            jac_cond = TwoFrame_PGO._safe_cond(graph.jacobian())
+            if not math.isfinite(jac_cond):
+                jac_cond = 0.0
+
+        imu_stats = {
+            "backend.imu_residual.r_R.norm": 0.0,
+            "backend.imu_residual.r_v.norm": 0.0,
+            "backend.imu_residual.r_p.norm": 0.0,
+            "backend.imu_residual.r_bg.norm": 0.0,
+            "backend.imu_residual.r_ba.norm": 0.0,
+            "backend.imu_residual.maha.total": 0.0,
+        }
+        r_imu_before = torch.zeros((15,), dtype=torch.float64)
+        r_imu_after = torch.zeros((15,), dtype=torch.float64)
+        if isinstance(graph, Reproj_TwoFramePGO_IMU):
+            vis_len = int(graph.kp2.shape[0] * 2)
+            r_imu_before = residual_init[vis_len : vis_len + 15]
+            r_imu_after = residual_final[vis_len : vis_len + 15]
+            imu_stats["backend.imu_residual.r_R.norm"] = float(torch.linalg.vector_norm(r_imu_after[0:3]).item())
+            imu_stats["backend.imu_residual.r_v.norm"] = float(torch.linalg.vector_norm(r_imu_after[3:6]).item())
+            imu_stats["backend.imu_residual.r_p.norm"] = float(torch.linalg.vector_norm(r_imu_after[6:9]).item())
+            imu_stats["backend.imu_residual.r_bg.norm"] = float(torch.linalg.vector_norm(r_imu_after[9:12]).item())
+            imu_stats["backend.imu_residual.r_ba.norm"] = float(torch.linalg.vector_norm(r_imu_after[12:15]).item())
+            if isinstance(cov_final, list) and len(cov_final) > 0:
+                inv_imu = torch.pinverse(cov_final[-1].double())
+                imu_stats["backend.imu_residual.maha.total"] = float((r_imu_after.unsqueeze(0) @ inv_imu @ r_imu_after.unsqueeze(-1)).item())
+
+        w_eps_hits = 0
+        if isinstance(cov_final, list):
+            for cov in cov_final:
+                eig_min = float(torch.linalg.eigvalsh(cov.double()).min().item())
+                if eig_min <= 1e-12:
+                    w_eps_hits += 1
+        else:
+            eig_min = torch.linalg.eigvalsh(cov_final.double()).min(dim=-1).values
+            w_eps_hits = int((eig_min <= 1e-12).sum().item())
+
+        diagnostics = {
+            "backend.twoframe.lm.iters": float(lm_iters),
+            "backend.twoframe.lm.converged": float(1.0 if (lm_iters > 0 and chi2_delta > 1e-4 and math.isfinite(chi2_final)) else 0.0),
+            "backend.twoframe.chi2.init": float(chi2_init),
+            "backend.twoframe.chi2.final": float(chi2_final),
+            "backend.twoframe.chi2.delta_frac": float(chi2_delta),
+            "backend.twoframe.r_vis.norm.p50": TwoFrame_PGO._percentile(vis_norm_after, 0.5),
+            "backend.twoframe.r_vis.norm.p95": TwoFrame_PGO._percentile(vis_norm_after, 0.95),
+            "backend.twoframe.r_vis.maha.p50": TwoFrame_PGO._percentile(vis_maha, 0.5),
+            "backend.twoframe.r_vis.maha.gt_3sig_frac": float((vis_maha > 3.0).float().mean().item()) if vis_maha.numel() > 0 else 0.0,
+            "backend.twoframe.w_eps_hits": float(w_eps_hits),
+            "backend.twoframe.jacobian.cond": float(jac_cond),
+            "backend.twoframe.time_ms": float((time.perf_counter() - t0) * 1000.0),
+            **imu_stats,
+        }
+        out.diagnostics = diagnostics
+        out.dump_payload = {
+            "stage": torch.tensor(0, dtype=torch.int64),
+            "r_vis_before": vis_before.cpu(),
+            "r_vis_after": vis_after.cpu(),
+            "r_imu_before": r_imu_before.cpu(),
+            "r_imu_after": r_imu_after.cpu(),
+            "chi2_init": torch.tensor(chi2_init, dtype=torch.float64),
+            "chi2_final": torch.tensor(chi2_final, dtype=torch.float64),
+            "lm_iters": torch.tensor(lm_iters, dtype=torch.int64),
+        }
+        return context, out
 
     def write_graph_data(self, result: GraphOutput | None, global_map: VisualMap) -> None:
         if result is None: return
-        
+        step = int(result.frame_idx.item())
+        logger = getattr(self, "debug_logger", None)
+        old_pose = pp.SE3(global_map.frames.data["pose"][result.frame_idx].double())
+        old_vel = global_map.frames.data["vel"][result.frame_idx].double()
+        old_bg = global_map.frames.data["bias_g"][result.frame_idx].double()
+        old_ba = global_map.frames.data["bias_a"][result.frame_idx].double()
+
         to_pose     = pp.SE3(result.motion[0].data.double().cpu())
         global_map.frames.data["pose"][result.frame_idx] = to_pose.float()
         if result.vel is not None:
@@ -141,6 +311,31 @@ class TwoFrame_PGO(IOptimizer[GraphInput, dict, GraphOutput]):
             global_map.frames.data["bias_g"][result.frame_idx] = result.bias_g.float().cpu()
         if result.bias_a is not None:
             global_map.frames.data["bias_a"][result.frame_idx] = result.bias_a.float().cpu()
+        new_pose = pp.SE3(global_map.frames.data["pose"][result.frame_idx].double())
+        new_vel = global_map.frames.data["vel"][result.frame_idx].double()
+        new_bg = global_map.frames.data["bias_g"][result.frame_idx].double()
+        new_ba = global_map.frames.data["bias_a"][result.frame_idx].double()
+
+        trans_delta = float(torch.linalg.vector_norm(new_pose.translation() - old_pose.translation()).item())
+        R_delta = old_pose.rotation().matrix().transpose(-1, -2) @ new_pose.rotation().matrix()
+        tr = float(torch.trace(R_delta[0]).item())
+        angle = math.degrees(math.acos(max(-1.0, min(1.0, (tr - 1.0) * 0.5))))
+        writeback = {
+            "backend.writeback.pose.delta.trans_m": trans_delta,
+            "backend.writeback.pose.delta.rot_deg": float(angle),
+            "backend.writeback.vel.delta_norm": float(torch.linalg.vector_norm(new_vel - old_vel).item()),
+            "backend.writeback.bias_g.delta_norm": float(torch.linalg.vector_norm(new_bg - old_bg).item()),
+            "backend.writeback.bias_a.delta_norm": float(torch.linalg.vector_norm(new_ba - old_ba).item()),
+            "backend.writeback.bias_g.norm": float(torch.linalg.vector_norm(new_bg).item()),
+            "backend.writeback.bias_a.norm": float(torch.linalg.vector_norm(new_ba).item()),
+            "diag.backend.writeback.pose_jump_warn": float(1.0 if (trans_delta > 1.0 or angle > 10.0) else 0.0),
+        }
+        if logger is not None:
+            if result.diagnostics is not None:
+                logger.log_scalars(result.diagnostics, step)
+            logger.log_scalars(writeback, step)
+            if result.dump_payload is not None:
+                logger.dump_artifact("pgo", {"pgo": result.dump_payload}, step)
 
 
 class Local_TwoFrame_PGO(TwoFrame_PGO):

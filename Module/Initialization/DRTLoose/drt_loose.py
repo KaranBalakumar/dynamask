@@ -43,6 +43,7 @@ class DRTLooseOutput:
     bias_a: torch.Tensor
     gravity: torch.Tensor
     imu_pres: list[DRTInitIMUEdge]
+    diagnostics: dict[str, Any] | None = None
 
 
 def _grid_points(H: int, W: int, stride: int, device: torch.device) -> torch.Tensor:
@@ -95,13 +96,23 @@ class DRTLooseInitializer:
         self.imu_encoder = imu_encoder
         self.cfg = cfg if cfg is not None else SimpleNamespace()
 
+    @staticmethod
+    def _imu_sample_count(frame: StereoInertialFrame) -> int:
+        imu = frame.imu
+        if imu.time_ns.ndim < 2 or imu.time_ns.shape[0] == 0:
+            return 0
+        return int(imu.time_ns.shape[1])
+
     def _pair_measurements(
         self,
         frame_i: StereoInertialFrame,
         frame_j: StereoInertialFrame,
         depth_i: Any,
         depth_j: Any,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict[str, torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict[str, torch.Tensor], torch.Tensor]:
+        imu_samples = self._imu_sample_count(frame_j)
+        if imu_samples < 2:
+            raise RuntimeError(f"Insufficient IMU samples for pair preintegration: {imu_samples}")
         _, match_ij = self.frontend.estimate_pair(frame_i.stereo, frame_j.stereo)
 
         flow = match_ij.flow[0].permute(1, 2, 0)  # [H,W,2]
@@ -145,14 +156,16 @@ class DRTLooseInitializer:
             "gyro": frame_j.imu.gyro.squeeze(0).to(flow.device),
             "dt": dt.squeeze(0).to(flow.device),
         }
-        return bearings_i, bearings_j, disp_i, seg
+        parallax = torch.linalg.vector_norm(uv_j - uv_i, dim=1)
+        return bearings_i, bearings_j, disp_i, seg, parallax
 
-    def run(self, frames: list[StereoInertialFrame], depths: list[Any]) -> DRTLooseOutput:
+    def run(self, frames: list[StereoInertialFrame], depths: list[Any], logger: Any | None = None, log_step: int | None = None) -> DRTLooseOutput:
         K = len(frames)
+        diagnostics: dict[str, Any] = {"window_len": int(K)}
         if K < 3:
-            return DRTLooseOutput(False, "Need >=3 init frames", [], [], [], torch.zeros(3), torch.zeros(3), torch.zeros(3), [])
+            return DRTLooseOutput(False, "Need >=3 init frames", [], [], [], torch.zeros(3), torch.zeros(3), torch.zeros(3), [], diagnostics)
         if not all(hasattr(f, "imu") for f in frames):
-            return DRTLooseOutput(False, "Frames do not carry IMU data", [], [], [], torch.zeros(3), torch.zeros(3), torch.zeros(3), [])
+            return DRTLooseOutput(False, "Frames do not carry IMU data", [], [], [], torch.zeros(3), torch.zeros(3), torch.zeros(3), [], diagnostics)
 
         device = frames[0].stereo.K.device
         dtype = frames[0].stereo.K.dtype
@@ -163,6 +176,7 @@ class DRTLooseInitializer:
         pair_bearings: list[tuple[torch.Tensor, torch.Tensor]] = []
         pair_segments: list[dict[str, torch.Tensor]] = []
         cam_disp: list[torch.Tensor] = []
+        pair_parallax: list[torch.Tensor] = []
         imu_pre_list: list[DRTInitIMUEdge] = []
 
         bg0 = torch.zeros((1, 3), device=device, dtype=dtype)
@@ -171,12 +185,19 @@ class DRTLooseInitializer:
 
         for i in range(K - 1):
             try:
-                b_i, b_j, d_cam, seg = self._pair_measurements(frames[i], frames[i + 1], depths[i], depths[i + 1])
+                b_i, b_j, d_cam, seg, parallax = self._pair_measurements(frames[i], frames[i + 1], depths[i], depths[i + 1])
             except Exception as exc:
-                return DRTLooseOutput(False, f"pair {i} failed: {exc}", [], [], [], torch.zeros(3), torch.zeros(3), torch.zeros(3), [])
+                diagnostics["reject_reason"] = f"pair {i} failed: {exc}"
+                return DRTLooseOutput(False, f"pair {i} failed: {exc}", [], [], [], torch.zeros(3), torch.zeros(3), torch.zeros(3), [], diagnostics)
             pair_bearings.append((b_i, b_j))
             pair_segments.append(seg)
             cam_disp.append(d_cam)
+            pair_parallax.append(parallax)
+
+        all_parallax = torch.cat(pair_parallax, dim=0) if len(pair_parallax) > 0 else torch.zeros((0,), dtype=torch.float32)
+        diagnostics["n_views_total"] = int(sum(int(b[0].shape[0]) for b in pair_bearings))
+        diagnostics["parallax_p50"] = float(all_parallax.median().item()) if all_parallax.numel() > 0 else 0.0
+        diagnostics["parallax_p5"] = float(torch.quantile(all_parallax, 0.05).item()) if all_parallax.numel() > 0 else 0.0
 
         with torch.enable_grad():
             bg_res = solve_gyro_bias_lbfgs(
@@ -188,11 +209,29 @@ class DRTLooseInitializer:
                 cauchy_delta=float(getattr(self.cfg, "gyro_cauchy_delta", 1e-5)),
             )
         if not bg_res.success:
-            return DRTLooseOutput(False, f"Gyro bias solve failed: {bg_res.message}", [], [], [], torch.zeros(3), torch.zeros(3), torch.zeros(3), [])
+            diagnostics["reject_reason"] = f"Gyro bias solve failed: {bg_res.message}"
+            diagnostics["bg_solver_residual"] = float(bg_res.final_loss)
+            return DRTLooseOutput(False, f"Gyro bias solve failed: {bg_res.message}", [], [], [], torch.zeros(3), torch.zeros(3), torch.zeros(3), [], diagnostics)
+        diagnostics["bg_solver_residual"] = float(bg_res.final_loss)
 
         bias_ref = torch.cat([bg_res.bias_g.view(1, 3), ba0], dim=1)
         for i in range(K - 1):
             imu = frames[i + 1].imu
+            imu_samples = self._imu_sample_count(frames[i + 1])
+            if imu_samples < 2:
+                diagnostics["reject_reason"] = f"pair {i} has insufficient IMU samples: {imu_samples}"
+                return DRTLooseOutput(
+                    False,
+                    diagnostics["reject_reason"],
+                    [],
+                    [],
+                    [],
+                    bg_res.bias_g.cpu(),
+                    torch.zeros(3),
+                    torch.zeros(3),
+                    [],
+                    diagnostics,
+                )
             corr = self.imu_encoder.corrector.inference({"acc": imu.acc, "gyro": imu.gyro})
             pre = self.imu_encoder.preint(
                 corrected_acc=imu.acc + corr["correction_acc"],
@@ -202,6 +241,8 @@ class DRTLooseInitializer:
                 dt=imu.time_delta.float() * 1e-9,
                 bias_ref=bias_ref.to(imu.acc.device, imu.acc.dtype),
                 emit_jacobians=True,
+                logger=logger,
+                log_step=log_step,
             )
             imu_pre_list.append(
                 DRTInitIMUEdge(
@@ -248,7 +289,8 @@ class DRTLooseInitializer:
             g_mag=float(getattr(self.cfg, "g_mag", 9.81)),
         )
         if not la.success:
-            return DRTLooseOutput(False, f"Linear alignment failed: {la.message}", [], [], [], bg_res.bias_g.cpu(), torch.zeros(3), torch.zeros(3), imu_pre_list)
+            diagnostics["reject_reason"] = f"Linear alignment failed: {la.message}"
+            return DRTLooseOutput(False, f"Linear alignment failed: {la.message}", [], [], [], bg_res.bias_g.cpu(), torch.zeros(3), torch.zeros(3), imu_pre_list, diagnostics)
 
         gr = refine_gravity_on_sphere(
             rotation_body=R_stack,
@@ -262,11 +304,38 @@ class DRTLooseInitializer:
             iterations=int(getattr(self.cfg, "gravity_refine_iters", 5)),
         )
         if not gr.success:
-            return DRTLooseOutput(False, f"Gravity refine failed: {gr.message}", [], [], [], bg_res.bias_g.cpu(), torch.zeros(3), la.gravity.cpu(), imu_pre_list)
+            diagnostics["reject_reason"] = f"Gravity refine failed: {gr.message}"
+            return DRTLooseOutput(False, f"Gravity refine failed: {gr.message}", [], [], [], bg_res.bias_g.cpu(), torch.zeros(3), la.gravity.cpu(), imu_pre_list, diagnostics)
 
         max_bg = float(getattr(getattr(self.cfg, "accept_criteria", SimpleNamespace()), "max_bg_norm", 0.5))
         if torch.linalg.vector_norm(bg_res.bias_g).item() > max_bg:
-            return DRTLooseOutput(False, "Gyro bias norm too large", [], [], [], bg_res.bias_g.cpu(), torch.zeros(3), gr.gravity.cpu(), imu_pre_list)
+            diagnostics["reject_reason"] = "Gyro bias norm too large"
+            return DRTLooseOutput(False, "Gyro bias norm too large", [], [], [], bg_res.bias_g.cpu(), torch.zeros(3), gr.gravity.cpu(), imu_pre_list, diagnostics)
+
+        diagnostics.update(
+            {
+                "accept": 1.0,
+                "bg_norm": float(torch.linalg.vector_norm(bg_res.bias_g).item()),
+                "gW_mag": float(torch.linalg.vector_norm(gr.gravity).item()),
+                "scale_s": 1.0,
+            }
+        )
+        if logger is not None and log_step is not None:
+            logger.log_scalars(
+                {
+                    "init.drt.window_len": float(K),
+                    "init.drt.n_views.total": float(diagnostics["n_views_total"]),
+                    "init.drt.parallax_px.p50": float(diagnostics["parallax_p50"]),
+                    "init.drt.parallax_px.p5": float(diagnostics["parallax_p5"]),
+                    "init.drt.accept": 1.0,
+                    "init.drt.bg_solver.residual": float(bg_res.final_loss),
+                    "init.drt.bg.norm": float(diagnostics["bg_norm"]),
+                    "init.drt.gW.mag": float(diagnostics["gW_mag"]),
+                    "init.drt.gW.mag_err": float(abs(diagnostics["gW_mag"] - 9.81007)),
+                    "init.drt.scale_s": 1.0,
+                },
+                int(log_step),
+            )
 
         return DRTLooseOutput(
             ok=True,
@@ -278,4 +347,5 @@ class DRTLooseInitializer:
             bias_a=torch.zeros(3, dtype=torch.float32),
             gravity=gr.gravity.float().cpu(),
             imu_pres=imu_pre_list,
+            diagnostics=diagnostics,
         )

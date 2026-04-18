@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -142,6 +143,8 @@ class DifferentiablePreintegrator(nn.Module):
         dt: torch.Tensor,
         bias_ref: torch.Tensor,
         emit_jacobians: bool,
+        logger: Any | None = None,
+        log_step: int | None = None,
     ) -> PreintOut:
         if dt.ndim == 3:
             dt = dt.squeeze(-1)
@@ -159,8 +162,9 @@ class DifferentiablePreintegrator(nn.Module):
         for k in range(M):
             dt_k = dt[:, k].unsqueeze(-1)
             rot_var = rot_var + gyro_cov[:, k] * (dt_k ** 2)
+            vel_var_prev = vel_var
             vel_var = vel_var + acc_cov[:, k] * (dt_k ** 2)
-            pos_var = pos_var + acc_cov[:, k] * (0.5 * dt_k ** 2) ** 2 + vel_var * (dt_k ** 2)
+            pos_var = pos_var + acc_cov[:, k] * (0.5 * dt_k ** 2) ** 2 + vel_var_prev * (dt_k ** 2)
 
         Sigma = torch.zeros((B, 9, 9), dtype=corrected_acc.dtype, device=corrected_acc.device)
         Sigma[:, 0, 0] = rot_var[:, 0] + 1e-10
@@ -180,7 +184,7 @@ class DifferentiablePreintegrator(nn.Module):
         else:
             J_R_bg = J_v_bg = J_v_ba = J_p_bg = J_p_ba = None
 
-        return PreintOut(
+        out = PreintOut(
             delta_R=delta_R,
             delta_v=delta_v,
             delta_p=delta_p,
@@ -193,4 +197,32 @@ class DifferentiablePreintegrator(nn.Module):
             J_p_ba=J_p_ba,
             bias_ref=bias_ref,
         )
+        if logger is not None and log_step is not None:
+            self._emit_logging(out, logger, int(log_step))
+        return out
 
+    @staticmethod
+    def _emit_logging(out: PreintOut, logger: Any, log_step: int) -> None:
+        eigvals = torch.linalg.eigvalsh(out.Sigma.double())
+        eigmin = float(eigvals.min().item())
+        cond = float(torch.linalg.cond(out.Sigma.double()).mean().item())
+        rot_angle = torch.linalg.vector_norm(so3_log(out.delta_R.double()), dim=-1)
+        j_r_bg = out.J_R_bg if out.J_R_bg is not None else torch.zeros((1, 3, 3), dtype=out.Sigma.dtype, device=out.Sigma.device)
+        j_v_ba = out.J_v_ba if out.J_v_ba is not None else torch.zeros((1, 3, 3), dtype=out.Sigma.dtype, device=out.Sigma.device)
+        j_p_ba = out.J_p_ba if out.J_p_ba is not None else torch.zeros((1, 3, 3), dtype=out.Sigma.dtype, device=out.Sigma.device)
+        logger.log_scalars(
+            {
+                "frontend.imu.preintegrator.dt_s": float(out.dt_total.mean().item()),
+                "frontend.imu.preintegrator.delta_R.angle_rad": float(rot_angle.mean().item()),
+                "frontend.imu.preintegrator.delta_v.norm": float(torch.linalg.vector_norm(out.delta_v, dim=-1).mean().item()),
+                "frontend.imu.preintegrator.delta_p.norm": float(torch.linalg.vector_norm(out.delta_p, dim=-1).mean().item()),
+                "frontend.imu.preintegrator.Sigma.cond": cond,
+                "frontend.imu.preintegrator.Sigma.eigmin": eigmin,
+                "frontend.imu.preintegrator.Sigma.trace": float(torch.diagonal(out.Sigma, dim1=-2, dim2=-1).sum(dim=-1).mean().item()),
+                "frontend.imu.preintegrator.J_R_bg.fro": float(torch.linalg.matrix_norm(j_r_bg, ord="fro").mean().item()),
+                "frontend.imu.preintegrator.J_v_ba.fro": float(torch.linalg.matrix_norm(j_v_ba, ord="fro").mean().item()),
+                "frontend.imu.preintegrator.J_p_ba.fro": float(torch.linalg.matrix_norm(j_p_ba, ord="fro").mean().item()),
+                "diag.frontend.imu.preintegrator.sigma_non_psd": float(1.0 if eigmin <= 0.0 else 0.0),
+            },
+            log_step,
+        )

@@ -53,7 +53,20 @@ This branch adds a VIO-oriented extension on top of MAC-VO:
      - repo root `requirements.txt`
      - repo root `environment.yml`
      - `MAC-VO/requirements.txt`
-   - Added explicit CUDA/ROCm install guidance.
+    - Added explicit CUDA/ROCm install guidance.
+
+8. **Runtime logging / observability (spec-aligned subset)**
+   - New package: `Utility/Observability/`
+   - Includes:
+     - `DebugLogger` + `NumericalAbort`
+     - local / TensorBoard / W&B sink fan-out
+     - cadence helpers and runtime dump collector
+   - Integrated into:
+     - `Odometry/MACVO.py`
+     - `Module/Initialization/DRTLoose/drt_loose.py`
+     - `Module/Network/AirIMU/preintegration.py`
+     - `Module/Optimization/TwoFramePGO/Optimizer.py`
+     - `Module/Optimization/SlidingWindow/Optimizer.py`
 
 ---
 
@@ -108,6 +121,13 @@ Core design intent: **single IMU preintegration definition** reused across initi
 ### Data conversion and loading
 - `Scripts/AdHoc/convert_viode_rosbag.py`
 - `DataLoader/Dataset/VIODE.py`
+
+### Observability
+- `Utility/Observability/debug_logger.py`
+- `Utility/Observability/sinks/local_sink.py`
+- `Utility/Observability/runtime_collectors.py`
+- `Scripts/AdHoc/inspect_runtime_dump.py`
+- `Scripts/AdHoc/scrub_partial_dumps.py`
 
 ---
 
@@ -250,12 +270,17 @@ python3 Scripts/AdHoc/convert_viode_rosbag.py \
   --stereo-sync-tol-ms 5.0 \
   --fx 320 --fy 320 --cx 320 --cy 320 \
   --baseline 0.25 \
+  --t-bs-translation 0.0 0.0 0.0 \
+  --t-bs-quaternion 0.0 0.0 0.0 1.0 \
   --gravity 9.81
 ```
 
 Key behavior:
 - Uses message header time when available (`header.stamp`), otherwise bag timestamp.
 - Stereo pairing uses nearest-neighbor within tolerance (not exact timestamp equality).
+- `T_BS` can be provided by either:
+  - `--t-bs-path /path/to/extrinsic.(txt|json|npy)` containing `[tx ty tz qx qy qz qw]`, or
+  - `--t-bs-translation ...` + `--t-bs-quaternion ...` CLI values.
 - Writes:
   - `stereo/{left,right,time_ns}`
   - `imu/{acc,gyro,time_ns}`
@@ -384,4 +409,3 @@ If you use MAC-VO, please cite the original paper:
   organization={IEEE}
 }
 ```
-

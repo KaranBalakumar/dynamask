@@ -1,0 +1,87 @@
+Model:
+  seed: 1234
+  device: cpu
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  epochs: 5
+  eval_every: 1
+  log_every: 10
+  save_dir: Model/DynamicHead
+  calibrate_temperature: true
+  calibration_batches: 100
+  use_cycle: true
+
+  frontend:
+    type: FlowFormerCovFrontend
+    args:
+      device: cpu
+      weight: ./Model/MACVO_FrontendCov.pth
+      enc_dtype: fp32
+      dec_dtype: fp32
+      decoder_depth: 12
+      enforce_positive_disparity: false
+
+  imu_encoder:
+    ckpt_path: null
+    jacobian_eps: 1.0e-5
+    sigma_repr_mode: diag
+    feature_dim: 128
+    emit_jacobians: true
+
+  dynamic_head:
+    c_ctx: 256
+    c_imu: 128
+    c_hid: 128
+    z_min: 0.3
+    z_max: 80.0
+    visible_eps: 0.02
+    max_logit: 10.0
+    max_flow_norm: 200.0
+    spectral_norm: false
+    factorize: false
+
+  proxy:
+    tau0: 0.5
+    alpha: 0.25
+    d_min: 0.2
+    d_max: 120.0
+    edgewidth: 16
+    eps_z: 1.0e-6
+    sigma_rot_cap: 5.0
+    sigma_pos_cap: 10.0
+
+  loss:
+    tau0: 0.5
+    alpha: 0.25
+    kappa: 1.5
+    tau_cyc_valid: 2.0
+    use_cycle: true
+    lambda_smooth: 0.03
+    lambda_visible: 0.2
+
+Train:
+  batch_size: 1
+  num_workers: 0
+  drop_last: true
+  dataset:
+    sequence:
+      type: VIODE_Stream
+      args:
+        path: /path/to/viode_train_stream.h5
+    start: 0
+    end: null
+    step: 1
+
+Evaluate:
+  batch_size: 1
+  num_workers: 0
+  drop_last: false
+  dataset:
+    sequence:
+      type: VIODE_Stream
+      args:
+        path: /path/to/viode_val_stream.h5
+    start: 0
+    end: null
+    step: 1
+

@@ -41,6 +41,8 @@ class GraphOutput:
     vel      : torch.Tensor | None = None
     bias_g   : torch.Tensor | None = None
     bias_a   : torch.Tensor | None = None
+    diagnostics: dict[str, float] | None = None
+    dump_payload: dict[str, torch.Tensor] | None = None
 
 
 ############## Optimization Graphs

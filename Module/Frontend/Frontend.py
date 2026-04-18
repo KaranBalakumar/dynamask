@@ -26,10 +26,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from DataLoader import StereoData
+from DataLoader.Interface import IMUData
 from Utility.PrettyPrint import Logger
 from Utility.Timer import Timer
 from Utility.Extensions import ConfigTestableSubclass
 from Utility.Utils import reflect_torch_dtype
+from Utility.Math import body2cam_se3
 
 from .StereoDepth import IStereoDepth, disparity_to_depth, disparity_to_depth_cov
 from .Matching    import IMatcher
@@ -216,6 +218,7 @@ class FlowFormerCovFrontend(IFrontend):
     @Timer.gpu_timeit("Frontend.estimate")
     @torch.inference_mode()
     def estimate_pair(self, frame_t1: StereoData, frame_t2: StereoData) -> tuple[IStereoDepth.Output, IMatcher.Output]:
+        B = frame_t1.imageL.shape[0]
         input_A = torch.cat([frame_t2.imageL, frame_t1.imageL], dim=0)
         input_B = torch.cat([frame_t2.imageR, frame_t2.imageL], dim=0)
         
@@ -227,14 +230,15 @@ class FlowFormerCovFrontend(IFrontend):
         est_cov : torch.Tensor = est_cov.float()
         
         return (
-            self.inference_2_depth(est_flow[0:1], est_cov[0:1], frame_t2, self.config.enforce_positive_disparity),
-            self.inference_2_match(est_flow[1:2], est_cov[1:2])
+            self.inference_2_depth(est_flow[:B], est_cov[:B], frame_t2, self.config.enforce_positive_disparity),
+            self.inference_2_match(est_flow[B:2 * B], est_cov[B:2 * B])
         )
     
     @torch.inference_mode()
     def estimate_triplet(self, frame_t1: StereoData, frame_t2: StereoData) -> tuple[IStereoDepth.Output, IStereoDepth.Output, IMatcher.Output]:
+        B = frame_t1.imageL.shape[0]
         input_A = torch.cat([frame_t1.imageL, frame_t2.imageL, frame_t1.imageL], dim=0)
-        input_B = torch.cat([frame_t1.imageL, frame_t2.imageR, frame_t2.imageL], dim=0)
+        input_B = torch.cat([frame_t1.imageR, frame_t2.imageR, frame_t2.imageL], dim=0)
 
         input_A = input_A.to(device=self.config.device)
         input_B = input_B.to(device=self.config.device)
@@ -244,9 +248,9 @@ class FlowFormerCovFrontend(IFrontend):
         est_cov : torch.Tensor = est_cov.float()
 
         return (
-            self.inference_2_depth(est_flow[0:1], est_cov[0:1], frame_t1, self.config.enforce_positive_disparity),
-            self.inference_2_depth(est_flow[1:2], est_cov[1:2], frame_t2, self.config.enforce_positive_disparity),
-            self.inference_2_match(est_flow[2:3], est_cov[2:3])
+            self.inference_2_depth(est_flow[:B], est_cov[:B], frame_t1, self.config.enforce_positive_disparity),
+            self.inference_2_depth(est_flow[B:2 * B], est_cov[B:2 * B], frame_t2, self.config.enforce_positive_disparity),
+            self.inference_2_match(est_flow[2 * B:3 * B], est_cov[2 * B:3 * B])
         )
     
     @classmethod
@@ -258,7 +262,140 @@ class FlowFormerCovFrontend(IFrontend):
             "enc_dtype" : lambda b: isinstance(b, str) and b in ("fp32", "fp16", "bf16"),
             "enforce_positive_disparity": lambda b: isinstance(b, bool),
             "decoder_depth" : lambda v: isinstance(v, int)
-        })
+        }, allow_excessive_cfg=True)
+
+
+class StaticConfidence_FlowFormerCovFrontend(FlowFormerCovFrontend):
+    def __init__(self, config: SimpleNamespace):
+        super().__init__(config)
+        from ..Network.AirIMU import IMUEncoder, build_imu_proxy
+        from ..Network.DynamicHead import build_head
+
+        self.imu_encoder = IMUEncoder(config.dynamic_head.imu_encoder).to(self.config.device)
+        self.dynamic_head = build_head(config.dynamic_head).to(self.config.device)
+        self._build_proxy = build_imu_proxy
+        self._h8_prev: torch.Tensor | None = None
+        self._last_frame_ns: int | None = None
+        self._imu_window: IMUData | None = None
+        self._bias_ref: torch.Tensor | None = None
+        self._dt_reset_ns = int(getattr(config.dynamic_head, "dt_reset_ms", 500)) * 1_000_000
+
+        for p in self.model.parameters():
+            p.requires_grad_(False)
+        self.model.eval()
+        self.imu_encoder.corrector.eval()
+        for p in self.imu_encoder.corrector.parameters():
+            p.requires_grad_(False)
+
+        weight = getattr(config.dynamic_head, "weight", None)
+        if isinstance(weight, str) and len(weight) > 0:
+            ckpt = torch.load(weight, map_location=self.config.device, weights_only=True)
+            if "head" in ckpt:
+                self.dynamic_head.load_state_dict(ckpt["head"], strict=False)
+            else:
+                self.dynamic_head.load_state_dict(ckpt, strict=False)
+            if "imu_encoder_head" in ckpt:
+                self.imu_encoder.head.load_state_dict(ckpt["imu_encoder_head"], strict=False)
+
+        self.dynamic_head.eval()
+        self.imu_encoder.head.eval()
+
+    def reset_stream(self) -> None:
+        self._h8_prev = None
+        self._last_frame_ns = None
+        self._imu_window = None
+        self._bias_ref = None
+
+    def set_imu_window(self, imu: IMUData | None, bias_ref: torch.Tensor | None = None) -> None:
+        self._imu_window = imu
+        self._bias_ref = bias_ref
+
+    @torch.inference_mode()
+    def estimate_pair(self, frame_t1: StereoData, frame_t2: StereoData) -> tuple[IStereoDepth.Output, IMatcher.Output]:
+        depth, match = super().estimate_pair(frame_t1, frame_t2)
+        B, _, H, W = match.flow.shape
+        device = torch.device(self.config.device)
+
+        c_fallback = torch.ones((B, 1, H, W), dtype=torch.float32, device=match.flow.device)
+        setattr(match, "c", c_fallback)
+        setattr(match, "c_logits", torch.zeros_like(c_fallback))
+        if self._imu_window is None:
+            return depth, match
+
+        if self._last_frame_ns is not None and abs(frame_t2.frame_ns - self._last_frame_ns) > self._dt_reset_ns:
+            self._h8_prev = None
+        self._last_frame_ns = frame_t2.frame_ns
+
+        context = getattr(self.model, "last_context", None)
+        if context is None:
+            self._imu_window = None
+            self._bias_ref = None
+            return depth, match
+        if context.shape[0] == 2 * B:
+            f_ctx = context[B:]
+        else:
+            f_ctx = context
+
+        imu = self._imu_window
+        bias_ref = self._bias_ref
+        self._imu_window = None
+        self._bias_ref = None
+        dt = imu.time_delta.float() * 1e-9
+        if bias_ref is None:
+            bias_ref = torch.zeros((B, 6), dtype=imu.acc.dtype, device=device)
+        else:
+            if bias_ref.ndim == 1:
+                bias_ref = bias_ref.unsqueeze(0)
+            if bias_ref.ndim != 2 or bias_ref.shape[1] != 6:
+                raise ValueError(f"bias_ref must have shape [B, 6] or [1, 6], got {tuple(bias_ref.shape)}")
+            if bias_ref.shape[0] == 1 and B > 1:
+                bias_ref = bias_ref.expand(B, -1)
+            elif bias_ref.shape[0] != B:
+                raise ValueError(f"bias_ref batch size mismatch: expected {B}, got {bias_ref.shape[0]}")
+            bias_ref = bias_ref.to(device=device, dtype=imu.acc.dtype)
+        imu_seq = {
+            "acc": imu.acc.to(device),
+            "gyro": imu.gyro.to(device),
+            "dt": dt.to(device),
+        }
+        imu_ctx, f_imu = self.imu_encoder(imu_seq, bias_ref)
+        pre = imu_ctx["preint"]
+        depth_src = super().estimate_depth(frame_t1)
+        dR_cam, dp_cam = body2cam_se3(pre.delta_R, pre.delta_p, frame_t1.T_BS.to(device))
+        proxy, _ = self._build_proxy(
+            depth_t=depth_src.depth.to(device),
+            K=frame_t1.K.to(device),
+            flow_obs=match.flow.to(device),
+            delta_R_cam=dR_cam,
+            delta_p_cam=dp_cam,
+            Sigma_imu=pre.Sigma,
+            cfg=self.config.dynamic_head.proxy,
+        )
+
+        h4 = torch.nn.functional.avg_pool2d(frame_t1.imageL.to(device), kernel_size=4, stride=4)
+        out = self.dynamic_head(
+            phi8=f_ctx.to(device, dtype=torch.float32),
+            h4=h4.to(dtype=torch.float32),
+            z_hat=depth_src.depth.to(device, dtype=torch.float32),
+            e_raw=proxy[:, :1].to(dtype=torch.float32),
+            f_imu=f_imu.to(dtype=torch.float32),
+            h8_prev=self._h8_prev,
+            return_probs=True,
+        )
+        self._h8_prev = out.h8_new.detach()
+        c_map = torch.nn.functional.interpolate(out.c, size=(H, W), mode="bilinear", align_corners=False)
+        c_logits = torch.nn.functional.interpolate(out.logits_4[:, :1], size=(H, W), mode="bilinear", align_corners=False)
+        setattr(match, "c", c_map.to(match.flow.device))
+        setattr(match, "c_logits", c_logits.to(match.flow.device))
+        return depth, match
+
+    @classmethod
+    def is_valid_config(cls, config: SimpleNamespace | None) -> None:
+        super().is_valid_config(config)
+        assert config is not None
+        cls._enforce_config_spec(config, {
+            "dynamic_head": lambda v: v is not None,
+        }, allow_excessive_cfg=True)
 
 
 class CUDAGraph_FlowFormerCovFrontend(FlowFormerCovFrontend):
@@ -293,9 +430,10 @@ class CUDAGraph_FlowFormerCovFrontend(FlowFormerCovFrontend):
         est_flow = est_flow.float()
         est_cov  = est_cov.float()
         
+        B = frame_t1.imageL.shape[0]
         return (
-            self.inference_2_depth(est_flow[0:1], est_cov[0:1], frame_t2, self.config.enforce_positive_disparity),
-            self.inference_2_match(est_flow[1:2], est_cov[1:2])
+            self.inference_2_depth(est_flow[:B], est_cov[:B], frame_t2, self.config.enforce_positive_disparity),
+            self.inference_2_match(est_flow[B:2 * B], est_cov[B:2 * B])
         )
     
     def cuda_graph_estimate(self, inp_A: torch.Tensor, inp_B: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -308,7 +446,7 @@ class CUDAGraph_FlowFormerCovFrontend(FlowFormerCovFrontend):
         """
         if self.cuda_graph is None:
             Logger.write("info", "Building CUDAGraph for FlowFormerCovFrontend")
-            static_input_A, static_input_B   = torch.empty_like(inp_A, device='cuda'), torch.empty_like(inp_A, device='cuda')
+            static_input_A, static_input_B   = torch.empty_like(inp_A, device='cuda'), torch.empty_like(inp_B, device='cuda')
             
             static_input_A.copy_(inp_A)
             static_input_B.copy_(inp_B)

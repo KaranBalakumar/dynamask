@@ -129,11 +129,15 @@ class VisualMap:
         to_id = int(to_frame.item()) if isinstance(to_frame, torch.Tensor) else int(to_frame)
         if len(self.imu_edges) == 0:
             return None
-        mask = (self.imu_edges.data["from_frame"] == from_id) & (self.imu_edges.data["to_frame"] == to_id)
+        from_frames_raw = self.imu_edges.data["from_frame"]
+        to_frames_raw = self.imu_edges.data["to_frame"]
+        from_frames = from_frames_raw.tensor if hasattr(from_frames_raw, "tensor") else from_frames_raw
+        to_frames = to_frames_raw.tensor if hasattr(to_frames_raw, "tensor") else to_frames_raw
+        mask = (from_frames == from_id) & (to_frames == to_id)
         idx = torch.nonzero(mask, as_tuple=False).flatten()
         if idx.numel() == 0:
             return None
-        return self.imu_edges[idx[:1]]
+        return self.imu_edges[idx[-1:]]
 
     def serialize(self) -> dict[str, np.ndarray]:
         return (
@@ -173,6 +177,20 @@ class VisualMap:
         if any(k.startswith("points/") for k in value.keys()):
             map.points = map.points.deserialize("points/", value)
         if any(k.startswith("imu_edges/") for k in value.keys()):
+            if "imu_edges/from_frame" in value:
+                N = value["imu_edges/from_frame"].shape[0]
+                if "imu_edges/bias_ref" not in value:
+                    value["imu_edges/bias_ref"] = np.zeros((N, 6), dtype=np.float64)
+                if "imu_edges/J_R_bg" not in value:
+                    value["imu_edges/J_R_bg"] = np.zeros((N, 3, 3), dtype=np.float64)
+                if "imu_edges/J_v_bg" not in value:
+                    value["imu_edges/J_v_bg"] = np.zeros((N, 3, 3), dtype=np.float64)
+                if "imu_edges/J_v_ba" not in value:
+                    value["imu_edges/J_v_ba"] = np.zeros((N, 3, 3), dtype=np.float64)
+                if "imu_edges/J_p_bg" not in value:
+                    value["imu_edges/J_p_bg"] = np.zeros((N, 3, 3), dtype=np.float64)
+                if "imu_edges/J_p_ba" not in value:
+                    value["imu_edges/J_p_ba"] = np.zeros((N, 3, 3), dtype=np.float64)
             map.imu_edges = map.imu_edges.deserialize("imu_edges/", value)
         
         map.frame2match  = map.frame2match.deserialize("edge/frame2match", value)

@@ -64,11 +64,10 @@ def refine_gravity_on_sphere(
         J_delta = Ag @ (U * g_mag)  # [M,2]
         try:
             delta = -torch.linalg.lstsq(J_delta, r.unsqueeze(-1)).solution.squeeze(-1)
-        except RuntimeError:
-            break
+        except RuntimeError as exc:
+            return GravityRefineResult(False, v, g, f"tangent solve failed: {exc}")
 
-        g_new = g + U @ delta
+        g_new = g + (U * g_mag) @ delta
         g = g_new * (g_mag / torch.linalg.vector_norm(g_new).clamp(min=1e-9))
 
     return GravityRefineResult(True, v, g, "ok")
-

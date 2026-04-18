@@ -1,0 +1,113 @@
+Common:
+  device: &device cpu
+
+Odometry:
+  name: MACVO-StaticConfidence-VIODE
+  args:
+    device: *device
+    edgewidth: 32
+    num_point: 200
+    match_cov_default: 0.25
+    profile: false
+    mapping: true
+
+    init:
+      method: drt_loose
+      drt_window_len: 10
+      imu:
+        ckpt_path: null
+        jacobian_eps: 1.0e-5
+        sigma_repr_mode: diag
+        feature_dim: 64
+        emit_jacobians: true
+
+  cov:
+    obs:
+      type: MatchCovariance
+      args:
+        device: *device
+        kernel_size: 31
+        match_cov_default: 0.25
+        min_depth_cov: 0.05
+        min_flow_cov: 0.25
+
+  keypoint:
+    type: CovAwareSelector_NoDepth
+    args:
+      device: *device
+      kernel_size: 7
+      mask_width: 32
+      max_match_cov: 100.0
+
+  mappoint:
+    type: MappingPointSelector
+    args:
+      device: *device
+      max_depth: 5.0
+      max_depth_cov: 0.005
+      mask_width: 32
+
+  frontend:
+    type: StaticConfidence_FlowFormerCovFrontend
+    args:
+      device: *device
+      weight: ./Model/MACVO_FrontendCov.pth
+      enc_dtype: fp32
+      dec_dtype: fp32
+      decoder_depth: 12
+      enforce_positive_disparity: false
+      dynamic_head:
+        weight: ./Model/DynamicHead/dynamic_head_calibrated.pth
+        dt_reset_ms: 500
+        c_ctx: 256
+        c_imu: 128
+        c_hid: 128
+        factorize: false
+        proxy:
+          tau0: 0.5
+          alpha: 0.25
+          d_min: 0.2
+          d_max: 120.0
+          edgewidth: 16
+          eps_z: 1.0e-6
+          sigma_rot_cap: 5.0
+          sigma_pos_cap: 10.0
+        imu_encoder:
+          ckpt_path: null
+          jacobian_eps: 1.0e-5
+          sigma_repr_mode: diag
+          feature_dim: 128
+          emit_jacobians: true
+
+  motion:
+    type: StaticMotionModel
+    args:
+
+  outlier:
+    type: CovarianceSanityFilter
+    args:
+
+  postprocess:
+    type: MotionInterpolate
+    args:
+
+  keyframe:
+    type: AllKeyframe
+    args:
+
+  optimizer:
+    type: TwoFrame_PGO
+    args:
+      device: cpu
+      vectorize: true
+      parallel: true
+      graph_type: reproj_imu
+      autodiff: false
+
+Data:
+  type: VIODE_Stream
+  args:
+    path: /path/to/viode_eval_stream.h5
+
+Preprocess: !include ../Common/Preprocess.yaml
+

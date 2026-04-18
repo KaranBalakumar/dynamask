@@ -10,3 +10,4 @@ from .Dataset.EuRoC         import EuRoC_StereoSequence, EuRoC_Sequence
 from .Dataset.VBR           import VBR_StereoSequence
 from .Dataset.GeneralStereo import GeneralStereoSequence
 from .Dataset.VIODE         import VIODE_StreamSequence
+from .Dataset.DynamicHeadTrain import DynamicHeadTrainDataset

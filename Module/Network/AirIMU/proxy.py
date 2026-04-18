@@ -90,7 +90,7 @@ def build_imu_proxy(
     edgewidth = int(getattr(cfg, "edgewidth", 0))
 
     in_depth = (z >= d_min) & (z <= d_max)
-    in_front = X1[:, 0:1] > eps_z  # NED forward axis (x)
+    in_front = z1 > eps_z
     in_img = (x1 >= edgewidth) & (x1 < (W - edgewidth)) & (y1 >= edgewidth) & (y1 < (H - edgewidth))
 
     sigma_rot_cap = float(getattr(cfg, "sigma_rot_cap", 5.0))
@@ -108,4 +108,3 @@ def build_imu_proxy(
 
     proxy = torch.cat([r_imu_norm, f_rigid_norm, f_obs_norm, valid], dim=1)
     return proxy, valid
-

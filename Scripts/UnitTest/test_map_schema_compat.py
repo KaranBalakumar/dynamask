@@ -1,6 +1,6 @@
 import torch
 
-from Module.Map import VisualMap, FrameNode, MatchObs
+from Module.Map import VisualMap, FrameNode, MatchObs, IMUEdgeNode
 
 
 def test_visual_map_deserialize_backward_compat():
@@ -46,3 +46,29 @@ def test_visual_map_deserialize_backward_compat():
     assert len(m2.frames) == 1
     assert len(m2.match) == 1
 
+
+def test_visual_map_get_imu_edge_handles_plain_tensor_fields_after_deserialize():
+    m = VisualMap()
+    m.imu_edges.push(IMUEdgeNode.init({
+        "from_frame": torch.tensor([0], dtype=torch.long),
+        "to_frame": torch.tensor([1], dtype=torch.long),
+        "delta_R": torch.eye(3, dtype=torch.float64).unsqueeze(0),
+        "delta_v": torch.zeros((1, 3), dtype=torch.float64),
+        "delta_p": torch.zeros((1, 3), dtype=torch.float64),
+        "Sigma": torch.eye(9, dtype=torch.float64).unsqueeze(0),
+        "dt": torch.tensor([0.01], dtype=torch.float64),
+        "bias_ref": torch.zeros((1, 6), dtype=torch.float64),
+        "J_R_bg": torch.zeros((1, 3, 3), dtype=torch.float64),
+        "J_v_bg": torch.zeros((1, 3, 3), dtype=torch.float64),
+        "J_v_ba": torch.zeros((1, 3, 3), dtype=torch.float64),
+        "J_p_bg": torch.zeros((1, 3, 3), dtype=torch.float64),
+        "J_p_ba": torch.zeros((1, 3, 3), dtype=torch.float64),
+    }))
+
+    m2 = VisualMap.deserialize(m.serialize())
+    assert isinstance(m2.imu_edges.data["from_frame"], torch.Tensor)
+
+    edge = m2.get_imu_edge(0, 1)
+    assert edge is not None
+    assert edge.data["from_frame"].item() == 0
+    assert edge.data["to_frame"].item() == 1

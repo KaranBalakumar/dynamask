@@ -1,7 +1,12 @@
 import torch
+import pypose as pp
+from types import SimpleNamespace
 
 from Module.Initialization.DRTLoose.linear_alignment import solve_linear_alignment
 from Module.Initialization.DRTLoose.gravity_refine import refine_gravity_on_sphere
+from Module.Initialization.DRTLoose import drt_loose as drt_mod
+from Module.Initialization.DRTLoose.drt_loose import DRTLooseInitializer
+from DataLoader import StereoData, IMUData, StereoInertialFrame
 
 
 def test_linear_alignment_recovers_gravity_direction():
@@ -34,3 +39,74 @@ def test_linear_alignment_recovers_gravity_direction():
     cos_sim_ref = torch.dot(gr.gravity, g_gt) / (torch.linalg.vector_norm(gr.gravity) * torch.linalg.vector_norm(g_gt))
     assert cos_sim_ref > 0.999
 
+
+def _make_frame(idx: int, cam_t_ns: int, imu_samples: int) -> StereoInertialFrame:
+    imu_times = torch.arange(imu_samples, dtype=torch.int64).view(1, -1, 1) * 1_000_000 + cam_t_ns
+    stereo = StereoData(
+        T_BS=pp.identity_SE3(1),
+        K=torch.eye(3, dtype=torch.float32).unsqueeze(0),
+        baseline=torch.tensor([0.1], dtype=torch.float32),
+        time_ns=[cam_t_ns],
+        height=2,
+        width=2,
+        imageL=torch.zeros((1, 3, 2, 2), dtype=torch.float32),
+        imageR=torch.zeros((1, 3, 2, 2), dtype=torch.float32),
+    )
+    imu = IMUData(
+        T_BS=pp.identity_SE3(1),
+        time_ns=imu_times,
+        gravity=[9.81],
+        acc=torch.zeros((1, imu_samples, 3), dtype=torch.float32),
+        gyro=torch.zeros((1, imu_samples, 3), dtype=torch.float32),
+    )
+    return StereoInertialFrame(
+        idx=[idx],
+        time_ns=[cam_t_ns],
+        gt_pose=pp.identity_SE3(1),
+        stereo=stereo,
+        imu=imu,
+        gt_attitude=None,
+    )
+
+
+def test_drt_initializer_rejects_insufficient_imu_and_emits_no_edges(monkeypatch):
+    class _DummyFrontend:
+        def estimate_pair(self, *_args, **_kwargs):
+            raise AssertionError("_pair_measurements should be monkeypatched")
+
+    class _DummyCorrector:
+        def inference(self, *_args, **_kwargs):
+            raise AssertionError("IMU corrector must not run for insufficient IMU window")
+
+    class _DummyEncoder:
+        def __init__(self):
+            self.corrector = _DummyCorrector()
+
+        def preint(self, *_args, **_kwargs):
+            raise AssertionError("Preintegration must not run for insufficient IMU window")
+
+    init = DRTLooseInitializer(frontend=_DummyFrontend(), imu_encoder=_DummyEncoder(), cfg=SimpleNamespace())
+
+    def _fake_pair_measurements(_self, _fi, _fj, _di, _dj):
+        b = torch.tensor([[0.0, 0.0, 1.0], [0.1, 0.0, 0.99]], dtype=torch.float32)
+        seg = {"gyro": torch.zeros((2, 3), dtype=torch.float32), "dt": torch.tensor([0.01, 0.01], dtype=torch.float32)}
+        return b, b, torch.zeros(3), seg, torch.ones(2)
+
+    monkeypatch.setattr(DRTLooseInitializer, "_pair_measurements", _fake_pair_measurements)
+    monkeypatch.setattr(
+        drt_mod,
+        "solve_gyro_bias_lbfgs",
+        lambda **_kwargs: SimpleNamespace(success=True, message="", bias_g=torch.zeros(3), final_loss=0.0),
+    )
+
+    frames = [
+        _make_frame(0, 0, 3),
+        _make_frame(1, 100_000_000, 1),
+        _make_frame(2, 200_000_000, 3),
+    ]
+    depths = [SimpleNamespace(depth=torch.ones((1, 1, 2, 2), dtype=torch.float32)) for _ in frames]
+    out = init.run(frames, depths)
+
+    assert not out.ok
+    assert "insufficient IMU samples" in out.reason
+    assert out.imu_pres == []

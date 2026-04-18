@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import torch
 import torch.nn as nn
+from typing import Any
+from pathlib import Path
 
 from .corrector import AirIMUCorrector
 from .preintegration import DifferentiablePreintegrator, so3_log
@@ -21,7 +23,10 @@ class IMUEncoder(nn.Module):
     def __init__(self, cfg) -> None:
         super().__init__()
         self.cfg = cfg
-        self.corrector = AirIMUCorrector.from_ckpt(getattr(cfg, "ckpt_path", None))
+        ckpt = getattr(cfg, "ckpt_path", None)
+        if not isinstance(ckpt, (str, Path)):
+            ckpt = None
+        self.corrector = AirIMUCorrector.from_ckpt(ckpt)
         self.preint = DifferentiablePreintegrator(jacobian_eps=getattr(cfg, "jacobian_eps", 1e-5))
 
         sigma_mode = getattr(cfg, "sigma_repr_mode", "diag")
@@ -35,7 +40,13 @@ class IMUEncoder(nn.Module):
             nn.ReLU(inplace=True),
         )
 
-    def forward(self, imu_seq: dict[str, torch.Tensor], bias_ref: torch.Tensor) -> tuple[dict, torch.Tensor]:
+    def forward(
+        self,
+        imu_seq: dict[str, torch.Tensor],
+        bias_ref: torch.Tensor,
+        logger: Any | None = None,
+        log_step: int | None = None,
+    ) -> tuple[dict, torch.Tensor]:
         corr = self.corrector.inference(imu_seq)
         pre = self.preint(
             corrected_acc=imu_seq["acc"] + corr["correction_acc"],
@@ -45,6 +56,8 @@ class IMUEncoder(nn.Module):
             dt=imu_seq["dt"],
             bias_ref=bias_ref,
             emit_jacobians=bool(getattr(self.cfg, "emit_jacobians", False)),
+            logger=logger,
+            log_step=log_step,
         )
 
         mode = getattr(self.cfg, "sigma_repr_mode", "diag")

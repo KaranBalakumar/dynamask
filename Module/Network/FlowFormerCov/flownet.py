@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from collections import OrderedDict
 
 from ..FlowFormer.core.utils import InputPadder
@@ -14,6 +15,7 @@ class FlowFormerCov(FlowFormer):
         self.enc_dtype = encoder_dtype
         self.context_encoder = self.context_encoder.to(dtype=self.enc_dtype) 
         self.memory_encoder  = self.memory_encoder.to(dtype=self.enc_dtype)
+        self.last_context: torch.Tensor | None = None
 
     def forward(self, image1, image2):
         image1 = ((2 * image1) - 1.0).to(dtype=self.enc_dtype)
@@ -21,6 +23,7 @@ class FlowFormerCov(FlowFormer):
 
         with torch.cuda.nvtx.range("Context Encoder"):
             context = self.context_encoder(image1)
+            self.last_context = context
 
         with torch.cuda.nvtx.range("Memory Encoder"):
             cost_memory, cost_maps = self.memory_encoder(image1, image2, context)
@@ -36,11 +39,24 @@ class FlowFormerCov(FlowFormer):
     @torch.inference_mode()
     def inference(self, image1: torch.Tensor, image2: torch.Tensor):
         padder = InputPadder(image1.shape)
+        orig_h, orig_w = image1.shape[-2:]
         image1, image2    = padder.pad(image1, image2)
+        padded_h, padded_w = image1.shape[-2:]
         flow_pre, cov_pre = self.forward(image1, image2)
 
         flow_pre = padder.unpad(flow_pre[0])
         cov_pre = padder.unpad(cov_pre[0])
+        if self.last_context is not None:
+            target_hw = ((orig_h + 7) // 8, (orig_w + 7) // 8)
+            ctx = self.last_context
+            ctx_up = F.interpolate(ctx.float(), size=(padded_h, padded_w), mode="bilinear", align_corners=False)
+            ctx_unpad = padder.unpad(ctx_up)
+            self.last_context = F.interpolate(
+                ctx_unpad,
+                size=target_hw,
+                mode="bilinear",
+                align_corners=False,
+            ).to(dtype=ctx.dtype)
         return flow_pre, torch.exp(cov_pre * 2)
 
     def load_ddp_state_dict(self, ckpt: OrderedDict):
@@ -51,4 +67,3 @@ class FlowFormerCov(FlowFormer):
             else:
                 cvt_ckpt[k] = ckpt[k]
         self.load_state_dict(cvt_ckpt, strict=False)
-
