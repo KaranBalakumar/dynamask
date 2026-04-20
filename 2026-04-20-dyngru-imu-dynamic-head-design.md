@@ -167,7 +167,15 @@ At the end of the K-iteration loop, `dyn_predictions[-1]` is the final H/4 logit
 ### 3.4 Two-timescale temporal state
 
 - **Intra-frame (fast):** `dyn_net` updates at each of K=12 decoder iterations.
-- **Inter-frame (slow):** at the start of a new frame pair, `dyn_net_init` is the previous pair's `dyn_net_{K-1}` **warped forward by the current forward flow** (bilinear sample, zeroed where warping goes out of bounds). This propagates per-pixel dynamic-belief across frames without a separate recurrent network. First frame: `dyn_net_init = flow_net.clone()` (same init CovGRU uses for `fcov_net`).
+- **Inter-frame (slow):** at the start of a new frame pair, `dyn_net_init` is the previous pair's `dyn_net_{K-1}` **warped forward by the previous pair's final forward flow** (bilinear sample, out-of-bounds pixels zeroed). First frame: `dyn_net_init = flow_net.clone()` (same init CovGRU uses for `fcov_net`).
+
+  Concretely, given previous `dyn_net_{K-1}` and previous forward flow `u_{t-1}`:
+
+  ```
+  dyn_net_init(x) = warp(dyn_net_{K-1}, u_{t-1})(x)        # grid_sample, padding='zeros'
+  ```
+
+  Out-of-bounds pixels (where `x + u_{t-1}(x)` falls outside the frame) zero out automatically — that's the only geometry-certain reset signal we have. Per-pixel trust beyond that (flow in-bounds but wrong) is left to DynGRU to learn across its K=12 iterations from the same `inp_cat` the flow branch reads. No explicit cov-gate: the cov head is co-trained from the same decoder features DynGRU already consumes, so gating by `exp(−log σ²)` would just scale the warp by a correlated learned signal without adding independent information. Keeping the inter-frame step as a pure geometric warp, with learned trust deferred to intra-frame iteration, avoids a cross-branch coupling whose training dynamics aren't obviously beneficial.
 
 ### 3.5 Parameter budget
 
@@ -176,6 +184,7 @@ At the end of the K-iteration loop, `dyn_predictions[-1]` is the final H/4 logit
 | `DynUpdateBlock.gru` (SepConvGRU, hidden=128, input=384) | ~1.4 M | mirrors `CovUpdateBlock.gru` |
 | `DynUpdateBlock.film` (FiLM: 128 → 256 split into γ,β) | ~0.03 M | new (conditioning) |
 | `DynUpdateBlock.imu_attn` (IMUCrossAttn: Q/K/V linears, 128→128) | ~0.05 M | new (§3.6) |
+| `IMUCrossAttn.token_weights` (7-D per-token gain) | ~0.000007 M | new (§3.6.2) |
 | `DynUpdateBlock.alpha` (scalar gate) | ~0.000001 M | new (§3.6) |
 | `DynHead` (4-conv stack, 128 → 256 → 128 → 64 → 1) | ~0.7 M | mirrors `CovHead` with 1-ch output |
 | `DynUpdateBlock.mask` (128 → 256 → 576) | ~0.45 M | mirrors `CovUpdateBlock.mask` |
@@ -199,14 +208,17 @@ DynGRU uses two complementary IMU-conditioning streams. FiLM alone cannot encode
 
 `IMUPipeline` emits `imu_tokens ∈ ℝ^{B×7×128}` via 7 independent `Linear` projections from the per-slot inputs listed in §2.3. Tokens are semantic, not positional: each slot has a fixed identity the network can learn. No positional encoding is added (7 tokens, distinct input provenance — positional encoding would only add noise).
 
+**Per-token scaling.** Immediately before the cross-attention projections, a 7-D learnable weight vector rescales each token: `T'_n = w_n · T_n` with `w = nn.Parameter(torch.ones(7))`. Motivation: the 7 slots are not equally informative — `ΔR` and `Δp` dominate motion-induced flow, while `dt` and `diag(Σ)` are secondary. Equal-capacity attention forces the network to amortize softmax probability across noisy slots; an explicit per-token gain lets the model mute weak slots cheaply (7 scalars) and reduces gradient noise from uninformative tokens. The weights live inside `IMUCrossAttn` (adapter branch only) — FiLM's 34-D input is unchanged. Initialization at `1.0` preserves the starting behavior; the block still starts as pure FiLM because `α = 0` gates the whole adapter contribution regardless of token weights.
+
 #### 3.6.3 Cross-attention math (single head)
 
 Let `H = dyn_net ∈ ℝ^{B×128×H/8×W/8}`. Define spatial query, token key/value:
 
 ```
+T' = w ⊙ imu_tokens                     # (B, 7, 128), w ∈ ℝ^7 init 1
 Q = reshape(H, (B, HW, 128)) · W_Q      # (B, HW, 128)
-K = imu_tokens · W_K                    # (B, 7, 128)
-V = imu_tokens · W_V                    # (B, 7, 128)
+K = T' · W_K                            # (B, 7, 128)
+V = T' · W_V                            # (B, 7, 128)
 A = softmax(Q · K^T / √128)             # (B, HW, 7)  — per-pixel attention over 7 slots
 Δ = A · V                               # (B, HW, 128)
 Δ = reshape(Δ, (B, 128, H/8, W/8))
@@ -270,11 +282,15 @@ Pixels failing forward-backward flow consistency (occlusion) are also set to IGN
 **Loss per frame pair:** sum over decoder iterations k ∈ [0, K), γ-weighted with `γ_k = 0.85^(K−1−k)`:
 
 ```
-L_k = FocalBCE(sigmoid(ℓ_k), M_pseudo, ignore=IGNORE)   # focal α=0.25, γ=2
+L_focal_k  = FocalBCE(sigmoid(ℓ_k), M_pseudo, ignore=IGNORE)            # focal α=0.25, γ=2
+L_calib_k  = mean_{non-IGNORE} ( sigmoid(ℓ_k) − exp(−r² / σ²) )²        # calibration
+L_k = L_focal_k + 0.1 · L_calib_k
 L_A = Σ_k γ_k · L_k
 ```
 
 Rationale: the rigid-flow residual is a **per-pixel rigidity test** that requires only pose + depth GT, both available in TartanAir. The IGNORE band deliberately skips ambiguous pixels rather than forcing a hard label on them.
+
+**Calibration loss** (`L_calib`) aligns `c` with a continuous rigidity score `exp(−r² / σ²)`, where `r = ||f_est − f_rigid||` is the residual already computed for pseudo-labeling and `σ` is the FlowFormerCov-predicted flow std at that pixel (taken from `cov_predictions[k]`). This is a free byproduct of the Phase-A label construction — both `r` and `σ` are in scope — and it binds DynGRU's output to the same noise model the covariance head calibrates, so `c` becomes a statistically meaningful probability rather than just a hard-thresholded label match. Phase-B does not have the rigid-flow residual and so omits this term.
 
 ### 4.3 Phase B: self-consistency finetune (≈3 epochs)
 

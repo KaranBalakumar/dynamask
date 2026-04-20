@@ -52,12 +52,13 @@ class VelocityEKFDynamics(IMUstate):
 
 @dataclass
 class IMUSample:
-    f_imu: torch.Tensor
-    z_raw: torch.Tensor
-    state: torch.Tensor
-    P_diag: torch.Tensor
-    airio_vel: torch.Tensor
-    airio_cov: Optional[torch.Tensor]
+    f_imu: torch.Tensor          # (1, 128)   global feature for FiLM (§3.6.1)
+    imu_tokens: torch.Tensor     # (1, 7, 128) semantic IMU tokens for CLIP-adapter cross-attn (§3.6.3)
+    z_raw: torch.Tensor          # (34,)      raw 34-D IMU state vector (§2.3)
+    state: torch.Tensor          # (15,)      EKF state [R, V, P, b_g, b_a]
+    P_diag: torch.Tensor         # (15,)      EKF covariance diagonal
+    airio_vel: torch.Tensor      # (3,)       Air-IO body-frame velocity
+    airio_cov: Optional[torch.Tensor]  # (3,) Air-IO body-frame velocity diag covariance
 
 class IMUContext(nn.Module):
     """Real-time wrapper fusing Velocity EKF and AirIO over temporally aligned windows."""
@@ -84,12 +85,25 @@ class IMUContext(nn.Module):
                           Q=torch.eye(12, dtype=torch.float64) * 0.01,
                           R=torch.eye(3, dtype=torch.float64) * 0.01).double()
 
-        # MLP embedding map
+        # Global 34-D → 128 feature for FiLM (§3.6.1 / §6.4)
         self.feature_mlp = nn.Sequential(
             nn.Linear(34, 128),
             nn.ReLU(inplace=True),
             nn.Linear(128, 128),
         )
+
+        # Per-slot token projections for the CLIP-adapter cross-attention (§2.3, §3.6.2).
+        # Order here defines the token order in imu_tokens: (dR, dv, dp, g, bias, cov, dt).
+        self.token_projs = nn.ModuleDict({
+            "dR":   nn.Linear(3, 128),
+            "dv":   nn.Linear(3, 128),
+            "dp":   nn.Linear(3, 128),
+            "g":    nn.Linear(3, 128),
+            "bias": nn.Linear(6, 128),
+            "cov":  nn.Linear(9, 128),
+            "dt":   nn.Linear(1, 128),
+        })
+        self._token_order = ("dR", "dv", "dp", "g", "bias", "cov", "dt")
 
         self._state = None
         self._P = None
@@ -141,12 +155,24 @@ class IMUContext(nn.Module):
         if airio_vel is not None:
             self._apply_velocity_update(airio_vel, airio_cov)
 
-        # Phase 4: Final Feature Encoding 
-        z = self._build_z(prev_state, self._state, self._P, airio_vel, airio_cov, dt_total)
+        # Phase 4: Final Feature Encoding
+        z, slots = self._build_z_and_slots(prev_state, self._state, self._P, airio_vel, airio_cov, dt_total)
         self._prev_cam_state = self._state.clone()
-        
+
+        # FiLM input: global 34-D feature, (1, 128)
+        z_f = z.float().unsqueeze(0)
+        f_imu = self.feature_mlp(z_f)
+
+        # CLIP-adapter tokens: 7 semantic slots, (1, 7, 128)
+        token_list = []
+        for name in self._token_order:
+            slot = slots[name].float().unsqueeze(0)          # (1, D_slot)
+            token_list.append(self.token_projs[name](slot))  # (1, 128)
+        imu_tokens = torch.stack(token_list, dim=1)          # (1, 7, 128)
+
         return IMUSample(
-            f_imu=self.feature_mlp(z.float()),
+            f_imu=f_imu,
+            imu_tokens=imu_tokens,
             z_raw=z.float(),
             state=self._state.float(),
             P_diag=torch.diag(self._P).float(),
@@ -206,25 +232,35 @@ class IMUContext(nn.Module):
             
         return C
 
-    def _build_z(self, prev_state, curr_state, P, airio_vel, airio_cov, dt_total):
-        """Assembles the raw 34-D IMUSample mapping for downstream FiLM formatting."""
+    def _build_z_and_slots(self, prev_state, curr_state, P, airio_vel, airio_cov, dt_total):
+        """Assembles the 34-D z_imu_global AND the per-slot tensors used by the CLIP-adapter tokens.
+
+        Returns:
+            z      : (34,) float64 concatenated vector in the order (§2.3 table):
+                     dR, dv, dp, cov9, vB, sV, bg, ba, dt, gB
+            slots  : dict with per-token slot tensors (float64), keys match `_token_order`:
+                     {"dR": (3,), "dv": (3,), "dp": (3,), "g": (3,),
+                      "bias": (6,), "cov": (9,), "dt": (1,)}
+        """
         dev = curr_state.device
 
         R_k = pp.so3(prev_state[:3]).Exp()
         R_k1 = pp.so3(curr_state[:3]).Exp()
-        
+
         dR = (R_k.Inv() @ R_k1).Log()
         dR = dR.tensor() if hasattr(dR, "tensor") else dR
-        
-        # Forster preintegration formulation (i looked it up, pls check)
+
+        # Forster-form body-frame deltas
         g_W = self.gravity_world.to(dev)
-        
+
         dv_world = curr_state[3:6] - prev_state[3:6] - g_W * dt_total
         dv = R_k.Inv() @ dv_world
-        
+        dv = dv.tensor() if hasattr(dv, "tensor") else dv
+
         dp_world = curr_state[6:9] - prev_state[6:9] - prev_state[3:6] * dt_total - 0.5 * g_W * (dt_total**2)
         dp = R_k.Inv() @ dp_world
-        
+        dp = dp.tensor() if hasattr(dp, "tensor") else dp
+
         cov9 = torch.diag(P)[:9]
 
         vB = airio_vel.double() if airio_vel is not None else torch.zeros(3, dtype=torch.float64, device=dev)
@@ -236,7 +272,18 @@ class IMUContext(nn.Module):
         gB = R_k1.Inv() @ g_W
         gB = gB.tensor() if hasattr(gB, "tensor") else gB
 
-        return torch.cat([dR, dv, dp, cov9, vB, sV, bg, ba, dt, gB])
+        z = torch.cat([dR, dv, dp, cov9, vB, sV, bg, ba, dt, gB])
+
+        slots = {
+            "dR":   dR,
+            "dv":   dv,
+            "dp":   dp,
+            "g":    gB,
+            "bias": torch.cat([bg, ba]),
+            "cov":  cov9,
+            "dt":   dt,
+        }
+        return z, slots
 
     def _make_Q(self, gyro_cov, acc_cov):
         """Scales inputs covariances to robust process noise standardizations."""
