@@ -1,0 +1,5 @@
+type: KITTI
+name: K01
+args:
+    root: /home/arjun/datasets/KITTI/data_odometry_gray/dataset/sequences/01
+    gt_pose: true
