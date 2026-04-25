@@ -401,10 +401,15 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         buf = self._drt_init_buffer
         frame0 = buf[0]
 
-        # Camera←IMU extrinsic from the IMU data T_BS (body→sensor = IMU→camera)
-        T_BS = frame0.imu.T_BS          # pp.SE3 (1, 7)
+        # Camera←IMU extrinsic from stereo frame T_BS (imu.T_BS is identity_SE3(0) in EuRoC)
+        T_BS = frame0.stereo.T_BS       # pp.SE3 (1, 7): body(IMU)→sensor(camera)
         R_BC = T_BS.rotation().matrix().squeeze(0).to(torch.float64)   # (3, 3)
         t_BC = T_BS.translation().squeeze(0).to(torch.float64)          # (3,)
+
+        # Camera intrinsics for pixel→normalized coordinate conversion
+        K = frame0.stereo.K.squeeze(0).to(torch.float64)   # (3, 3)
+        fx, fy = K[0, 0], K[1, 1]
+        cx, cy = K[0, 2], K[1, 2]
 
         bootstrap = DRTLooseBootstrap(
             drt_cfg, R_BC=R_BC, t_BC=t_BC,
@@ -417,9 +422,17 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             frame0.stereo, self.num_point, depth0, depth0, None
         )                                                    # (M, 2) float32
 
-        # track_obs[track_id] = {frame_index: pixel_uv (float64 tensor (2,))}
+        def _px_to_norm(uv: torch.Tensor) -> torch.Tensor:
+            """Convert pixel (u,v) to normalized image coords ((u-cx)/fx, (v-cy)/fy)."""
+            uv = uv.cpu().to(torch.float64)
+            return torch.stack([
+                (uv[..., 0] - cx) / fx,
+                (uv[..., 1] - cy) / fy,
+            ], dim=-1)
+
+        # track_obs stores NORMALIZED image coords so _bearing() works correctly
         track_obs: dict[int, dict[int, T.Any]] = {
-            j: {0: kp0_uv[j].to(torch.float64)}
+            j: {0: _px_to_norm(kp0_uv[j])}
             for j in range(kp0_uv.shape[0])
         }
         alive_ids  = list(range(kp0_uv.shape[0]))
@@ -451,7 +464,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
                 new_kp_uv  = new_kp_uv[inbound]
 
                 for k, tid in enumerate(new_alive):
-                    track_obs[tid][i] = new_kp_uv[k].to(torch.float64)
+                    track_obs[tid][i] = _px_to_norm(new_kp_uv[k])
 
                 alive_ids  = new_alive
                 prev_kp_uv = new_kp_uv

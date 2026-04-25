@@ -107,7 +107,7 @@ class DRTLooseBootstrap:
         t_full = torch.cat([torch.zeros(3, dtype=torch.float64), t_flat])
         translations = t_full.view(n_kf, 3)
 
-        # Resolve sign and apply
+        # Resolve sign via bearing-vector heuristic; fall through to both-sign try below
         if A_lr.shape[0] > 0:
             t_fragment = t_flat[:3]
             t_fragment = resolve_translation_sign(A_lr, t_fragment)
@@ -123,9 +123,15 @@ class DRTLooseBootstrap:
                 integrator_corrected2.integrate(gyro, acc, dt)
             preint_corrected.append(integrator_corrected2.result())
 
+        # Try both translation signs — bearing-vector sign disambiguation is unreliable
+        # for short/nearly-stationary windows. Positive scale is a hard physical constraint.
         align_result = linear_alignment(
             preint_corrected, translations, cam_rotations, self.gravity_norm
         )
+        if not align_result.success and align_result.reason and "non-positive" in align_result.reason:
+            align_result = linear_alignment(
+                preint_corrected, -translations, cam_rotations, self.gravity_norm
+            )
 
         if not align_result.success:
             return DRTInitResult.failure(align_result.reason or "GRAVITY_BAD", retry=True)

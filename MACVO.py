@@ -18,7 +18,10 @@ from Utility.Timer import Timer
 
 def VisualizeRerunCallback(frame: StereoFrame, system: MACVO, pb: ColoredTqdm):
     rr.set_time_sequence("frame_idx", frame.frame_idx)
-    
+
+    # Graph is empty during DRT accumulation phase — nothing to visualize yet
+    if len(system.graph.frames) == 0: return
+
     # Non-key frame does not need visualization
     if system.graph.frames.data["need_interp"][-1]: return
     
