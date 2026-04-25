@@ -29,7 +29,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
     def __init__(
         self,
         device, num_point, edgewidth, match_cov_default, profile, mapping,
-        frontend        : Module.IFrontend, 
+        frontend        : Module.IFrontend,
         motion_model    : Module.IMotionModel[T_SensorFrame],
         kp_selector     : Module.IKeypointSelector,
         map_selector    : Module.IKeypointSelector,
@@ -38,12 +38,13 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         post_process    : Module.IMapProcessor,
         kf_selector     : Module.IKeyframeSelector[T_SensorFrame],
         optimizer       : Module.IOptimizer,
+        init_cfg        = None,
         **_excessive_args,
     ) -> None:
         super().__init__(profile=profile)
         if len(_excessive_args) > 0:
             Logger.write("warn", f"Receive excessive arguments for __init__ {_excessive_args}, update/clean up your config!")
-        
+
         self.graph = VisualMap()
         self.device = device
         self.mapping: bool = mapping
@@ -65,6 +66,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         self.num_point = num_point
         self.edge_width = edgewidth
         self.isinitiated = False
+        self._init_cfg = init_cfg
         self._drt_init_buffer: list = []
         
         # Context for tracking
@@ -102,6 +104,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             post_process=MapRefiner,
             kf_selector=KeyframeSelector,
             optimizer=Optimizer,
+            init_cfg=getattr(odomcfg, "init", None),
             **vars(odomcfg.args),
         )
     
@@ -339,7 +342,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
 
     def _handle_init(self, frame: T_SensorFrame) -> None:
         """Route to DRT init or heuristic init based on config."""
-        cfg_init = getattr(self.cfg, "init", None)
+        cfg_init = self._init_cfg
         use_drt = (cfg_init is not None
                    and getattr(cfg_init, "enabled", False)
                    and hasattr(frame, "imu"))
@@ -349,28 +352,136 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             n_needed = getattr(cfg_init, "min_keyframes", 10)
             if len(self._drt_init_buffer) < n_needed:
                 return  # still accumulating
-            # Try DRT with retry/fallback
+
             from Module.Initialization.DRTLoose.bootstrap import run_drt_with_retry
             from Module.Initialization.DRTLoose.types import DRTInitConfig
             drt_cfg = DRTInitConfig(
-                min_keyframes=getattr(cfg_init, "min_keyframes", 10),
+                min_keyframes=n_needed,
                 max_attempts=getattr(getattr(cfg_init, "retry", None), "max_attempts", 2),
                 window_scales=tuple(getattr(getattr(cfg_init, "retry", None), "window_scale", [1.0, 1.4, 1.8])),
                 fallback=getattr(cfg_init, "fallback", "heuristic"),
+                gravity_norm=getattr(cfg_init, "gravity_norm", 9.81007),
             )
-            # solver_fn: for now always return None (full solve needs matcher output)
-            # The bootstrap will return FALLBACK_HEURISTIC and we fall through to heuristic
-            drt_result = run_drt_with_retry(drt_cfg, solver_fn=lambda scale: None)
-            if drt_result.success:
-                self._seed_from_drt(drt_result, frame)
+
+            try:
+                bootstrap = self._build_drt_bootstrap(drt_cfg)
+                drt_result = run_drt_with_retry(drt_cfg, solver_fn=lambda scale: bootstrap.solve())
+            except Exception as exc:
+                Logger.write("warn", f"DRT bootstrap error ({exc}); using heuristic")
+                drt_result = None
+
+            if drt_result is not None and drt_result.success:
+                Logger.write("info", "DRT init succeeded — seeding EKF from DRT result")
+                self._seed_from_drt(drt_result, self._drt_init_buffer[0])
             else:
-                Logger.write("warn", f"DRT init failed ({drt_result.failure_reason}); using heuristic")
+                reason = drt_result.failure_reason if drt_result is not None else "exception"
+                Logger.write("warn", f"DRT init failed ({reason}); using heuristic")
                 self.initialize(self._drt_init_buffer[0])
+
             self._drt_init_buffer.clear()
             self.isinitiated = True
         else:
             self.initialize(frame)
             self.isinitiated = True
+
+    def _build_drt_bootstrap(self, drt_cfg) -> "DRTLooseBootstrap":
+        """Run FlowFormer on the init buffer and return a populated DRTLooseBootstrap.
+
+        For each consecutive pair in the buffer:
+          - estimate_depth + CovAwareSelector to select/track keypoints via optical flow
+          - collect IMU ticks into bootstrap._imu_segments
+
+        Visual rotations for the gyro-bias step are left as identity (sufficient for
+        initial gyro-bias estimation when angular rate is small); the LiGT translation
+        step uses real pixel observations from the flow tracker.
+        """
+        from Module.Initialization.DRTLoose.bootstrap import DRTLooseBootstrap
+        from Module.Initialization.DRTLoose.tracks import FeatureTrack
+
+        buf = self._drt_init_buffer
+        frame0 = buf[0]
+
+        # Camera←IMU extrinsic from the IMU data T_BS (body→sensor = IMU→camera)
+        T_BS = frame0.imu.T_BS          # pp.SE3 (1, 7)
+        R_BC = T_BS.rotation().matrix().squeeze(0).to(torch.float64)   # (3, 3)
+        t_BC = T_BS.translation().squeeze(0).to(torch.float64)          # (3,)
+
+        bootstrap = DRTLooseBootstrap(
+            drt_cfg, R_BC=R_BC, t_BC=t_BC,
+            gravity_norm=drt_cfg.gravity_norm,
+        )
+
+        # ── frame 0: select seed keypoints ──────────────────────────────────
+        depth0  = self.Frontend.estimate_depth(frame0.stereo)
+        kp0_uv  = self.KeypointSelector.select_point(
+            frame0.stereo, self.num_point, depth0, depth0, None
+        )                                                    # (M, 2) float32
+
+        # track_obs[track_id] = {frame_index: pixel_uv (float64 tensor (2,))}
+        track_obs: dict[int, dict[int, T.Any]] = {
+            j: {0: kp0_uv[j].to(torch.float64)}
+            for j in range(kp0_uv.shape[0])
+        }
+        alive_ids  = list(range(kp0_uv.shape[0]))
+        prev_kp_uv = kp0_uv                                 # (M, 2) float32
+
+        bootstrap._keyframe_timestamps.append(frame0.stereo.frame_ms * 1e-3)
+
+        prev_frame = frame0
+
+        for i in range(1, len(buf)):
+            frame_i = buf[i]
+
+            # ── run FlowFormer on the consecutive pair ───────────────────────
+            _, match_i = self.Frontend.estimate_pair(prev_frame.stereo, frame_i.stereo)
+
+            # ── track surviving keypoints via optical flow ───────────────────
+            if alive_ids:
+                flow_at_kp  = self.Frontend.retrieve_pixels(prev_kp_uv, match_i.flow)  # (2, M)
+                new_kp_uv   = prev_kp_uv + flow_at_kp.T                                # (M, 2)
+
+                H, W = frame_i.stereo.height, frame_i.stereo.width
+                ew   = self.edge_width
+                inbound = (
+                    (new_kp_uv[:, 0] >= ew) & (new_kp_uv[:, 0] < W - ew) &
+                    (new_kp_uv[:, 1] >= ew) & (new_kp_uv[:, 1] < H - ew)
+                )
+
+                new_alive  = [tid for k, tid in enumerate(alive_ids) if inbound[k]]
+                new_kp_uv  = new_kp_uv[inbound]
+
+                for k, tid in enumerate(new_alive):
+                    track_obs[tid][i] = new_kp_uv[k].to(torch.float64)
+
+                alive_ids  = new_alive
+                prev_kp_uv = new_kp_uv
+
+            # ── collect IMU ticks for this gap ───────────────────────────────
+            segment: list = []
+            imu = getattr(frame_i, "imu", None)
+            if imu is not None:
+                dt_ns = imu.time_delta[0, :, 0].to(torch.float64)  # (N-1,) ns
+                gyro  = imu.gyro[0].to(torch.float64)               # (N, 3)
+                acc   = imu.acc[0].to(torch.float64)                # (N, 3)
+                for t in range(dt_ns.shape[0]):
+                    segment.append((gyro[t], acc[t], dt_ns[t].item() * 1e-9))
+
+            bootstrap._keyframe_timestamps.append(frame_i.stereo.frame_ms * 1e-3)
+            bootstrap._imu_segments.append(segment)
+            prev_frame = frame_i
+
+        # ── build FeatureTrack list (≥2 observations required for LiGT) ─────
+        bootstrap._tracks = [
+            FeatureTrack(track_id=tid, obs=obs)
+            for tid, obs in track_obs.items()
+            if len(obs) >= 2
+        ]
+        Logger.write("info",
+            f"DRT bootstrap: {len(buf)} KFs, "
+            f"{len(bootstrap._imu_segments)} IMU segments, "
+            f"{len(bootstrap._tracks)} tracks (alive={len(alive_ids)})"
+        )
+        return bootstrap
 
     def _seed_from_drt(self, drt_result, frame: T_SensorFrame) -> None:
         """Seed frontend IMU context from DRT result and push kf-0 pose to graph."""
