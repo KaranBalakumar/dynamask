@@ -19,6 +19,11 @@ from Utility.Extensions import ConfigTestable
 from .Interface import IOdometry
 
 T_SensorFrame = T.TypeVar("T_SensorFrame", bound=StereoFrame)
+_EDN2NED_ROT = torch.tensor([
+    [0.0, 0.0, 1.0],
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+], dtype=torch.float64)
 
 
 class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
@@ -441,10 +446,12 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         buf = self._drt_init_buffer
         frame0 = buf[0]
 
-        # Camera←IMU extrinsic from stereo frame T_BS (imu.T_BS is identity_SE3(0) in EuRoC)
-        T_BS = frame0.stereo.T_BS       # pp.SE3 (1, 7): body(IMU)→sensor(camera)
-        R_BC = T_BS.rotation().matrix().squeeze(0).to(torch.float64)   # (3, 3)
-        t_BC = T_BS.translation().squeeze(0).to(torch.float64)          # (3,)
+        R_BC, t_BC, corrected = self._resolve_drt_extrinsic(frame0)
+        if corrected:
+            Logger.write(
+                "info",
+                "DRT bootstrap: empty IMU T_BS detected; applying EDN→NED extrinsic correction",
+            )
 
         # Camera intrinsics for pixel→normalized coordinate conversion
         K = frame0.stereo.K.squeeze(0).to(torch.float64)   # (3, 3)
@@ -557,6 +564,23 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             f"{len(bootstrap._tracks)} tracks, alive={len(alive_ids)})"
         )
         return bootstrap
+
+    @staticmethod
+    def _resolve_drt_extrinsic(frame: T_SensorFrame) -> tuple[torch.Tensor, torch.Tensor, bool]:
+        """Return body→camera extrinsic for DRT with EuRoC empty-IMU convention handling."""
+        T_BS = frame.stereo.T_BS
+        R_BC = T_BS.rotation().matrix().squeeze(0).to(torch.float64)
+        t_BC = T_BS.translation().squeeze(0).to(torch.float64)
+
+        imu = getattr(frame, "imu", None)
+        imu_t_bs = getattr(imu, "T_BS", None)
+        if imu_t_bs is not None and hasattr(imu_t_bs, "tensor"):
+            imu_tensor = imu_t_bs.tensor()
+            if imu_tensor.numel() == 0:
+                R_BC = R_BC @ _EDN2NED_ROT.to(device=R_BC.device)
+                return R_BC, t_BC, True
+
+        return R_BC, t_BC, False
 
     def _seed_from_drt(self, drt_result, frame: T_SensorFrame) -> None:
         """Seed frontend IMU context from DRT result and push kf-0 pose to graph."""

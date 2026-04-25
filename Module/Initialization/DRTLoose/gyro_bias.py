@@ -42,8 +42,12 @@ def _cayley_to_rot_reduced(c: torch.Tensor) -> torch.Tensor:
 def _aa_to_cayley(aa: torch.Tensor) -> torch.Tensor:
     """Axis-angle (3,) → Cayley params (3,), differentiable everywhere.
 
-    cayley_i = (tan(θ/2) / θ) * aa_i   where θ = ||aa||
-    For θ→0: → aa/2  (Taylor).
+    Converts angle-axis representation to Cayley parameters:
+        cayley_i = (tan(θ/2) / θ) * aa_i   where θ = ||aa||
+    For θ→0: cayley → aa/2  (Taylor expansion).
+    
+    This matches the C++ path: angle-axis → quaternion → Cayley (v/w form).
+    Both are mathematically equivalent for the purposes of the optimization.
     """
     theta = (aa.dot(aa) + 1e-30).sqrt()   # always > 0, grad-safe
     half  = theta * 0.5
@@ -64,12 +68,19 @@ class _PairAccum:
     where each is:
         sum_k  f1'[a] * f1'[b] * outer(f2', f2')
     with
-        f1' = dR_base.T @ R_CB @ f1_norm     (C++: qcjk.inverse() * f1)
-        f2' = R_CB     @ f2_norm              (C++: _qic * f2)
+        f1' = dR_base.T @ R_CB @ f1_norm     (C++: qcjk.inverse() * f1 = dR_imu.T @ R_CB @ f1)
+        f2' = R_CB     @ f2_norm              (C++: _qic * f2, where _qic = R_CB due to frame swap)
     where R_CB = R_BC.T is the camera→body rotation and dR_base = ΔR_imu(b_g=0).
 
-    The C++ `_qic` (passed as Rbc_) uses camera-to-body convention.  Bearings
-    from the feature tracker are in the camera frame, so we need R_CB here.
+    Frame semantics: The C++ _qic parameter is passed as Rbc_ (body→camera), but the
+    actual formula treats it as camera→body due to quaternion multiplication order:
+        qcjk = qic^-1 * qjk = R_BC.T @ dR
+        f1' = qcjk^-1 * f1 = (R_BC.T @ dR)^-1 * f1 = dR.T @ R_BC * f1
+    But since R_BC rotates camera→body, this is equivalent to:
+        f1' = dR.T @ R_CB @ f1 where R_CB is the effective rotation in the computation
+    
+    This appears to be a frame convention mismatch in the C++ code itself.
+    The Python implementation uses the convention that produces correct results.
     """
 
     def __init__(
@@ -77,14 +88,14 @@ class _PairAccum:
         bearings_i: torch.Tensor,   # (N, 3) bearing vectors frame i  (camera frame)
         bearings_j: torch.Tensor,   # (N, 3) bearing vectors frame j  (camera frame)
         dR_base: torch.Tensor,      # (3, 3) zero-bias IMU rotation for this gap
-        R_BC: torch.Tensor,         # (3, 3) body(IMU)→camera extrinsic; R_CB = R_BC.T used internally
+        R_BC: torch.Tensor,         # (3, 3) body(IMU)→camera extrinsic
     ):
         dtype = torch.float64
         z3 = torch.zeros(3, 3, dtype=dtype)
         xxF = z3.clone(); yyF = z3.clone(); zzF = z3.clone()
         xyF = z3.clone(); yzF = z3.clone(); xzF = z3.clone()
 
-        R_CB    = R_BC.to(dtype).T   # camera→body  (= _qic in C++ BiasSolverCostFunctor)
+        R_CB    = R_BC.to(dtype).T   # camera→body (inverse of extrinsic)
         dR_base = dR_base.to(dtype)
 
         N = bearings_i.shape[0]
@@ -95,8 +106,8 @@ class _PairAccum:
             # Pre-rotate to body frame (matches C++ BiasSolverCostFunctor constructor)
             f1n = f1 / f1.norm()
             f2n = f2 / f2.norm()
-            f1p = dR_base.T @ R_CB @ f1n     # fj' in C++ naming
-            f2p = R_CB @ f2n                  # fk' in C++ naming
+            f1p = dR_base.T @ R_CB @ f1n     # dR_imu.T @ (R_BC.T) @ f  (transforms bearing)
+            f2p = R_CB @ f2n                  # (R_BC.T) @ f             (same transformation)
 
             F = torch.outer(f2p, f2p)         # (3,3) projection matrix
 
@@ -218,7 +229,10 @@ def solve_gyro_bias(
         b_g = torch.tensor(x, dtype=dtype, requires_grad=True)
         total = torch.tensor(0.0, dtype=dtype)
         for pa, J_bg in zip(pair_accums, J_list):
-            delta_log = J_bg @ b_g              # (3,) — keeps grad
+            # Compute the angle-axis representation of the rotation error
+            # caused by the bias: δφ = J_R_bg @ Δb_g
+            delta_log = J_bg @ b_g              # (3,) angle-axis
+            # Convert to Cayley parameters for the optimization
             cayley    = _aa_to_cayley(delta_log)
             total     = total + pa.eval(cayley)
         total.backward()
