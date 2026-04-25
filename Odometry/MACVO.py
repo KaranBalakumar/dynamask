@@ -65,6 +65,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         self.num_point = num_point
         self.edge_width = edgewidth
         self.isinitiated = False
+        self._drt_init_buffer: list = []
         
         # Context for tracking
         # [0] - Frame Source Data
@@ -336,6 +337,61 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             }))
             self.graph.frame2map.add(frame_idx, torch.tensor([num_map_orig], dtype=torch.long), torch.tensor([num_mappoint], dtype=torch.long))   # Associate frame -> map
 
+    def _handle_init(self, frame: T_SensorFrame) -> None:
+        """Route to DRT init or heuristic init based on config."""
+        cfg_init = getattr(self.cfg, "init", None)
+        use_drt = (cfg_init is not None
+                   and getattr(cfg_init, "enabled", False)
+                   and hasattr(frame, "imu"))
+
+        if use_drt:
+            self._drt_init_buffer.append(frame)
+            n_needed = getattr(cfg_init, "min_keyframes", 10)
+            if len(self._drt_init_buffer) < n_needed:
+                return  # still accumulating
+            # Try DRT with retry/fallback
+            from Module.Initialization.DRTLoose.bootstrap import run_drt_with_retry
+            from Module.Initialization.DRTLoose.types import DRTInitConfig
+            drt_cfg = DRTInitConfig(
+                min_keyframes=getattr(cfg_init, "min_keyframes", 10),
+                max_attempts=getattr(getattr(cfg_init, "retry", None), "max_attempts", 2),
+                window_scales=tuple(getattr(getattr(cfg_init, "retry", None), "window_scale", [1.0, 1.4, 1.8])),
+                fallback=getattr(cfg_init, "fallback", "heuristic"),
+            )
+            # solver_fn: for now always return None (full solve needs matcher output)
+            # The bootstrap will return FALLBACK_HEURISTIC and we fall through to heuristic
+            drt_result = run_drt_with_retry(drt_cfg, solver_fn=lambda scale: None)
+            if drt_result.success:
+                self._seed_from_drt(drt_result, frame)
+            else:
+                Logger.write("warn", f"DRT init failed ({drt_result.failure_reason}); using heuristic")
+                self.initialize(self._drt_init_buffer[0])
+            self._drt_init_buffer.clear()
+            self.isinitiated = True
+        else:
+            self.initialize(frame)
+            self.isinitiated = True
+
+    def _seed_from_drt(self, drt_result, frame: T_SensorFrame) -> None:
+        """Seed frontend IMU context from DRT result and push kf-0 pose to graph."""
+        # Seed IMUContext if available on frontend
+        if hasattr(self.Frontend, "imu_context"):
+            self.Frontend.imu_context.seed_from_drt(drt_result)
+        # Initialize the pose graph with kf-0 (same as heuristic initialize but with DRT pose)
+        depth0 = self.Frontend.estimate_depth(frame.stereo)
+        # Use identity pose at kf-0 (DRT places kf-0 as world origin)
+        est_pose = pp.identity_SE3(1, device=self.device)
+        frame_idx = self.graph.frames.push(FrameNode.init({
+            "pose"        : est_pose,
+            "T_BS"        : frame.stereo.T_BS,
+            "need_interp" : torch.tensor([0], dtype=torch.bool),
+            "time_ns"     : torch.tensor([frame.stereo.frame_ns], dtype=torch.long),
+            "K"           : frame.stereo.K,
+            "baseline"    : frame.stereo.baseline,
+        }))
+        self.OutlierFilter.set_meta(frame.stereo)
+        self.prev_keyframe = (frame, int(frame_idx.item()), depth0)
+
     def push_keyframe(self, frame: T_SensorFrame, est_pose: pp.LieTensor | torch.Tensor, need_interp: bool=False) -> torch.Tensor:
         frame_idx = self.graph.frames.push(FrameNode.init({
             "pose"        : est_pose,
@@ -360,8 +416,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         """
 
         if not self.isinitiated:
-            self.initialize(frame)
-            self.isinitiated = True
+            self._handle_init(frame)
             return
         
         assert self.prev_keyframe is not None

@@ -132,6 +132,39 @@ class IMUContext(nn.Module):
         self._state[12:15] = b_a.double()
         self._P[9:15, 9:15] = torch.eye(6, dtype=torch.float64, device=self._P.device) * 1e-4
 
+    def seed_from_drt(self, drt: "DRTInitResult", P_init: torch.Tensor | None = None) -> None:
+        """Seed EKF from DRT-loose init result (richer than reset).
+
+        Sets (R0, v0, p0, b_g, b_a) from drt, overwrites gravity_world
+        with drt.g_W (which need not be axis-aligned), and initialises
+        _P from P_init (or drt.P_init if not supplied).
+        Also primes _prev_cam_state so the first step() sees zero dt.
+        """
+        assert drt.success, "seed_from_drt called with failed DRTInitResult"
+        dev = drt.v0.device if drt.v0 is not None else torch.device("cpu")
+
+        s = torch.zeros(15, dtype=torch.float64, device=dev)
+
+        # R0 is (3,3) rotation matrix — store as so3 log in state[0:3]
+        R0_so3 = pp.mat2SO3(drt.R0.unsqueeze(0).double())
+        log_R0 = R0_so3.Log()
+        s[:3] = log_R0.tensor().squeeze(0) if hasattr(log_R0, "tensor") else log_R0.squeeze(0)
+
+        s[3:6]   = drt.v0.to(dtype=torch.float64, device=dev)
+        s[6:9]   = drt.p0.to(dtype=torch.float64, device=dev)
+        s[9:12]  = drt.b_g.to(dtype=torch.float64, device=dev)
+        s[12:15] = drt.b_a.to(dtype=torch.float64, device=dev)
+
+        self._state = s
+        cov = P_init if P_init is not None else drt.P_init
+        self._P = cov.to(dtype=torch.float64, device=dev) if cov is not None else torch.eye(15, dtype=torch.float64, device=dev)
+
+        # Overwrite gravity_world with DRT-solved gravity (may differ from axis-aligned default)
+        self.gravity_world = drt.g_W.to(dtype=torch.float64, device=dev)
+
+        # Prime prev_cam_state so first step() delta starts from DRT state
+        self._prev_cam_state = s.clone()
+
     def step(self, corrected_imu, raw_imu):
         """Core execution loop processing one camera temporal window."""
         assert self._state is not None
