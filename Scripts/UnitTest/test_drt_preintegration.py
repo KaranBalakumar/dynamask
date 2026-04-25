@@ -7,6 +7,7 @@ Visual-Inertial Odometry", IEEE TRO.
 
 import torch
 import pytest
+import pypose as pp
 from Module.Initialization.DRTLoose.preintegration import IMUPreintegrator
 
 
@@ -119,6 +120,69 @@ def test_preintegration_with_nonzero_biases():
     # Allow generous tolerance since we're using first-order approximation
     assert torch.allclose(out.dR_log, expected_log, atol=5e-3), (
         f"Expected dR_log ≈ {expected_log}, got {out.dR_log}"
+    )
+
+
+def test_preintegration_gyro_bias_jacobians_finite_diff():
+    """
+    Verify J_R_bg, J_V_bg, J_P_bg against finite differences.
+    We perturb b_g along each axis and compare analytic Jacobian columns
+    to finite-difference estimates (eps = 1e-6, atol = 1e-4).
+    """
+    eps  = 1e-6
+    n    = 50
+    dt   = 0.01
+    gyro = [0.05, 0.02, -0.03]
+    acc  = [0.3,  0.1,   0.2]
+
+    # Nonzero b_g prior so Jacobians are exercised in the nonlinear regime
+    b_g0 = torch.tensor([0.02, -0.01, 0.03], dtype=torch.float64)
+
+    base = IMUPreintegrator(b_g=b_g0)
+    gyro_t = torch.as_tensor(gyro, dtype=torch.float64)
+    acc_t  = torch.as_tensor(acc,  dtype=torch.float64)
+    for _ in range(n):
+        base.integrate(gyro_t, acc_t, dt)
+    out0 = base.result()
+
+    fd_J_R_bg = torch.zeros(3, 3, dtype=torch.float64)
+    fd_J_V_bg = torch.zeros(3, 3, dtype=torch.float64)
+    fd_J_P_bg = torch.zeros(3, 3, dtype=torch.float64)
+
+    # Re-integrate to get the base ΔR as a LieTensor for the right-tangent FD.
+    base_dR = pp.identity_SO3(dtype=torch.float64)
+    integ_dR = IMUPreintegrator(b_g=b_g0)
+    for _ in range(n):
+        integ_dR.integrate(gyro_t, acc_t, dt)
+    # Reconstruct ΔR from dR_log (Log is invertible; use Exp)
+    base_dR = pp.so3(out0.dR_log.contiguous()).Exp()
+
+    for i in range(3):
+        delta_bg = torch.zeros(3, dtype=torch.float64)
+        delta_bg[i] = eps
+        integ_p = IMUPreintegrator(b_g=b_g0 + delta_bg)
+        for _ in range(n):
+            integ_p.integrate(gyro_t, acc_t, dt)
+        out_p = integ_p.result()
+
+        # J_R_bg is the Jacobian in the RIGHT tangent space of ΔR (Forster 2017,
+        # Table I): δφ = Log(ΔR^{-1} ⊗ ΔR_perturbed).  Plain differences on
+        # dR_log would give the wrong result for the off-diagonal terms.
+        dR_p = pp.so3(out_p.dR_log.contiguous()).Exp()
+        right_tang_diff = (base_dR.Inv() @ dR_p).Log().tensor()
+        fd_J_R_bg[:, i] = right_tang_diff / eps
+
+        fd_J_V_bg[:, i] = (out_p.dV - out0.dV) / eps
+        fd_J_P_bg[:, i] = (out_p.dP - out0.dP) / eps
+
+    assert torch.allclose(out0.J_R_bg, fd_J_R_bg, atol=1e-4), (
+        f"J_R_bg mismatch:\nanalytic:\n{out0.J_R_bg}\nFD:\n{fd_J_R_bg}"
+    )
+    assert torch.allclose(out0.J_V_bg, fd_J_V_bg, atol=1e-4), (
+        f"J_V_bg mismatch:\nanalytic:\n{out0.J_V_bg}\nFD:\n{fd_J_V_bg}"
+    )
+    assert torch.allclose(out0.J_P_bg, fd_J_P_bg, atol=1e-4), (
+        f"J_P_bg mismatch:\nanalytic:\n{out0.J_P_bg}\nFD:\n{fd_J_P_bg}"
     )
 
 

@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import torch
 import pypose as pp
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +99,6 @@ class IMUPreintegrator:
         """Reset all accumulators to identity / zero (keeps biases intact)."""
         dtype  = torch.float64
         dev    = self.device
-        eye3   = torch.eye(3, dtype=dtype, device=dev)
         zeros3 = torch.zeros(3, dtype=dtype, device=dev)
 
         # Accumulated rotation as an SO3 LieTensor (identity = [0,0,0,1])
@@ -137,6 +136,7 @@ class IMUPreintegrator:
         acc  : (3,) raw accelerometer reading [m/s²] (bias-UNCORRECTED)
         dt   : time step [s]
         """
+        dt    = float(dt)
         dtype = torch.float64
         dev   = self.device
 
@@ -168,7 +168,8 @@ class IMUPreintegrator:
 
         # ---- Bias Jacobians (Forster 2017, eq. 45–47) ------------------
         #
-        # Save previous values (needed for ΔP Jacobians)
+        # Save previous values (needed for ΔP Jacobians and J_R_bg step)
+        J_R_bg_prev = self._J_R_bg.clone()
         J_V_bg_prev = self._J_V_bg.clone()
         J_V_ba_prev = self._J_V_ba.clone()
 
@@ -177,21 +178,15 @@ class IMUPreintegrator:
         # J_R_bg: right Jacobian of SO3 exp maps the gyro bias error
         # into an error in the rotation log.
         # Forster 2017, eq. 45:
-        #   J_R_bg_{k+1} = dR_delta.Inv().matrix() @ J_R_bg_k + Jr(ω̃·dt) · dt
+        #   J_R_bg_{k+1} = dR_delta^T @ J_R_bg_k  -  Jr(ω̃·dt) · dt
+        # The negative sign comes from d(ω̃)/d(b_g) = -I.
         Jr = pp.so3((omega_tilde * dt).contiguous()).Jr()   # (3,3) right Jacobian
-        self._J_R_bg = dR_delta.Inv().matrix() @ self._J_R_bg + Jr * dt
+        self._J_R_bg = dR_delta.Inv().matrix() @ J_R_bg_prev - Jr * dt
 
-        # J_V_bg: Forster eq. 46 (first term)
-        #   J_V_bg_{k+1} = J_V_bg_k + R_k · (-[ã]×) · J_R_bg_k · dt
-        # but J_R_bg_k is the value *before* the J_R_bg update above.
-        # To avoid re-computing, note the standard formulation uses
-        # the chain rule directly on R_k (not dR_delta), so:
-        #   ΔV depends on R(b_g) via R_k @ a_tilde, and R_k changes
-        #   with b_g through the chain up to step k.
-        # Standard simplified form (small angles, consistent with Forster):
-        self._J_V_bg = J_V_bg_prev - R_k @ skew_a @ self._J_R_bg * dt
-        # Note: we use the *updated* J_R_bg here.  The sign comes from
-        # ∂(R_k @ ã)/∂b_g = -R_k @ [ã]× @ J_R_bg.
+        # J_V_bg: Forster eq. 46
+        #   J_V_bg_{k+1} = J_V_bg_k - R_k · [ã]× · J_R_bg_k · dt
+        # Uses J_R_bg_k (before update) and R_k (before rotation update).
+        self._J_V_bg = J_V_bg_prev - R_k @ skew_a @ J_R_bg_prev * dt
 
         # J_V_ba: ∂ΔV/∂b_a  (Forster eq. 46, second term)
         #   J_V_ba_{k+1} = J_V_ba_k - R_k · dt
@@ -200,9 +195,10 @@ class IMUPreintegrator:
         # J_P_bg: Forster eq. 47
         #   J_P_bg_{k+1} = J_P_bg_k + J_V_bg_k · dt
         #                  - 0.5 · R_k · [ã]× · J_R_bg_k · dt²
+        # Uses J_R_bg_k and J_V_bg_k (both before update).
         self._J_P_bg = (self._J_P_bg
                         + J_V_bg_prev * dt
-                        - 0.5 * R_k @ skew_a @ self._J_R_bg * dt ** 2)
+                        - 0.5 * R_k @ skew_a @ J_R_bg_prev * dt ** 2)
 
         # J_P_ba: Forster eq. 47
         #   J_P_ba_{k+1} = J_P_ba_k + J_V_ba_k · dt - 0.5 · R_k · dt²
