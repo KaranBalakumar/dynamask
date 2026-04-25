@@ -45,13 +45,21 @@ def merge_matrices(matrices):
 
 
 def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_loader=None):
-    from Module.Network.FlowFormerCov import build_flowformer
     train_mode: T_TrainType = modelcfg.training_mode
     AssertLiteralType(train_mode, T_TrainType)
-    
-    model = build_flowformer(modlecfg, torch.float32, torch.float32)
-    if modlecfg.restore_ckpt:
-        model.load_ddp_state_dict(torch.load(modlecfg.restore_ckpt, weights_only=True))
+
+    if train_mode == "dyn":
+        from Module.Network.FlowFormerDyn import build_flowformer_dyn
+        model = build_flowformer_dyn(modlecfg, torch.float32, torch.float32)
+        if hasattr(modlecfg, "restore_ckpt") and modlecfg.restore_ckpt:
+            ckpt = torch.load(modlecfg.restore_ckpt, map_location="cpu", weights_only=True)
+            model.load_ddp_state_dict(ckpt)
+        model = model.cuda()
+    else:
+        from Module.Network.FlowFormerCov import build_flowformer
+        model = build_flowformer(modlecfg, torch.float32, torch.float32)
+        if modlecfg.restore_ckpt:
+            model.load_ddp_state_dict(torch.load(modlecfg.restore_ckpt, weights_only=True))
 
     model = nn.DataParallel(model)
     model.cuda()
@@ -76,6 +84,18 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 param.requires_grad = False
             for param in model_ptr.memory_decoder.cov_update.parameters():
                 param.requires_grad = True
+        case "dyn":
+            # Freeze everything first
+            for param in model_ptr.parameters():
+                param.requires_grad = False
+            # Unfreeze only the dyn branch (dyn_head is nested inside dyn_update)
+            for param in model_ptr.memory_decoder.dyn_update.parameters():
+                param.requires_grad = True
+            # Assert cov_update is frozen (invariant check)
+            assert all(
+                not p.requires_grad
+                for p in model_ptr.memory_decoder.cov_update.parameters()
+            ), "cov_update must be frozen in dyn training mode"
 
     if modlecfg.wandb:
         wandb.init(project=modlecfg.name, config=modlecfg)

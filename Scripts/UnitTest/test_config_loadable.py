@@ -7,3 +7,16 @@ from Utility.Config import load_config
 @pytest.mark.parametrize(argnames=["file_name"], argvalues=[(str(f),) for f in Path("./Config").rglob("*.yaml")])
 def test_config_loadable(file_name: str):
     load_config(Path(file_name))
+
+
+def test_train_type_accepts_dyn():
+    from Train.MatchingNet.utils import AssertLiteralType, T_TrainType
+    # Should not raise
+    result = AssertLiteralType("dyn", T_TrainType)
+    assert result is True
+
+
+def test_train_type_rejects_invalid():
+    from Train.MatchingNet.utils import AssertLiteralType, T_TrainType
+    with pytest.raises(ValueError):
+        AssertLiteralType("unknown_mode", T_TrainType)
