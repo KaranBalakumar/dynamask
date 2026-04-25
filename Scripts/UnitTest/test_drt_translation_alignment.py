@@ -1,12 +1,16 @@
 """
-Tests for LiGT translation recovery and feature-track utilities.
+Tests for LiGT translation recovery and feature-track utilities,
+gyro-bias solver, and linear alignment primitives.
 
 Module/Initialization/DRTLoose/tracks.py
 Module/Initialization/DRTLoose/translation.py
+Module/Initialization/DRTLoose/gyro_bias.py
+Module/Initialization/DRTLoose/alignment.py
 """
 
 from __future__ import annotations
 
+import math
 import torch
 import pytest
 
@@ -23,6 +27,16 @@ from Module.Initialization.DRTLoose.translation import (
     resolve_translation_sign,
     check_ltl_conditioning,
 )
+from Module.Initialization.DRTLoose.gyro_bias import (
+    rotation_residual,
+    solve_gyro_bias,
+)
+from Module.Initialization.DRTLoose.alignment import (
+    normalize_gravity,
+    linear_alignment,
+    AlignmentResult,
+)
+from Module.Initialization.DRTLoose.preintegration import IMUPreintegrator
 
 
 # ---------------------------------------------------------------------------
@@ -201,3 +215,211 @@ def test_end_to_end_translation_recovery_produces_nonzero_result():
     t2_frag = t_flat[3:6]
     t2_signed = resolve_translation_sign(A_lr, t2_frag)
     assert t2_signed.shape == (3,)
+
+
+# ---------------------------------------------------------------------------
+# alignment.py tests
+# ---------------------------------------------------------------------------
+
+def test_normalize_gravity_enforces_norm():
+    g = normalize_gravity(torch.tensor([0.0, 0.0, 2.0], dtype=torch.float64), g_norm=9.81007)
+    assert abs(g.norm().item() - 9.81007) < 1e-6
+
+
+def test_normalize_gravity_direction_preserved():
+    g = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float64)
+    out = normalize_gravity(g, g_norm=5.0)
+    assert abs(out.norm().item() - 5.0) < 1e-9
+    # Direction preserved
+    assert torch.allclose(out / out.norm(), g / g.norm(), atol=1e-9)
+
+
+def test_linear_alignment_scale_and_gravity_recovered():
+    """
+    Smoke / sanity test: with a perfect synthetic trajectory (no noise, no acc
+    bias, varying specific force) the linear alignment should recover the true
+    scale and gravity.
+
+    Physics setup:
+    - Platform flies at varying horizontal acceleration (maneuvering).
+    - Specific force per interval varies to make the linear system full-rank.
+    - Gravity = [0, 0, -9.81007] m/s^2.
+    - R = I (camera aligned with world frame).
+    - Scale = 2.5 (camera translations = world positions / 2.5).
+    """
+    dtype = torch.float64
+    N = 6
+    dt = 0.2
+    true_scale = 2.5
+    g_world = torch.tensor([0.0, 0.0, -9.81007], dtype=dtype)
+    v0 = torch.tensor([1.0, 0.5, 0.0], dtype=dtype)
+
+    rotations = [torch.eye(3, dtype=dtype) for _ in range(N)]
+
+    # Varying specific forces per interval (includes gravity compensation + maneuver)
+    # a_specific = thrust / m (what accelerometer measures)
+    a_specifics = [
+        torch.tensor([0.5, 0.2, 9.81007], dtype=dtype),   # g-compensation + forward push
+        torch.tensor([0.3, -0.1, 9.81007], dtype=dtype),
+        torch.tensor([0.7, 0.4, 9.81007], dtype=dtype),
+        torch.tensor([0.1, 0.3, 9.81007], dtype=dtype),
+        torch.tensor([0.4, -0.2, 9.81007], dtype=dtype),
+    ]
+
+    # Build true positions and velocities
+    positions  = [torch.zeros(3, dtype=dtype)]
+    velocities = [v0.clone()]
+    for k in range(N - 1):
+        a_net = a_specifics[k] + g_world   # net body accel = specific force + gravity
+        velocities.append(velocities[-1] + a_net * dt)
+        positions.append(positions[-1] + velocities[-2] * dt + 0.5 * a_net * dt ** 2)
+
+    translations_uts = torch.stack(positions) / true_scale  # (N, 3) up-to-scale
+
+    # Preintegrate each interval with the corresponding specific force
+    preint_results = []
+    for k in range(N - 1):
+        integrator = IMUPreintegrator(b_g=None, b_a=None)
+        gyro_meas = torch.zeros(3, dtype=dtype)
+        acc_meas  = a_specifics[k]          # accelerometer reading = specific force
+        sub_dt = dt / 20
+        for _ in range(20):
+            integrator.integrate(gyro_meas, acc_meas, sub_dt)
+        preint_results.append(integrator.result())
+
+    result = linear_alignment(preint_results, translations_uts, rotations)
+
+    assert result.success, f"Alignment failed: {result.reason}"
+    # Scale should be positive and close to true
+    assert result.scale > 0.0, f"scale={result.scale}"
+    assert abs(result.scale - true_scale) / true_scale < 0.01, (
+        f"Scale error too large: recovered={result.scale:.4f}, true={true_scale}"
+    )
+    # Gravity norm is always enforced after normalization
+    assert abs(result.gravity_world.norm().item() - 9.81007) < 1e-4
+    # Gravity direction should be roughly -z
+    assert result.gravity_world[2].item() < -9.0, (
+        f"Gravity z-component should be negative: {result.gravity_world.tolist()}"
+    )
+    # Result shape
+    assert result.velocities.shape == (N, 3)
+
+
+def test_linear_alignment_insufficient_keyframes():
+    """linear_alignment with only 1 keyframe should return failure."""
+    result = linear_alignment(
+        preint_results=[],
+        translations_up_to_scale=torch.zeros(1, 3, dtype=torch.float64),
+        rotations=[torch.eye(3, dtype=torch.float64)],
+    )
+    assert result.success is False
+    assert result.reason is not None
+
+
+# ---------------------------------------------------------------------------
+# gyro_bias.py tests
+# ---------------------------------------------------------------------------
+
+def test_rotation_residual_zero_when_consistent():
+    """If R_vis_ij == R_BC^T @ dR_imu @ R_BC, residual should be ~0."""
+    import pypose as pp
+
+    R_BC = torch.eye(3, dtype=torch.float64)
+    dR_log = torch.tensor([0.05, 0.02, -0.01], dtype=torch.float64)
+    dR_imu = pp.so3(dR_log).Exp().matrix().squeeze(0)
+    r = rotation_residual(dR_imu, dR_imu, R_BC)  # R_vis == dR_imu
+    assert r.norm().item() < 1e-10
+
+
+def test_rotation_residual_nonzero_when_inconsistent():
+    """If R_vis_ij != dR_imu, residual should be nonzero."""
+    import pypose as pp
+
+    R_BC  = torch.eye(3, dtype=torch.float64)
+    dR_imu = pp.so3(torch.tensor([0.1, 0.0, 0.0], dtype=torch.float64)).Exp().matrix().squeeze(0)
+    R_vis  = pp.so3(torch.tensor([0.2, 0.0, 0.0], dtype=torch.float64)).Exp().matrix().squeeze(0)
+    r = rotation_residual(R_vis, dR_imu, R_BC)
+    assert r.norm().item() > 1e-3
+
+
+def test_solve_gyro_bias_zero_bias_no_drift():
+    """With perfect visual estimates and zero true bias, solver should converge near zero."""
+    import pypose as pp
+
+    R_BC = torch.eye(3, dtype=torch.float64)
+    n_pairs = 5
+    dt = 0.2
+    omega = torch.tensor([0.0, math.radians(5) / dt, 0.0], dtype=torch.float64)  # 5°/step
+
+    preint_results = []
+    R_vis_list     = []
+
+    for _ in range(n_pairs):
+        integ = IMUPreintegrator(b_g=torch.zeros(3, dtype=torch.float64))
+        integ.integrate(omega, torch.zeros(3, dtype=torch.float64), dt)
+        pr = integ.result()
+        preint_results.append(pr)
+
+        # Perfect visual estimate: R_vis = dR_imu (no bias)
+        dR_mat = pp.so3(pr.dR_log).Exp().matrix().squeeze(0)
+        R_vis_list.append(dR_mat.clone())
+
+    b_g_star, converged = solve_gyro_bias(preint_results, R_vis_list, R_BC)
+
+    assert converged, "Solver should converge for zero-bias case"
+    assert b_g_star.norm().item() < 1e-6, f"Expected ~0 bias, got {b_g_star}"
+
+
+def test_solve_gyro_bias_recovers_known_bias():
+    """
+    On a synthetic 5-pair trajectory with known constant gyro bias, solver
+    should recover it within 5e-3 rad/s.
+
+    Setup:
+    - True bias: b_g_true = [0.05, 0, 0] rad/s
+    - Motion: 5°/step rotation around y-axis (omega = [0, 0.436, 0] rad/s * dt)
+    - dt = 0.2 s
+    - Preintegrate with TRUE bias to get dR_true (what IMU gives with true bias removed).
+    - Set R_vis_ij = dR_true (perfect visual match to true motion).
+    - Create preint_results by integrating the RAW gyro (omega + b_g_true) with
+      b_g=0 (incorrect bias), so the stored dR_log differs from dR_true.
+    - Solver must recover b_g_true from the mismatch.
+    """
+    import pypose as pp
+
+    dtype      = torch.float64
+    R_BC       = torch.eye(3, dtype=dtype)
+    b_g_true   = torch.tensor([0.05, 0.0, 0.0], dtype=dtype)
+    dt         = 0.2
+    n_pairs    = 5
+
+    # Corrected angular velocity (true body rotation rate)
+    omega_true = torch.tensor([0.0, math.radians(5) / dt, 0.0], dtype=dtype)
+    # Raw gyro reading (what the sensor outputs) = omega_true + b_g_true
+    omega_raw  = omega_true + b_g_true
+
+    preint_results = []
+    R_vis_list     = []
+
+    for _ in range(n_pairs):
+        # ---- True motion: preintegrate with true bias removed ---------------
+        integ_true = IMUPreintegrator(b_g=b_g_true.clone())
+        integ_true.integrate(omega_raw, torch.zeros(3, dtype=dtype), dt)
+        pr_true = integ_true.result()
+
+        # Perfect visual estimate matches true rotation
+        dR_true_mat = pp.so3(pr_true.dR_log).Exp().matrix().squeeze(0)
+        R_vis_list.append(dR_true_mat.clone())
+
+        # ---- Biased preintegration: integrate raw gyro with b_g=0 ----------
+        integ_biased = IMUPreintegrator(b_g=torch.zeros(3, dtype=dtype))
+        integ_biased.integrate(omega_raw, torch.zeros(3, dtype=dtype), dt)
+        preint_results.append(integ_biased.result())
+
+    b_g_star, converged = solve_gyro_bias(preint_results, R_vis_list, R_BC, max_iters=100)
+
+    err = (b_g_star - b_g_true).norm().item()
+    assert err < 5e-3, (
+        f"Gyro bias recovery error {err:.4f} rad/s exceeds threshold 5e-3. "
+        f"b_g_star={b_g_star.tolist()}, b_g_true={b_g_true.tolist()}"
+    )
