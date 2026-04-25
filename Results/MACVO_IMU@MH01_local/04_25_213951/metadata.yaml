@@ -1,0 +1,4 @@
+command: python3 MACVO.py --odom Config/Experiment/MACVO/MACVO_IMU_EuRoC.yaml --data
+  Config/Sequence/EuRoC_MH01_local.yaml --useRR --noeval --seq_to 200
+git_version: 72335cce
+time: 04_25_213951

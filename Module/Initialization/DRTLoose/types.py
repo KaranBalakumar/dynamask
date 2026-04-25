@@ -11,6 +11,7 @@ class DRTInitConfig:
     window_scales: tuple[float, ...] = (1.0, 1.4, 1.8)
     # Quality gate thresholds (from design doc §5.7)
     quality_min_avg_obs: int = 30
+    quality_min_per_pair_parallax: float = 0.02   # ~10px for fx≈500
     quality_max_cond: float = 1e8
     quality_min_pos_depth_ratio: float = 0.7
     quality_gravity_tol_rel: float = 1e-3

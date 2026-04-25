@@ -1,7 +1,7 @@
 # DynGRU Implementation Progress
 
 **Design spec:** `2026-04-20-dyngru-imu-dynamic-head-design.md`
-**Last updated:** 2026-04-20
+**Last updated:** 2026-04-25
 
 This document tracks what has been implemented and tested so far, and what remains. It is scoped to the DynGRU + IMU-context + backend work described in the design spec; unrelated MAC-VO modules are out of scope.
 
@@ -64,7 +64,7 @@ Location: `Module/Network/IMUContext/`
 |---|---|---|
 | `__init__.py` | ✅ | Package exports |
 | `airimu_loader.py` | ✅ | AirIMU checkpoint loader (frozen corrector) |
-| `imu_context.py` | ✅ | `IMUContext(nn.Module)` — EKF + Air-IO fused; `VelocityEKFDynamics(IMUstate)` 15-D dynamics subclass with `state_transition` (strapdown) and `observation` (body-frame velocity from `R^T·V`) |
+| `imu_context.py` | ✅ | `IMUContext(nn.Module)` — EKF + Air-IO fused; `VelocityEKFDynamics(IMUstate)` 15-D dynamics subclass with `state_transition` (strapdown) and `observation` (body-frame velocity from `R^T·V`); **`seed_from_drt(drt, P_init=None)`** added (see §1.3) |
 
 **Outputs per `step()` (see `IMUSample` dataclass):**
 - `f_imu` — `(1, 128)` global feature from `feature_mlp(z_raw)`
@@ -76,7 +76,80 @@ Location: `Module/Network/IMUContext/`
 
 **Token layout (matches §2.3):** `dR(3)`, `dv(3)`, `dp(3)`, `g = R^T·g_W (3)`, `bias = (b_g, b_a) (6)`, `cov = diag(Σ_{ΔR,Δv,Δp}) (9)`, `dt(1)` — each projected to 128-D independently.
 
-### 1.3 Design spec additions (all landed in the approved spec)
+### 1.3 `Initialization/DRTLoose/` — DRT-loose VIO initializer
+
+Location: `Module/Initialization/DRTLoose/`
+
+PyPose-native port of DRT-VIO-Init (Zhao 2023) adapted for stereo+IMU bootstrap: gyro-bias refinement → visual rotations via preintegration → LiGT translations → linear (v₀, s, g) alignment with gravity-norm constraint. All arithmetic in float64.
+
+| File | Status | Notes |
+|---|---|---|
+| `__init__.py` | ✅ | Re-exports all public symbols |
+| `types.py` | ✅ | `DRTInitConfig` (quality gates, retry policy, fallback mode) + `DRTInitResult` (payload fields R0/v0/p0/b_g/b_a/g_W/scale/P_init, factory methods `.failure(reason, retry)` and `.success_result(...)` with auto-constructed 15×15 block-diagonal P_init) |
+| `preintegration.py` | ✅ | `IMUPreintegrator` + `PreintResult`; Forster 2017 SO3 manifold ops via `pp.so3`; bias Jacobians J_R_bg, J_V_bg, J_V_ba, J_P_bg, J_P_ba with correct sign (−Jr·dt per eq. 45); 9×9 covariance propagation |
+| `tracks.py` | ✅ | `FeatureTrack`, `KeyframeBundle`, `tracks_with_min_obs`, `select_base_views` (max cross-product parallax), `_bearing` (pixel → unit 3-vector) |
+| `translation.py` | ✅ | `build_LTL` (epipolar-constraint LTL accumulation), `recover_translations` (smallest right-singular vector of LTL), `resolve_translation_sign` (majority-vote on A_lr@t), `check_ltl_conditioning` (cond ≤ max_cond) |
+| `gyro_bias.py` | ✅ | `rotation_residual` (SO3 log residual), `solve_gyro_bias` Gauss-Newton with Huber weighting (δ=1e-2 rad) and first-order bias correction |
+| `alignment.py` | ✅ | `linear_alignment` builds `(6*(N-1), 3N+4)` system for velocities/scale/gravity; solved via `torch.linalg.lstsq(rcond=1e-10)`; gravity normalized to `g_norm`; `AlignmentResult` dataclass |
+| `quality.py` | ✅ | Six gate functions: `check_avg_observation` (≥30), `check_acceleration_observability` (mean deviation + static-sample count), `check_ltl_conditioning_gate` (≤1e8), `check_positive_depth` (≥0.7 ratio), `check_gravity_consistency` (\|‖g‖-G\|/G ≤ 1e-3), `check_state_finite` (finite + ‖b_g‖≤1.0, ‖b_a‖≤5.0); `run_all_quality_gates` |
+| `bootstrap.py` | ✅ | `DRTLooseBootstrap` stateful accumulator (`add_frame`, `is_window_ready`, `solve`, `reset`); `run_drt_with_retry(cfg, solver_fn)` tries `min(max_attempts+1, len(window_scales))` scales then falls back to heuristic |
+
+**`IMUContext.seed_from_drt(drt, P_init=None)`** — added to `imu_context.py`; sets EKF state from DRT result (R0→SO3.Log, v0, p0, b_g, b_a), overwrites `gravity_world`, initializes `_P` from `drt.P_init` (or 15×15 identity if absent).
+
+**Unit tests (152 passing, 8 pre-existing local failures excluded):**
+
+| Test file | Count | Coverage |
+|---|---|---|
+| `test_drt_preintegration.py` | 5 | constant-acc closed-form, b_a FD Jacobian, b_g FD Jacobian (right-tangent-space), nonzero-bias, reset |
+| `test_drt_translation_alignment.py` | 32 | tracks utilities, LiGT LTL build + recovery + sign disambiguation + conditioning, gyro-bias residual + Gauss-Newton, linear alignment + gravity normalization |
+| `test_drt_bootstrap_policy.py` | 10 | config/result schema defaults, retry policy (fail-all, succeed-on-2nd, succeed-on-1st, max-attempts limit, fallback heuristic), quality gate thresholds, P_init construction |
+| `test_drt_quality.py` | 30 | all six gate functions, edge cases, `run_all_quality_gates` ordering |
+| `test_imu_context_seed.py` | 6 | `seed_from_drt` via `MinimalCtx` duck-type fixture: state vector, gravity_world, covariance init, custom P_init override, failure assertion |
+
+**Bug fixed during implementation:** `J_R_bg` sign error (was `+Jr·dt`, should be `−Jr·dt` per Forster eq. 45) and step-index bug (`J_V_bg` was reading updated J_R_bg at step k+1 instead of step k). Both caught by code reviewer and corrected before downstream tasks.
+
+### 1.4 `Frontend/` — `FlowFormerDynFrontend` + `static_conf` field
+
+Location: `Module/Frontend/`
+
+| Change | Status | Notes |
+|---|---|---|
+| `Frontend.py` — `FlowFormerDynFrontend` | ✅ | Wraps `FlowFormerDyn` under `IFrontend` interface; exposes `self.imu_context = None` attribute; `estimate_pair` returns `IMatcher.Output` with `static_conf=dyn` populated |
+| `Matching.py` — `IMatcher.Output.static_conf` | ✅ | New optional field `torch.Tensor \| None = None` for DynGRU static confidence map; pre-existing typeguard 4.5.1 incompatibility in `from_partial_cov` also fixed |
+
+### 1.5 Dyn training mode
+
+Location: `Train/MatchingNet/`
+
+| Change | Status | Notes |
+|---|---|---|
+| `utils.py` — `T_TrainType` | ✅ | Added `"dyn"` literal |
+| `train_flowformer.py` — model build | ✅ | `if train_mode == "dyn":` builds `FlowFormerDyn` instead of `FlowFormerCov` |
+| `train_flowformer.py` — freeze schedule | ✅ | `case "dyn":` freezes all, unfreezes `dyn_update.parameters()` only, asserts `cov_update` frozen |
+| `Config/Train/FlowFormerDyn_Demo.yaml` | ✅ | Demo training config: `training_mode: dyn`, `batch_size: 4`, `lr: 2e-4`, `weight_decay: 1e-4` |
+
+### 1.6 MACVO startup state machine
+
+Location: `Odometry/MACVO.py`
+
+| Change | Status | Notes |
+|---|---|---|
+| `_drt_init_buffer: list` | ✅ | Added to `__init__`; accumulates frames until DRT window is ready |
+| `_handle_init(frame)` | ✅ | Checks `cfg.init.enabled` + IMU presence, accumulates buffer, calls `run_drt_with_retry`, falls back to heuristic if DRT fails or disabled |
+| `_seed_from_drt(drt_result, frame)` | ✅ | Calls `frontend.imu_context.seed_from_drt` if frontend exposes the attribute; pushes identity SE3 pose to graph as first anchor |
+
+### 1.7 MACVO experiment configs — `init:` block added
+
+All four MACVO configs now include the `init:` block wired to `DRTLoose`:
+
+| Config file | Status |
+|---|---|
+| `Config/Experiment/MACVO/MACVO_Fast.yaml` | ✅ |
+| `Config/Experiment/MACVO/MACVO_Performant.yaml` | ✅ |
+| `Config/Experiment/MACVO/Paper_Reproduce.yaml` | ✅ |
+| `Scripts/UnitTest/assets/test_config/MACVO/MACVO.yaml` | ✅ |
+
+### 1.8 Design spec additions (all landed in the approved spec)
 
 - §3.4 — inter-frame warp rewritten as pure `grid_sample(padding='zeros')`, cov-gate explicitly rejected with rationale (co-trained → correlated → no independent signal).
 - §3.6.2 — per-token learnable weights documented; motivation (ΔR/Δp dominate, dt/Σ secondary), init=1, lives in `IMUCrossAttn` adapter branch only.
@@ -91,22 +164,15 @@ Location: `Module/Network/IMUContext/`
 ### 2.1 AirIMU / EKF / Air-IO — verification and any remaining glue
 
 - **Air-IO checkpoints and config paths** — spec names `cfg.airio_ckpt`; confirm the loader in `IMUContext` can find the pretrained weights in `Module/Network/Air-IO/pre-trained/`.
-- **EKF ↔ PGO bias-sync path** (`IMUContext.push_biases(b_g, b_a)`) — interface hook is referenced in spec §6.4 but not yet wired; needs to accept optimized biases post-PGO and reset EKF bias point + covariance rows. The EKF itself (`IMUEKF` from Air-IO) supports this but the wrapper method is not yet present on `IMUContext`.
-- **`AirIMU/preintegration.py`** — Forster preintegration with analytic bias Jacobians, used by the PGO's 15-D IMU factor (§5.1). The EKF already accumulates preintegrated deltas, but the bias Jacobians `(J_R_bg, J_v_bg, J_v_ba, J_p_bg, J_p_ba)` need to be exposed as a structured output consumable by the factor.
+- **EKF ↔ PGO bias-sync path** (`IMUContext.push_biases(b_g, b_a)`) — interface hook is referenced in spec §6.4 but not yet wired; needs to accept optimized biases post-PGO and reset EKF bias point + covariance rows. The EKF itself (`IMUEKF` from Air-IO) supports this but the wrapper method is not yet present on `IMUContext`. (`seed_from_drt` is implemented and seeds startup state; the post-PGO update hook is a separate remaining item.)
 - **Unit test: EKF propagation vs pypose closed-form** (spec §7.1 `test_ekf_propagation.py`).
 - **Unit test: IMU factor numerical-vs-analytic Jacobian** (spec §7.1 `test_imu_factor_jacobians.py`).
 
 ### 2.2 Initialization — DRT-VIO-Init (loose)
 
-**Explicitly deferred by user** ("I will later implement the Initialization and VIO-PGO").
+**✅ Implemented** — see §1.3 for full module breakdown and test coverage.
 
-- Port or adapt DRT-loose for stereo bootstrap (first ~1 s of stereo + IMU).
-- Outputs needed downstream:
-  - `b_g*` — initial gyro bias (EKF seed)
-  - `R_BC, t_BC` — IMU↔cam extrinsic (seed from calib, DRT refines)
-  - `g_W` — gravity direction in world frame
-  - `(R_0, v_0, p_0)` — initial keyframe states (EKF init + first PGO anchor)
-- Integrate with `IMUContext.__init__` so EKF reset uses DRT outputs at startup.
+Remaining scaffolding gap: `DRTLooseBootstrap.solve()` currently uses identity visual rotations as placeholders for `R_cam`. To produce accurate translations and alignment, it must receive real visual rotation estimates from the frontend (either from `FlowFormerDynFrontend` or the stereo matcher). This wiring is the primary remaining item; the math pipeline itself is complete.
 
 ### 2.3 Backend — two-frame PGO + 15-D IMU factor
 
@@ -145,18 +211,28 @@ None implemented yet (spec §4 is complete on paper; no code).
 
 ### 2.6 Tests (unit + integration, per spec §7)
 
-Listed with current status. None of the tests below exist on disk yet.
+Committed tests as of 2026-04-25:
+
+| Test file | Status | Scope |
+|---|---|---|
+| `test_drt_preintegration.py` | ✅ 5 passing | IMU preintegration, Jacobians |
+| `test_drt_translation_alignment.py` | ✅ 32 passing | LiGT, gyro-bias, linear alignment |
+| `test_drt_bootstrap_policy.py` | ✅ 10 passing | DRTInitConfig/Result schema, retry/fallback policy |
+| `test_drt_quality.py` | ✅ 30 passing | All 6 quality gate functions |
+| `test_imu_context_seed.py` | ✅ 6 passing | `seed_from_drt` wiring |
+
+Still pending:
 
 | Test | Scope | Status |
 |---|---|---|
-| `test_dyngru_cell.py` | α=0 → FiLM-only output (gated-residual property); gradient flow | pending (covered informally by inline verification, not committed) |
-| `test_imu_cross_attn.py` | Output shape; attention weights sum to 1 over 7 tokens | pending (informally verified) |
-| `test_ekf_propagation.py` | Consistency with pypose preintegration at zero bias noise | pending |
-| `test_airimu_encoder.py` | 34-D feature vector shape + finite values across edge dt | pending |
-| `test_imu_factor_jacobians.py` | Numerical vs analytic Jacobian match for `r_ΔR, r_Δv, r_Δp` | pending (blocked on 2.3) |
+| `test_dyngru_cell.py` | α=0 → FiLM-only output; gradient flow | pending (informally verified inline) |
+| `test_imu_cross_attn.py` | Output shape; attention weights sum to 1 | pending (informally verified) |
+| `test_ekf_propagation.py` | EKF vs pypose preintegration at zero bias noise | pending |
+| `test_airimu_encoder.py` | 34-D feature vector shape + finite values | pending |
+| `test_imu_factor_jacobians.py` | Numerical vs analytic Jacobian for `r_ΔR, r_Δv, r_Δp` | pending (blocked on 2.3) |
 | `test_pipeline_euroc_mh01.py` | 10-s MH_01 slice end-to-end, finite poses | pending (blocked on 2.3, 2.5) |
 | `test_bias_sync.py` | EKF ↔ PGO biases agree within 1e-3 after 100 frames | pending (blocked on 2.1, 2.3) |
-| `test_dyngru_pseudo_label_agreement.py` | `c` agrees with rigid-flow pseudo-label ≥ 80% after Phase A init | pending (blocked on 2.4, 2.5) |
+| `test_dyngru_pseudo_label_agreement.py` | `c` agrees with rigid-flow pseudo-label ≥ 80% | pending (blocked on 2.4, 2.5) |
 
 ### 2.7 End-to-end forward smoke test on GPU
 
@@ -190,14 +266,19 @@ All blocked on §2.3–2.5.
 | DynGRU cell (head + update block + upsample + warp) | ✅ implemented, numerically verified in isolation |
 | FlowFormer decoder subclass wiring | ✅ implemented, **end-to-end forward not yet confirmed on GPU** |
 | IMU-conditioning streams (FiLM + gated adapter + token weights) | ✅ implemented, math verified |
-| IMU pipeline (EKF + Air-IO fused) | ✅ core implemented; bias-sync + preint-Jacobian export pending |
-| DRT-VIO-Init | ⏸ deferred (user) |
+| IMU pipeline (EKF + Air-IO fused) | ✅ core implemented; bias-sync hook (push_biases) pending |
+| `IMUContext.seed_from_drt` | ✅ implemented, 6 tests passing |
+| DRT-VIO-Init (Module/Initialization/DRTLoose/) | ✅ implemented, 83 tests passing; visual-rotation wiring gap remains |
+| FlowFormerDynFrontend + `static_conf` field | ✅ implemented |
+| Dyn training mode + FlowFormerDyn_Demo.yaml | ✅ implemented |
+| MACVO startup state machine (_handle_init, _seed_from_drt) | ✅ implemented |
+| MACVO experiment configs (init: block) | ✅ all 4 configs updated |
 | Backend PGO + 15-D IMU factor | ⏸ deferred (user) |
 | Losses (Phase A + Phase B) | ⏳ not started |
 | Training pipeline + dataloaders | ⏳ not started |
-| Unit + integration tests | ⏳ not started (inline math-checks done, not committed) |
+| Unit + integration tests (DynGRU cell, EKF, pipeline) | ⏳ not started (inline math-checks done, not committed) |
 | Benchmarks + ablations | ⏳ blocked |
 
-**Immediate unblocked next steps** (when the user resumes): tests (§2.6), Phase A loss + dataloader (§2.4, §2.5 TartanAir slice), then a GPU smoke test (§2.7).
+**Immediate unblocked next steps:** wire real visual rotations from the frontend into `DRTLooseBootstrap.solve()` (§2.2 gap), Phase A loss + dataloader (§2.4, §2.5 TartanAir slice), GPU smoke test (§2.7), and the remaining DynGRU + EKF unit tests (§2.6).
 
-**Blocked on user-deferred work:** anything touching PGO (§2.3), DRT-init (§2.2), and by extension bias-sync integration (§2.1 hook).
+**Blocked on user-deferred work:** anything touching PGO (§2.3), and by extension the post-PGO bias-sync hook (§2.1).

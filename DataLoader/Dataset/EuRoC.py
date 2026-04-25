@@ -268,7 +268,7 @@ class EurocIMULoader(Dataset[tuple[IMUData, AttitudeData]]):
         gt_time = rawGT[:, 0:1]
         imu_time = rawIMU[..., 0:1]
         self.timestamp = torch.tensor(imu_time, dtype=torch.long)
-        
+
         t_start = np.max([self.timestamp.numpy()[0] , gt_time.numpy()[0]])
         t_end   = np.min([self.timestamp.numpy()[-1], gt_time.numpy()[-1]])
 

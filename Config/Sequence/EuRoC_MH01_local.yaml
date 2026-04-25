@@ -1,0 +1,5 @@
+type: EuRoC
+name: MH01_local
+args:
+    root: /home/karan/Downloads/EuRoC/machine_hall/MH_01_easy/MH_01_easy/mav0
+    gt_pose: true

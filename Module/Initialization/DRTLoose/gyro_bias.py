@@ -1,185 +1,239 @@
 """
-Gyro-bias estimation for the DRT-loose initializer.
+Gyro-bias estimation — bearing-vector / smallest-eigenvalue formulation.
 
-Solves: b_g* = argmin_{b_g}  Σ_ij  ρ( ‖r_ij(b_g)‖² )
+Direct port of BiasSolverCostFunctor (optimization.hpp) + GetSmallestEV
+(opengvMethod.hpp) from the DRT-VIO-init C++ reference.
 
-where the SO(3) residual per consecutive keyframe pair is:
+For each consecutive keyframe pair i→j we collect bearing vectors
+(f_i, f_j) from the feature tracker (normalised image coordinates lifted
+to homogeneous 3-D rays). The cost per pair is the smallest eigenvalue
+of the 3×3 symmetric matrix M built from those bearing vectors under the
+bias-corrected IMU rotation.  Minimising that eigenvalue drives the IMU
+rotation to be consistent with the epipolar geometry of the feature
+correspondences — no explicit essential-matrix decomposition required.
 
-    r_ij(b_g) = Log( R_vis_ij^{-1} · R_BC^T · ΔR_imu_ij(b_g) · R_BC )
-
-Using a direct iterative Gauss-Newton solve with Huber kernel (δ = 1e-2 rad),
-initialised at b_g = 0 (or from a caller-supplied prior).
-
-The first-order correction ΔR(b̄+δ) ≈ ΔR(b̄) · Exp(J_R_bg · δb_g) avoids
-full reintegration per iteration.
+Optimisation: scipy L-BFGS-B; gradients via torch.autograd.
 """
 
 from __future__ import annotations
 
+import numpy as np
 import torch
-import pypose as pp
+from scipy.optimize import minimize
 
 from .preintegration import PreintResult
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Cayley / rotation helpers (matches geometry.hpp)
 # ---------------------------------------------------------------------------
 
-def _so3_log_jacobian(r: torch.Tensor) -> torch.Tensor:
+def _cayley_to_rot_reduced(c: torch.Tensor) -> torch.Tensor:
+    """Unnormalised Cayley → (3,3) rotation.  Matches Cayley2RotReduced."""
+    c0, c1, c2 = c[0], c[1], c[2]
+    R = torch.stack([
+        torch.stack([1 + c0*c0 - c1*c1 - c2*c2,  2*(c0*c1 - c2),              2*(c0*c2 + c1)]),
+        torch.stack([2*(c0*c1 + c2),               1 - c0*c0 + c1*c1 - c2*c2,  2*(c1*c2 - c0)]),
+        torch.stack([2*(c0*c2 - c1),               2*(c1*c2 + c0),              1 - c0*c0 - c1*c1 + c2*c2]),
+    ])
+    return R
+
+
+def _aa_to_cayley(aa: torch.Tensor) -> torch.Tensor:
+    """Axis-angle (3,) → Cayley params (3,), differentiable everywhere.
+
+    cayley_i = (tan(θ/2) / θ) * aa_i   where θ = ||aa||
+    For θ→0: → aa/2  (Taylor).
     """
-    Left Jacobian inverse of SO3 Log map at r (3-vector).
+    theta = (aa.dot(aa) + 1e-30).sqrt()   # always > 0, grad-safe
+    half  = theta * 0.5
+    # tan(half)/theta = sin(half)/(theta*cos(half))
+    scale = torch.sin(half) / (theta * torch.cos(half))
+    return scale * aa
 
-    For |r| < 0.5 rad use identity approximation; otherwise use the exact
-    formula:  J_log^{-1} = I + 0.5 [r]× + (1/|r|² - (1+cos|r|)/(2|r|sin|r|)) [r]×²
 
-    Returns a (3,3) matrix such that:
-        d(Log(Exp(r) · Exp(δ))) / dδ  |_{δ=0}  ≈  J_log^{-1}(r)
+# ---------------------------------------------------------------------------
+# Bearing-vector accumulation (matches BiasSolverCostFunctor constructor)
+# ---------------------------------------------------------------------------
+
+class _PairAccum:
+    """Precomputed F-sum matrices for one consecutive frame pair.
+
+    Matches the six F matrices accumulated in BiasSolverCostFunctor:
+        xxF, yyF, zzF, xyF, yzF, xzF
+    where each is:
+        sum_k  f1'[a] * f1'[b] * outer(f2', f2')
+    with
+        f1' = dR_base.T @ R_CB @ f1_norm     (C++: qcjk.inverse() * f1)
+        f2' = R_CB     @ f2_norm              (C++: _qic * f2)
+    where R_CB = R_BC.T is the camera→body rotation and dR_base = ΔR_imu(b_g=0).
+
+    The C++ `_qic` (passed as Rbc_) uses camera-to-body convention.  Bearings
+    from the feature tracker are in the camera frame, so we need R_CB here.
     """
-    theta = r.norm()
-    if theta.item() < 0.5:
-        return torch.eye(3, dtype=r.dtype, device=r.device)
 
-    sk = pp.vec2skew(r)  # (3,3) skew-symmetric [r]×
-    c  = torch.cos(theta)
-    s  = torch.sin(theta)
-    t2 = theta * theta
-    coeff = (1.0 / t2 - (1.0 + c) / (2.0 * theta * s))
-    return torch.eye(3, dtype=r.dtype, device=r.device) + 0.5 * sk + coeff * (sk @ sk)
+    def __init__(
+        self,
+        bearings_i: torch.Tensor,   # (N, 3) bearing vectors frame i  (camera frame)
+        bearings_j: torch.Tensor,   # (N, 3) bearing vectors frame j  (camera frame)
+        dR_base: torch.Tensor,      # (3, 3) zero-bias IMU rotation for this gap
+        R_BC: torch.Tensor,         # (3, 3) body(IMU)→camera extrinsic; R_CB = R_BC.T used internally
+    ):
+        dtype = torch.float64
+        z3 = torch.zeros(3, 3, dtype=dtype)
+        xxF = z3.clone(); yyF = z3.clone(); zzF = z3.clone()
+        xyF = z3.clone(); yzF = z3.clone(); xzF = z3.clone()
+
+        R_CB    = R_BC.to(dtype).T   # camera→body  (= _qic in C++ BiasSolverCostFunctor)
+        dR_base = dR_base.to(dtype)
+
+        N = bearings_i.shape[0]
+        for k in range(N):
+            f1 = bearings_i[k].to(dtype)
+            f2 = bearings_j[k].to(dtype)
+
+            # Pre-rotate to body frame (matches C++ BiasSolverCostFunctor constructor)
+            f1n = f1 / f1.norm()
+            f2n = f2 / f2.norm()
+            f1p = dR_base.T @ R_CB @ f1n     # fj' in C++ naming
+            f2p = R_CB @ f2n                  # fk' in C++ naming
+
+            F = torch.outer(f2p, f2p)         # (3,3) projection matrix
+
+            xxF += f1p[0] * f1p[0] * F
+            yyF += f1p[1] * f1p[1] * F
+            zzF += f1p[2] * f1p[2] * F
+            xyF += f1p[0] * f1p[1] * F
+            yzF += f1p[1] * f1p[2] * F
+            xzF += f1p[0] * f1p[2] * F       # stored as xzF, passed as zxF to ComposeM
+
+        self.xxF = xxF
+        self.yyF = yyF
+        self.zzF = zzF
+        self.xyF = xyF
+        self.yzF = yzF
+        self.xzF = xzF                         # = zxF in ComposeM parameter naming
+
+    def eval(self, cayley: torch.Tensor) -> torch.Tensor:
+        """Squared smallest eigenvalue of M(cayley) — scalar, differentiable.
+
+        Ceres in the reference minimises  residual^2  (before loss), so we
+        use EV^2 rather than raw EV to match that behaviour.
+        """
+        M  = _compose_M(self.xxF, self.yyF, self.zzF,
+                        self.xyF, self.yzF, self.xzF, cayley)
+        ev = torch.linalg.eigvalsh(M)[0]
+        return ev * ev
+
+
+# ---------------------------------------------------------------------------
+# ComposeM  (matches ComposeM / ComposeM template in opengvMethod.hpp)
+# ---------------------------------------------------------------------------
+
+def _compose_M(
+    xxF: torch.Tensor, yyF: torch.Tensor, zzF: torch.Tensor,
+    xyF: torch.Tensor, yzF: torch.Tensor, zxF: torch.Tensor,
+    cayley: torch.Tensor,
+) -> torch.Tensor:
+    """Build 3×3 symmetric matrix M from F-sums and (unnormalised) Cayley R.
+
+    Matches ComposeM in opengvMethod.hpp; zxF argument = xzF accumulation
+    (symmetric, so the naming difference is irrelevant).
+    """
+    R  = _cayley_to_rot_reduced(cayley)   # (3,3)
+
+    def rv(F: torch.Tensor, i: int, j: int) -> torch.Tensor:
+        """R[i,:] @ F @ R[j,:] — scalar."""
+        return R[i] @ F @ R[j]
+
+    M00 = rv(yyF, 2, 2) - 2*rv(yzF, 2, 1) + rv(zzF, 1, 1)
+    M01 = rv(yzF, 2, 0) - rv(xyF, 2, 2) - rv(zzF, 1, 0) + rv(zxF, 1, 2)
+    M02 = rv(xyF, 2, 1) - rv(yyF, 2, 0) - rv(zxF, 1, 1) + rv(yzF, 1, 0)
+    M11 = rv(zzF, 0, 0) - 2*rv(zxF, 0, 2) + rv(xxF, 2, 2)
+    M12 = rv(zxF, 0, 1) - rv(yzF, 0, 0) - rv(xxF, 2, 1) + rv(xyF, 2, 0)
+    M22 = rv(xxF, 1, 1) - 2*rv(xyF, 0, 1) + rv(yyF, 0, 0)
+
+    M = torch.stack([
+        torch.stack([M00, M01, M02]),
+        torch.stack([M01, M11, M12]),
+        torch.stack([M02, M12, M22]),
+    ])
+    return M
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def rotation_residual(
-    R_vis_ij: torch.Tensor,   # (3,3) visual relative rotation
-    dR_imu_ij: torch.Tensor,  # (3,3) IMU preintegrated relative rotation (current b_g)
-    R_BC: torch.Tensor,       # (3,3) IMU-to-camera rotation
-) -> torch.Tensor:
-    """
-    Compute the 3-vector SO3 residual r = Log(R_vis^{-1} @ R_BC^T @ dR_imu @ R_BC).
-
-    Parameters
-    ----------
-    R_vis_ij  : (3,3) visual relative rotation  R_ij from camera tracking.
-    dR_imu_ij : (3,3) IMU preintegrated relative rotation ΔR_ij(b_g).
-    R_BC      : (3,3) rotation from IMU body frame to camera frame.
-
-    Returns
-    -------
-    r : (3,) SO3 logarithm of the rotation error.
-    """
-    # R_err = R_vis^{-1} @ R_BC^T @ dR_imu @ R_BC
-    R_err = R_vis_ij.T @ R_BC.T @ dR_imu_ij @ R_BC        # (3,3)
-    # Convert to SO3 LieTensor, take Log, return plain (3,) tensor
-    r = pp.mat2SO3(R_err).Log().tensor()                   # (3,)
-    return r
-
-
 def solve_gyro_bias(
-    preint_results: list[PreintResult],      # one per consecutive keyframe gap
-    R_vis_list: list[torch.Tensor],          # list of (3,3) visual relative rotations R_vis_ij
-    R_BC: torch.Tensor,                      # (3,3) IMU-to-camera extrinsic rotation
-    b_g_init: torch.Tensor | None = None,   # (3,) initial guess; defaults to zeros
-    huber_delta: float = 1e-2,
-    max_iters: int = 50,
+    preint_results: list[PreintResult],
+    bearing_pairs:  list[tuple[torch.Tensor, torch.Tensor]],
+    R_BC:           torch.Tensor,
+    b_g_init:       torch.Tensor | None = None,
+    max_iters:      int = 200,
 ) -> tuple[torch.Tensor, bool]:
-    """
-    Estimate gyroscope bias via iterative Gauss-Newton with a Huber kernel.
-
-    Uses a first-order correction to avoid full reintegration per iteration:
-        ΔR(b̄+δ) ≈ ΔR(b̄) · Exp(J_R_bg · δb_g)
+    """Estimate gyroscope bias using the bearing-vector / smallest-EV cost.
 
     Parameters
     ----------
-    preint_results : N-1 preintegration results (one per consecutive kf gap).
-    R_vis_list     : N-1 visual relative rotations R_vis_ij, each (3,3).
-    R_BC           : (3,3) rotation from IMU body frame to camera frame.
+    preint_results : N-1 PreintResult objects (one per consecutive kf gap).
+    bearing_pairs  : N-1 tuples (bearings_i, bearings_j), each (M, 3)
+                     unnormalised 3-D bearing vectors [u, v, 1] in the
+                     normalised image plane of their respective frames.
+    R_BC           : (3,3) body(IMU)→camera rotation extrinsic (float64).
     b_g_init       : (3,) initial gyro bias; zeros if None.
-    huber_delta    : Huber kernel threshold [rad].
-    max_iters      : maximum Gauss-Newton iterations.
+    max_iters      : maximum L-BFGS-B iterations.
 
     Returns
     -------
     (b_g_star, converged)
-      b_g_star  : (3,) estimated gyro bias.
-      converged : True if step norm dropped below 1e-8 before max_iters.
+      b_g_star  : (3,) estimated gyro bias, float64.
+      converged : True if optimiser reported success or residual is tiny.
     """
-    assert len(preint_results) == len(R_vis_list), (
-        "preint_results and R_vis_list must have the same length"
+    assert len(preint_results) == len(bearing_pairs), (
+        "preint_results and bearing_pairs must have the same length"
     )
 
-    dtype  = torch.float64
-    device = R_BC.device
+    dtype = torch.float64
+    import pypose as pp
 
-    R_BC = R_BC.to(dtype=dtype, device=device)
+    R_BC = R_BC.to(dtype)
 
-    b_g = (b_g_init.clone().to(dtype=dtype, device=device)
-           if b_g_init is not None
-           else torch.zeros(3, dtype=dtype, device=device))
+    # Build zero-bias IMU rotations and _PairAccum for each gap
+    pair_accums: list[_PairAccum] = []
+    for pr, (bi, bj) in zip(preint_results, bearing_pairs):
+        dR_log0  = pr.dR_log.to(dtype)
+        dR_base  = pp.so3(dR_log0).Exp().matrix().squeeze(0).to(dtype)   # (3,3)
+        pa = _PairAccum(bi, bj, dR_base, R_BC)
+        pair_accums.append(pa)
 
-    converged = False
+    b_g0 = (b_g_init.clone().to(dtype)
+             if b_g_init is not None
+             else torch.zeros(3, dtype=dtype))
 
-    for _it in range(max_iters):
-        JtWJ = torch.zeros(3, 3, dtype=dtype, device=device)
-        JtWr = torch.zeros(3,    dtype=dtype, device=device)
+    # Pre-fetch Jacobians as plain tensors (no grad) for use inside the loop
+    J_list = [pr.J_R_bg.to(dtype).detach() for pr in preint_results]
 
-        for pr, R_vis_ij in zip(preint_results, R_vis_list):
-            R_vis_ij = R_vis_ij.to(dtype=dtype, device=device)
+    def cost_and_grad(x: np.ndarray):
+        b_g = torch.tensor(x, dtype=dtype, requires_grad=True)
+        total = torch.tensor(0.0, dtype=dtype)
+        for pa, J_bg in zip(pair_accums, J_list):
+            delta_log = J_bg @ b_g              # (3,) — keeps grad
+            cayley    = _aa_to_cayley(delta_log)
+            total     = total + pa.eval(cayley)
+        total.backward()
+        grad = b_g.grad.detach().numpy().astype(np.float64)
+        return float(total.detach().item()), grad
 
-            # ---- Current ΔR with first-order bias correction ----------------
-            # ΔR_log stored at preintegration bias (b_g=0 at integration time).
-            # Correction: ΔR(b_g) ≈ ΔR(0) · Exp(J_R_bg · b_g)
-            # (b_g appears with negative sign inside the integrator, but
-            # J_R_bg already encodes that sign via the Forster eq-45 convention.)
-            J_R_bg = pr.J_R_bg.to(dtype=dtype, device=device)  # (3,3)
-            dR_log0 = pr.dR_log.to(dtype=dtype, device=device)  # (3,) log at stored bias
+    result = minimize(
+        cost_and_grad,
+        b_g0.numpy(),
+        method="L-BFGS-B",
+        jac=True,
+        options={"maxiter": max_iters, "ftol": 1e-20, "gtol": 1e-12},
+    )
 
-            # ΔR base rotation matrix
-            dR_base = pp.so3(dR_log0).Exp().matrix().squeeze(0)   # (3,3)
+    b_g_star  = torch.tensor(result.x, dtype=dtype)
+    converged = bool(result.success) or float(result.fun) < 1e-6
 
-            # bias-correction rotation Exp(J_R_bg · b_g)
-            bias_corr_log = J_R_bg @ b_g                           # (3,)
-            dR_bias_corr  = pp.so3(bias_corr_log).Exp().matrix().squeeze(0)  # (3,3)
-
-            dR_ij = dR_base @ dR_bias_corr                         # (3,3)
-
-            # ---- Residual ---------------------------------------------------
-            r = rotation_residual(R_vis_ij, dR_ij, R_BC)           # (3,)
-            r_norm = r.norm()
-
-            # ---- Huber weight -----------------------------------------------
-            w = min(1.0, huber_delta / r_norm.item()) if r_norm.item() > 1e-12 else 1.0
-
-            # ---- Jacobian of residual wrt b_g --------------------------------
-            # r = Log(R_vis^{-1} @ R_BC^T @ ΔR_ij @ R_BC)
-            # ΔR_ij = dR_base @ Exp(J_R_bg · b_g)
-            # d(ΔR_ij)/d(b_g) at current b_g = dR_base @ Exp(·) · J_R_bg
-            #                                = dR_ij · J_R_bg  (right-perturbation)
-            # Then:
-            #   dr/d(b_g) = J_log^{-1}(r) · R_BC^T · dR_ij · J_R_bg
-            #
-            # (The R_vis^{-1} pulls out as a left factor and does not affect
-            #  the right-perturbation Jacobian.)
-            J_log_inv = _so3_log_jacobian(r)                       # (3,3)
-            J_r = J_log_inv @ R_BC.T @ dR_ij @ J_R_bg              # (3,3)
-
-            # ---- Accumulate weighted normal equations -----------------------
-            JtWJ += w * (J_r.T @ J_r)
-            JtWr += w * (J_r.T @ r)
-
-        # ---- Solve: (J^T W J) δb_g = -J^T W r -----------------------------
-        try:
-            delta_b_g = torch.linalg.solve(JtWJ, -JtWr)
-        except torch.linalg.LinAlgError:
-            # Singular system – stop early
-            break
-
-        b_g = b_g + delta_b_g
-
-        if delta_b_g.norm().item() < 1e-8:
-            converged = True
-            break
-
-    return b_g, converged
+    return b_g_star, converged

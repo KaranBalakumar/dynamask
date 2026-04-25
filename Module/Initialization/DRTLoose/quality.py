@@ -27,6 +27,33 @@ def check_avg_observation(tracks, n_keyframes: int, min_avg_obs: int = 30) -> tu
     return True, None
 
 
+def check_min_parallax(
+    tracks,
+    n_keyframes: int,
+    min_per_pair_parallax: float = 0.02,
+) -> tuple[bool, str | None]:
+    """Gate 0: minimum per-pair average parallax in normalised image coords.
+
+    For each consecutive keyframe pair (i, i+1) we compute the mean optical-flow
+    magnitude over all tracks visible in both frames.  If the minimum pair
+    parallax across the window is below *min_per_pair_parallax*, the window lacks
+    enough rotational excitation for the bearing-vector gyro-bias solver.
+
+    0.02 ≈ 10 px for a camera with fx ≈ 500.
+    """
+    for i in range(n_keyframes - 1):
+        disps = []
+        for t in tracks:
+            if i in t.obs and (i + 1) in t.obs:
+                disps.append((t.obs[i + 1] - t.obs[i]).norm().item())
+        if not disps:
+            return False, LOW_PARALLAX
+        avg = sum(disps) / len(disps)
+        if avg < min_per_pair_parallax:
+            return False, LOW_PARALLAX
+    return True, None
+
+
 def check_acceleration_observability(
     acc_norms: list[float] | torch.Tensor,
     gravity_norm: float = 9.81007,

@@ -1,0 +1,4 @@
+command: python3 MACVO.py --odom Config/Experiment/MACVO/Paper_Reproduce.yaml --data
+  /tmp/euroc_mh01_local.yaml --seq_to 30
+git_version: 6a11d73b
+time: 04_25_193444

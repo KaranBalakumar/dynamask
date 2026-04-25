@@ -68,6 +68,7 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         self.isinitiated = False
         self._init_cfg = init_cfg
         self._drt_init_buffer: list = []
+        self.imu_context = None   # set by from_config if airio block present
         
         # Context for tracking
         # [0] - Frame Source Data
@@ -94,7 +95,23 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         KeyframeSelector    = Module.IKeyframeSelector[T_SensorFrame].instantiate(odomcfg.keyframe.type, odomcfg.keyframe.args)
         Optimizer           = Module.IOptimizer.instantiate(odomcfg.optimizer.type, odomcfg.optimizer.args)
         
-        return cls(
+        # Build IMUContext (AirIO + EKF) if configured
+        imu_ctx = None
+        cfg_init = getattr(odomcfg, "init", None)
+        if cfg_init is not None and getattr(cfg_init, "enabled", False):
+            airio_cfg_node = getattr(cfg_init, "airio", None)
+            if airio_cfg_node is not None:
+                from types import SimpleNamespace as _SNS
+                from Module.Network.IMUContext import IMUContext
+                model_cfg = _SNS(propcov=getattr(airio_cfg_node, "propcov", True))
+                imu_ctx = IMUContext(
+                    airio_cfg=model_cfg,
+                    airio_ckpt=getattr(airio_cfg_node, "ckpt", None),
+                    gravity=getattr(cfg_init, "gravity_norm", 9.81007),
+                )
+                Logger.write("info", "IMUContext (AirIO + EKF) initialised")
+
+        system = cls(
             frontend=Frontend,
             motion_model=MotionEstimator,
             kp_selector=KeypointSelector,
@@ -107,7 +124,9 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             init_cfg=getattr(odomcfg, "init", None),
             **vars(odomcfg.args),
         )
-    
+        system.imu_context = imu_ctx
+        return system
+
     def report_config(self):
         # Cute fine-print boxes
         box1 = Panel.fit(
@@ -350,7 +369,20 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         if use_drt:
             self._drt_init_buffer.append(frame)
             n_needed = getattr(cfg_init, "min_keyframes", 10)
-            if len(self._drt_init_buffer) < n_needed:
+            # Require n_needed temporally-spaced keyframes (≥220ms apart, matching
+            # the C++ addFeatureCheckParallax threshold). Count selected frames directly
+            # rather than using a coverage heuristic, since at 20Hz each "step" is
+            # 250ms (5 frames) rather than exactly 220ms.
+            buf = self._drt_init_buffer
+            if len(buf) < 2:
+                return
+            _MIN_GAP_NS = 220_000_000
+            _n_sel, _last_ns = 1, buf[0].stereo.frame_ns
+            for _fr in buf[1:]:
+                if _fr.stereo.frame_ns - _last_ns >= _MIN_GAP_NS:
+                    _n_sel += 1
+                    _last_ns = _fr.stereo.frame_ns
+            if _n_sel < n_needed:
                 return  # still accumulating
 
             from Module.Initialization.DRTLoose.bootstrap import run_drt_with_retry
@@ -373,13 +405,21 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             if drt_result is not None and drt_result.success:
                 Logger.write("info", "DRT init succeeded — seeding EKF from DRT result")
                 self._seed_from_drt(drt_result, self._drt_init_buffer[0])
+                self._drt_init_buffer.clear()
+                self.isinitiated = True
+            elif drt_result is not None and drt_result.retry_recommended:
+                # Slide the window: drop oldest frame and wait for the next one.
+                # This handles LOW_PARALLAX (stationary window) without giving up.
+                reason = drt_result.failure_reason
+                Logger.write("info", f"DRT init retry ({reason}); sliding window")
+                self._drt_init_buffer.pop(0)
+                # isinitiated stays False — next frame will trigger another attempt
             else:
                 reason = drt_result.failure_reason if drt_result is not None else "exception"
                 Logger.write("warn", f"DRT init failed ({reason}); using heuristic")
                 self.initialize(self._drt_init_buffer[0])
-
-            self._drt_init_buffer.clear()
-            self.isinitiated = True
+                self._drt_init_buffer.clear()
+                self.isinitiated = True
         else:
             self.initialize(frame)
             self.isinitiated = True
@@ -430,7 +470,22 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
                 (uv[..., 1] - cy) / fy,
             ], dim=-1)
 
-        # track_obs stores NORMALIZED image coords so _bearing() works correctly
+        # Temporal subsampling: select init keyframes ≥220ms apart (matches C++
+        # addFeatureCheckParallax threshold of 0.22s). Optical flow is tracked
+        # through every consecutive pair for quality; observations and IMU are
+        # only accumulated at/between selected keyframes.
+        MIN_FRAME_GAP_NS = 220_000_000  # 0.22s in nanoseconds
+        selected_indices = [0]
+        last_selected_ns = buf[0].stereo.frame_ns
+        for _i in range(1, len(buf)):
+            if buf[_i].stereo.frame_ns - last_selected_ns >= MIN_FRAME_GAP_NS:
+                selected_indices.append(_i)
+                last_selected_ns = buf[_i].stereo.frame_ns
+        selected_set = set(selected_indices)
+        buf_to_kf: dict[int, int] = {bi: ki for ki, bi in enumerate(selected_indices)}
+
+        # track_obs stores NORMALIZED image coords so _bearing() works correctly.
+        # Keys are selected-keyframe indices (0..n_selected-1), not raw buffer indices.
         track_obs: dict[int, dict[int, T.Any]] = {
             j: {0: _px_to_norm(kp0_uv[j])}
             for j in range(kp0_uv.shape[0])
@@ -441,11 +496,12 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         bootstrap._keyframe_timestamps.append(frame0.stereo.frame_ms * 1e-3)
 
         prev_frame = frame0
+        current_segment: list = []  # IMU ticks accumulated toward the next selected KF
 
         for i in range(1, len(buf)):
             frame_i = buf[i]
 
-            # ── run FlowFormer on the consecutive pair ───────────────────────
+            # ── run FlowFormer on every consecutive pair (tracking continuity) ──
             _, match_i = self.Frontend.estimate_pair(prev_frame.stereo, frame_i.stereo)
 
             # ── track surviving keypoints via optical flow ───────────────────
@@ -463,24 +519,30 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
                 new_alive  = [tid for k, tid in enumerate(alive_ids) if inbound[k]]
                 new_kp_uv  = new_kp_uv[inbound]
 
-                for k, tid in enumerate(new_alive):
-                    track_obs[tid][i] = _px_to_norm(new_kp_uv[k])
+                # Record observation only at selected keyframe indices
+                if i in selected_set:
+                    ki = buf_to_kf[i]
+                    for k, tid in enumerate(new_alive):
+                        track_obs[tid][ki] = _px_to_norm(new_kp_uv[k])
 
                 alive_ids  = new_alive
                 prev_kp_uv = new_kp_uv
 
-            # ── collect IMU ticks for this gap ───────────────────────────────
-            segment: list = []
+            # ── accumulate IMU ticks for the segment ending at the next KF ───
             imu = getattr(frame_i, "imu", None)
             if imu is not None:
                 dt_ns = imu.time_delta[0, :, 0].to(torch.float64)  # (N-1,) ns
                 gyro  = imu.gyro[0].to(torch.float64)               # (N, 3)
                 acc   = imu.acc[0].to(torch.float64)                # (N, 3)
                 for t in range(dt_ns.shape[0]):
-                    segment.append((gyro[t], acc[t], dt_ns[t].item() * 1e-9))
+                    current_segment.append((gyro[t], acc[t], dt_ns[t].item() * 1e-9))
 
-            bootstrap._keyframe_timestamps.append(frame_i.stereo.frame_ms * 1e-3)
-            bootstrap._imu_segments.append(segment)
+            # When we reach a selected keyframe, flush the accumulated segment
+            if i in selected_set:
+                bootstrap._keyframe_timestamps.append(frame_i.stereo.frame_ms * 1e-3)
+                bootstrap._imu_segments.append(current_segment)
+                current_segment = []
+
             prev_frame = frame_i
 
         # ── build FeatureTrack list (≥2 observations required for LiGT) ─────
@@ -490,19 +552,30 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             if len(obs) >= 2
         ]
         Logger.write("info",
-            f"DRT bootstrap: {len(buf)} KFs, "
-            f"{len(bootstrap._imu_segments)} IMU segments, "
-            f"{len(bootstrap._tracks)} tracks (alive={len(alive_ids)})"
+            f"DRT bootstrap: {len(buf)} buf frames → {len(selected_indices)} KFs selected "
+            f"({len(bootstrap._imu_segments)} IMU segments, "
+            f"{len(bootstrap._tracks)} tracks, alive={len(alive_ids)})"
         )
         return bootstrap
 
     def _seed_from_drt(self, drt_result, frame: T_SensorFrame) -> None:
         """Seed frontend IMU context from DRT result and push kf-0 pose to graph."""
-        # Seed IMUContext if available on frontend
-        if hasattr(self.Frontend, "imu_context"):
-            self.Frontend.imu_context.seed_from_drt(drt_result)
+        Logger.write("info",
+            f"DRT result — scale={drt_result.scale:.6f} "
+            f"|v0|={drt_result.v0.norm():.4f} m/s  "
+            f"b_g={[round(x,5) for x in drt_result.b_g.tolist()]} rad/s  "
+            f"|g_W|={drt_result.g_W.norm():.4f} m/s²  "
+            f"g_W={[round(x,3) for x in drt_result.g_W.tolist()]}"
+        )
+        # Seed IMUContext (AirIO + EKF) if present
+        if self.imu_context is not None:
+            self.imu_context.seed_from_drt(drt_result)
+            Logger.write("info", "IMUContext seeded from DRT result")
         # Initialize the pose graph with kf-0 (same as heuristic initialize but with DRT pose)
         depth0 = self.Frontend.estimate_depth(frame.stereo)
+        # Prime MotionEstimator so its first update() call (in run_pair) doesn't fail.
+        # The returned pose is discarded; the side effect (prev_pose = identity) is what matters.
+        self.MotionEstimator.predict(frame, None, depth0.depth)
         # Use identity pose at kf-0 (DRT places kf-0 as world origin)
         est_pose = pp.identity_SE3(1, device=self.device)
         frame_idx = self.graph.frames.push(FrameNode.init({
@@ -542,9 +615,25 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
         if not self.isinitiated:
             self._handle_init(frame)
             return
-        
+
+        self._step_imu_context(frame)
         assert self.prev_keyframe is not None
         self.run_pair(self.prev_keyframe[0], frame)
+
+    def _step_imu_context(self, frame: T_SensorFrame) -> None:
+        """Advance AirIO + EKF one camera window using raw IMU ticks from the frame."""
+        if self.imu_context is None or not hasattr(frame, "imu"):
+            return
+        imu = frame.imu                                          # type: ignore[attr-defined]
+        dt_ns  = imu.time_delta[0, :, 0].to(torch.float64)      # (N-1,) ns
+        gyro   = imu.gyro[0].to(torch.float64)                   # (N, 3)
+        acc    = imu.acc[0].to(torch.float64)                    # (N, 3)
+        n = dt_ns.shape[0]
+        # Without AirIMU correction we pass raw readings; EKF uses its internal
+        # bias estimate (b_g, b_a from DRT init) to correct them.
+        corrected = [{"acc": acc[t], "gyro": gyro[t], "dt": dt_ns[t].item() * 1e-9} for t in range(n)]
+        raw      = [{"acc": acc[t], "gyro": gyro[t]} for t in range(n)]
+        self.imu_context.step(corrected, raw)
 
     def get_map(self) -> VisualMap:
         return self.graph

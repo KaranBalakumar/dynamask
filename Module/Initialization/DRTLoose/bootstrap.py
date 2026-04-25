@@ -23,9 +23,10 @@ import pypose as pp
 from .types import DRTInitConfig, DRTInitResult
 from .preintegration import IMUPreintegrator, PreintResult
 from .gyro_bias import solve_gyro_bias
+from .tracks import _bearing
 from .translation import build_LTL, recover_translations, resolve_translation_sign, check_ltl_conditioning
 from .alignment import linear_alignment, normalize_gravity
-from .quality import run_all_quality_gates, check_gravity_consistency
+from .quality import run_all_quality_gates, check_gravity_consistency, check_min_parallax
 from .tracks import FeatureTrack
 
 
@@ -66,6 +67,14 @@ class DRTLooseBootstrap:
         if n_kf < self.cfg.min_keyframes:
             return DRTInitResult.failure("INSUFFICIENT_OBS", retry=True)
 
+        # Gate 0: minimum per-pair parallax — reject windows with near-stationary
+        # pairs since the bearing-vector gyro-bias cost is degenerate there.
+        passed, reason = check_min_parallax(
+            self._tracks, n_kf, self.cfg.quality_min_per_pair_parallax
+        )
+        if not passed:
+            return DRTInitResult.failure(reason, retry=True)
+
         # Step 1: Preintegrate IMU segments
         preint_results: list[PreintResult] = []
         integrator = IMUPreintegrator()
@@ -75,12 +84,29 @@ class DRTLooseBootstrap:
                 integrator.integrate(gyro, acc, dt)
             preint_results.append(integrator.result())
 
-        # Step 2: Solve gyro bias
-        # (For now: dummy visual rotations from identity — real impl needs matcher)
-        R_vis_list = [torch.eye(3, dtype=torch.float64) for _ in preint_results]
+        # Step 2: Solve gyro bias using bearing-vector epipolar cost
+        # For each consecutive pair collect matching 3-D bearing vectors from
+        # the tracked features (no essential-matrix decomposition needed).
+        bearing_pairs: list[tuple[torch.Tensor, torch.Tensor]] = []
+        for i in range(n_kf - 1):
+            fis, fjs = [], []
+            for track in self._tracks:
+                if i in track.obs and (i + 1) in track.obs:
+                    # _bearing lifts (2,) normalised coords → (3,) unit ray
+                    fis.append(_bearing(track.obs[i]))
+                    fjs.append(_bearing(track.obs[i + 1]))
+            if len(fis) < 8:
+                # Insufficient correspondences for this gap — use placeholder zeros;
+                # the pair contributes near-zero cost and gradient.
+                bearing_pairs.append((
+                    torch.zeros(1, 3, dtype=torch.float64),
+                    torch.zeros(1, 3, dtype=torch.float64),
+                ))
+            else:
+                bearing_pairs.append((torch.stack(fis), torch.stack(fjs)))
+
         b_g, converged = solve_gyro_bias(
-            preint_results, R_vis_list, self.R_BC,
-            huber_delta=self.cfg.huber_delta_gyro_rad,
+            preint_results, bearing_pairs, self.R_BC,
         )
 
         # Step 3: Camera rotations from IMU (after bias correction)
@@ -169,10 +195,17 @@ def run_drt_with_retry(
     After all attempts exhausted, returns a failure with reason="FALLBACK_HEURISTIC".
     """
     attempts = min(cfg.max_attempts + 1, len(cfg.window_scales))
+    last_res: DRTInitResult | None = None
     for i in range(attempts):
         res = solver_fn(cfg.window_scales[i])
         if res is not None and res.success:
             return res
+        if res is not None:
+            last_res = res
+    # If every attempt recommended retry (e.g. LOW_PARALLAX), bubble that up
+    # so the caller can slide the window rather than fall back to heuristic.
+    if last_res is not None and last_res.retry_recommended:
+        return last_res
     return DRTInitResult(
         success=False,
         failure_reason="FALLBACK_HEURISTIC",
