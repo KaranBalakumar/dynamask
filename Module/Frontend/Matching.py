@@ -21,15 +21,16 @@ class IMatcher(ABC, ConfigTestableSubclass):
     @Jt.jaxtyped(typechecker=typechecked)
     @dataclass
     class Output:
-        flow: Jt.Float32[torch.Tensor, "B 2 H W"]                 # B x 2 x H x W, float32
-        cov : Jt.Float32[torch.Tensor, "B 3 H W"] | None = None   # B x 3 x H x W, float32 OR None if not applicable
-        mask: Jt.Bool   [torch.Tensor, "B 1 H W"] | None = None   # B x 1 x H x W, bool    OR None if not applicable
+        flow       : Jt.Float32[torch.Tensor, "B 2 H W"]                 # B x 2 x H x W, float32
+        cov        : Jt.Float32[torch.Tensor, "B 3 H W"] | None = None   # B x 3 x H x W, float32 OR None if not applicable
+        mask       : Jt.Bool   [torch.Tensor, "B 1 H W"] | None = None   # B x 1 x H x W, bool    OR None if not applicable
+        static_conf: Jt.Float32[torch.Tensor, "B 1 H W"] | None = None   # B x 1 x H x W, float32 OR None; per-pixel static confidence from DynGRU
         
         @classmethod
         def from_partial_cov(cls,
-            flow: Jt.Float32[torch.Tensor, "B 2 H W"],
-            cov : Jt.Float32[torch.Tensor, "B 2 H W"],
-            mask: Jt.Bool   [torch.Tensor, "B 1 H W"] | None = None 
+            flow: torch.Tensor,
+            cov : torch.Tensor,
+            mask: torch.Tensor | None = None
         ) -> "IMatcher.Output":
             B, C, H, W = cov.shape
             assert C == 2, "Partial cov is the matcher output where only \\sigma_uu, \\sigma_vv are available."

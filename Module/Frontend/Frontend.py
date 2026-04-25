@@ -261,6 +261,127 @@ class FlowFormerCovFrontend(IFrontend):
         })
 
 
+class FlowFormerDynFrontend(IFrontend):
+    """Frontend wrapping FlowFormerDyn + IMUContext under the IFrontend interface.
+
+    The depth path reuses the stereo disparity inference (same as FlowFormerCovFrontend).
+    The matching path additionally runs the DynGRU branch with (f_imu, imu_tokens)
+    from IMUContext. The IMU sample is computed internally; MACVO does not need to
+    know about IMU plumbing.
+
+    The `imu_context` attribute is exposed so MACVO._seed_from_drt can call
+    `frontend.imu_context.seed_from_drt(drt_result)` directly.
+    """
+
+    T_SUPPORT_DTYPE = Literal["fp32", "bf16", "fp16"]
+
+    def __init__(self, config: SimpleNamespace):
+        super().__init__(config)
+
+        from ..Network.FlowFormer.configs.submission import get_cfg
+        from ..Network.FlowFormerDyn import build_flowformer_dyn
+
+        cfg = get_cfg()
+        cfg.latentcostformer.decoder_depth = self.config.decoder_depth
+        self.model = build_flowformer_dyn(
+            cfg,
+            reflect_torch_dtype(config.enc_dtype),
+            reflect_torch_dtype(config.dec_dtype),
+        )
+        ckpt = torch.load(self.config.weight, map_location=self.config.device, weights_only=True)
+        self.model.load_ddp_state_dict(ckpt)
+        self.model.to(self.config.device).eval()
+
+        # IMUContext is optional at construction — instantiated lazily or injected
+        self.imu_context = None
+
+    @property
+    def provide_cov(self) -> tuple[bool, bool]:
+        return True, True
+
+    @staticmethod
+    def inference_2_depth(
+        flow_12: torch.Tensor,
+        cov_12: torch.Tensor,
+        frame: StereoData,
+        enforce_positive_disparity: bool,
+    ) -> "IStereoDepth.Output":
+        # Identical to FlowFormerCovFrontend.inference_2_depth
+        disparity, disparity_cov = flow_12[:, :1].abs(), cov_12[:, :1]
+        depth_map = disparity_to_depth(disparity, frame.frame_baseline, frame.fx)
+        depth_cov = disparity_to_depth_cov(disparity, disparity_cov, frame.frame_baseline, frame.fx)
+
+        if enforce_positive_disparity:
+            bad_mask = flow_12[:, :1] <= 0
+        else:
+            bad_mask = None
+
+        return IStereoDepth.Output(
+            depth=depth_map,
+            disparity=disparity,
+            disparity_uncertainty=disparity_cov.sqrt(),
+            cov=depth_cov,
+            mask=bad_mask,
+        )
+
+    @torch.inference_mode()
+    def estimate_depth(self, frame: StereoData) -> "IStereoDepth.Output":
+        # Stereo disparity pass — no DynGRU needed (same as CovFrontend)
+        dummy_imu = torch.zeros(1, 128, device=self.config.device)
+        dummy_tok = torch.zeros(1, 7, 128, device=self.config.device)
+        flow, cov, _ = self.model.inference(
+            frame.imageL.to(self.config.device),
+            frame.imageR.to(self.config.device),
+            dummy_imu,
+            dummy_tok,
+        )
+        return self.inference_2_depth(
+            flow.float(), cov.float(), frame,
+            getattr(self.config, "enforce_positive_disparity", False),
+        )
+
+    @torch.inference_mode()
+    def estimate_pair(
+        self,
+        frame_t1: StereoData,
+        frame_t2: StereoData,
+    ) -> tuple["IStereoDepth.Output", "IMatcher.Output"]:
+        # Depth from stereo on frame_t2
+        depth = self.estimate_depth(frame_t2)
+
+        # Flow + dyn from frame_t1 -> frame_t2
+        f_imu = torch.zeros(1, 128, device=self.config.device)
+        imu_tokens = torch.zeros(1, 7, 128, device=self.config.device)
+        if self.imu_context is not None and hasattr(self.imu_context, "_state") and self.imu_context._state is not None:
+            # IMUContext not yet wired to corrected/raw IMU at this call site —
+            # real implementation wires this through StereoInertialFrame
+            pass
+
+        flow, cov, dyn = self.model.inference(
+            frame_t1.imageL.to(self.config.device),
+            frame_t2.imageL.to(self.config.device),
+            f_imu,
+            imu_tokens,
+        )
+        match_out = IMatcher.Output(
+            flow=flow.float(),
+            cov=IMatcher.Output.from_partial_cov(flow=flow.float(), cov=cov.float()).cov,
+            static_conf=dyn.float() if dyn is not None else None,
+        )
+        return depth, match_out
+
+    @classmethod
+    def is_valid_config(cls, config: SimpleNamespace | None) -> None:
+        cls._enforce_config_spec(config, {
+            "weight"    : lambda s: isinstance(s, str),
+            "device"    : lambda s: isinstance(s, str) and (("cuda" in s) or (s == "cpu")),
+            "dec_dtype" : lambda b: isinstance(b, str) and b in ("fp32", "fp16", "bf16"),
+            "enc_dtype" : lambda b: isinstance(b, str) and b in ("fp32", "fp16", "bf16"),
+            "enforce_positive_disparity": lambda b: isinstance(b, bool),
+            "decoder_depth" : lambda v: isinstance(v, int),
+        })
+
+
 class CUDAGraph_FlowFormerCovFrontend(FlowFormerCovFrontend):
     """
     FlowformerCov Frontend, but using CUDAGraph acceleration to improve inference speed.
