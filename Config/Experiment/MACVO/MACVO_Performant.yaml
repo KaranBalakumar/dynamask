@@ -85,7 +85,22 @@ Odometry:
   keyframe:
     type: AllKeyframe
     args:
-  
+
+  init:
+    type: DRTLoose
+    enabled: true
+    min_keyframes: 10
+    retry:
+      max_attempts: 2
+      window_scale: [1.0, 1.4, 1.8]
+    quality:
+      min_avg_observation: 30
+      max_condition_number: 1.0e8
+      min_positive_depth_ratio: 0.7
+      gravity_tol_rel: 1.0e-3
+    fallback: heuristic
+    gravity_norm: 9.81007
+
   optimizer:
     type: TwoFrame_PGO
     args:
