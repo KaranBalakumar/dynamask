@@ -160,8 +160,8 @@ def test_build_ltl_produces_symmetric_psd_matrix():
     # PSD: all eigenvalues non-negative
     eigvals = torch.linalg.eigvalsh(LTL)
     assert (eigvals >= -1e-10).all(), f"LTL has negative eigenvalues: {eigvals}"
-    # A_lr rows are 3-D
-    assert A_lr.shape[1] == 3
+    # A_lr rows are 3*N (full sign-disambiguation vector for all keyframes)
+    assert A_lr.shape[1] == 3 * n_kf
 
 
 def test_build_ltl_empty_tracks():
@@ -209,12 +209,12 @@ def test_end_to_end_translation_recovery_produces_nonzero_result():
     # LTL is PSD
     eigvals = torch.linalg.eigvalsh(LTL)
     assert (eigvals >= -1e-10).all()
-    # A_lr is non-empty with correct width
-    assert A_lr.shape[1] == 3
-    # sign disambiguation runs without error
-    t2_frag = t_flat[3:6]
-    t2_signed = resolve_translation_sign(A_lr, t2_frag)
-    assert t2_signed.shape == (3,)
+    # A_lr is non-empty with correct width (3*N for full sign-disambiguation vector)
+    assert A_lr.shape[1] == 3 * n_kf
+    # sign disambiguation runs without error (use full translation vector)
+    t_full = torch.cat([torch.zeros(3, dtype=t_flat.dtype), t_flat])
+    t_signed = resolve_translation_sign(A_lr, t_full)
+    assert t_signed.shape == (3 * n_kf,)
 
 
 # ---------------------------------------------------------------------------
@@ -297,9 +297,11 @@ def test_linear_alignment_scale_and_gravity_recovered():
     )
     # Gravity norm is always enforced after normalization
     assert abs(result.gravity_world.norm().item() - 9.81007) < 1e-4
-    # Gravity direction should be roughly -z
-    assert result.gravity_world[2].item() < -9.0, (
-        f"Gravity z-component should be negative: {result.gravity_world.tolist()}"
+    # C++ convention: the unknown g in the linear system is the NEGATIVE of true
+    # gravity (the specific-force direction the IMU feels).  With the camera
+    # aligned to world (R=I) and true gravity [0,0,-g], the recovered g is [0,0,+g].
+    assert result.gravity_world[2].item() > 9.0, (
+        f"Gravity z should be +9.81 under C++ convention: {result.gravity_world.tolist()}"
     )
     # Result shape
     assert result.velocities.shape == (N, 3)

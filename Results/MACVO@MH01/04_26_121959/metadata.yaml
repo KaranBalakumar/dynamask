@@ -1,0 +1,3 @@
+command: python Scripts/validate_drt_gt.py
+git_version: 0955e80e
+time: 04_26_121959

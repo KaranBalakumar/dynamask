@@ -24,7 +24,7 @@ from .types import DRTInitConfig, DRTInitResult
 from .preintegration import IMUPreintegrator, PreintResult
 from .gyro_bias import solve_gyro_bias
 from .tracks import _bearing
-from .translation import build_LTL, recover_translations, resolve_translation_sign, check_ltl_conditioning
+from .translation import build_LTL, recover_translations, recover_translations_stereo, resolve_translation_sign, check_ltl_conditioning
 from .alignment import linear_alignment, normalize_gravity
 from .quality import run_all_quality_gates, check_gravity_consistency, check_min_parallax
 from .tracks import FeatureTrack
@@ -47,13 +47,28 @@ class DRTLooseBootstrap:
         self._keyframe_timestamps: list[float] = []
         self._imu_segments: list[list] = []    # list of raw IMU ticks per gap
         self._tracks: list[FeatureTrack] = []  # placeholder; real tracks from matcher
+        self._depth_maps: list[torch.Tensor] | None = None  # stereo depth per keyframe
+        self._K: torch.Tensor | None = None   # (3,3) camera intrinsics
         self.reset()
+
+    def set_stereo_depth(self, depth_maps: list[torch.Tensor], K: torch.Tensor) -> None:
+        """Provide stereo depth maps for metric translation recovery.
+
+        Parameters
+        ----------
+        depth_maps : list of (1,1,H,W) or (1,H,W) depth tensors, one per keyframe.
+        K          : (3,3) camera intrinsics matrix.
+        """
+        self._depth_maps = depth_maps
+        self._K = K
 
     def reset(self) -> None:
         """Clear accumulated state for a retry."""
         self._keyframe_timestamps.clear()
         self._imu_segments.clear()
         self._tracks.clear()
+        self._depth_maps = None
+        self._K = None
 
     def is_window_ready(self) -> bool:
         return len(self._keyframe_timestamps) >= self.cfg.min_keyframes
@@ -122,23 +137,23 @@ class DRTLooseBootstrap:
             R_next = R_prev @ self.R_BC.T @ dR @ self.R_BC
             cam_rotations.append(R_next)
 
-        # Step 4: LiGT translations (up-to-scale)
+        # Step 4: LiGT translations (up-to-scale) — good shape from global SVD
+        print(f"\n=== Python LiGT Translation Debug ===")
         LTL, A_lr = build_LTL(self._tracks, cam_rotations, n_keyframes=n_kf)
 
         if not check_ltl_conditioning(LTL, self.cfg.quality_max_cond):
             return DRTInitResult.failure("ILL_CONDITIONED", retry=True)
 
         t_flat = recover_translations(LTL)
-        # Pad with kf-0 zero translation
+        print(f"t_flat (from SVD):")
+        for i in range(min(5, len(t_flat))):
+            print(f"  t_flat[{i}] = {t_flat[i].item():.8f}")
+
         t_full = torch.cat([torch.zeros(3, dtype=torch.float64), t_flat])
         translations = t_full.view(n_kf, 3)
-
-        # Resolve sign via bearing-vector heuristic; fall through to both-sign try below
-        if A_lr.shape[0] > 0:
-            t_fragment = t_flat[:3]
-            t_fragment = resolve_translation_sign(A_lr, t_fragment)
-            sign = 1.0 if (A_lr @ t_fragment).sum() >= 0 else -1.0
-            translations = translations * sign
+        print(f"translations (reshaped):")
+        for i in range(min(3, n_kf)):
+            print(f"  t[{i}] = {translations[i].tolist()}")
 
         # Step 5: Linear alignment
         preint_corrected: list[PreintResult] = []
@@ -149,8 +164,7 @@ class DRTLooseBootstrap:
                 integrator_corrected2.integrate(gyro, acc, dt)
             preint_corrected.append(integrator_corrected2.result())
 
-        # Try both translation signs — bearing-vector sign disambiguation is unreliable
-        # for short/nearly-stationary windows. Positive scale is a hard physical constraint.
+        # Try both translation signs; positive scale is a hard physical constraint.
         align_result = linear_alignment(
             preint_corrected, translations, cam_rotations, self.gravity_norm, t_BC=self.t_BC
         )
@@ -158,6 +172,26 @@ class DRTLooseBootstrap:
             align_result = linear_alignment(
                 preint_corrected, -translations, cam_rotations, self.gravity_norm, t_BC=self.t_BC
             )
+
+        # Stereo tiebreaker: if both signs give positive scale, use stereo
+        # depth direction to choose.  (Rare edge case — usually positive scale
+        # is unambiguous.)
+        both_positive = (align_result.success and align_result.scale > 0)
+        if both_positive and self._depth_maps is not None and self._K is not None:
+            alt_result = linear_alignment(
+                preint_corrected, -translations, cam_rotations, self.gravity_norm,
+                t_BC=self.t_BC,
+            )
+            if alt_result.success and alt_result.scale > align_result.scale:
+                t_stereo = recover_translations_stereo(
+                    self._tracks, cam_rotations, self._depth_maps,
+                    self._K.to(dtype=torch.float64), n_kf
+                )
+                # Compare first non-zero segment direction
+                t_ligt_dir = translations[1] / translations[1].norm().clamp_min(1e-10)
+                t_stereo_dir = t_stereo[1] / t_stereo[1].norm().clamp_min(1e-10)
+                if torch.dot(t_ligt_dir, t_stereo_dir) < 0:
+                    align_result = alt_result
 
         if not align_result.success:
             return DRTInitResult.failure(align_result.reason or "GRAVITY_BAD", retry=True)

@@ -563,6 +563,14 @@ class MACVO(IOdometry[T_SensorFrame], ConfigTestable):
             f"({len(bootstrap._imu_segments)} IMU segments, "
             f"{len(bootstrap._tracks)} tracks, alive={len(alive_ids)})"
         )
+
+        # ── Stereo depth maps for metric translation recovery ──────────────
+        depth_maps: list[torch.Tensor] = []
+        for si in selected_indices:
+            d_out = self.Frontend.estimate_depth(buf[si].stereo)
+            depth_maps.append(d_out.depth.cpu())  # (1, 1, H, W)
+        bootstrap.set_stereo_depth(depth_maps, K)
+
         return bootstrap
 
     @staticmethod
