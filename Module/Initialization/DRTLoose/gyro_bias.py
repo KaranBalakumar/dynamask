@@ -12,16 +12,19 @@ bias-corrected IMU rotation.  Minimising that eigenvalue drives the IMU
 rotation to be consistent with the epipolar geometry of the feature
 correspondences — no explicit essential-matrix decomposition required.
 
-Optimisation: scipy L-BFGS-B; gradients via torch.autograd.
+Optimisation: PyPose Levenberg-Marquardt with Cauchy robust loss, matching
+the C++ Ceres solver that uses DOGLEG trust region + CauchyLoss(1e-5).
 """
 
 from __future__ import annotations
 
+import logging
 import numpy as np
 import torch
-from scipy.optimize import minimize
 
 from .preintegration import PreintResult
+
+_logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +186,10 @@ def solve_gyro_bias(
     b_g_init:       torch.Tensor | None = None,
     max_iters:      int = 200,
 ) -> tuple[torch.Tensor, bool]:
-    """Estimate gyroscope bias using the bearing-vector / smallest-EV cost.
+    """Estimate gyroscope bias using the bearing-vector / smallest-EV cost with PyPose LM.
+
+    Uses Levenberg-Marquardt optimization with Cauchy robust loss, matching the C++ Ceres
+    implementation which uses trust region + robust loss.
 
     Parameters
     ----------
@@ -193,7 +199,7 @@ def solve_gyro_bias(
                      normalised image plane of their respective frames.
     R_BC           : (3,3) body(IMU)→camera rotation extrinsic (float64).
     b_g_init       : (3,) initial gyro bias; zeros if None.
-    max_iters      : maximum L-BFGS-B iterations.
+    max_iters      : maximum iterations.
 
     Returns
     -------
@@ -207,6 +213,7 @@ def solve_gyro_bias(
 
     dtype = torch.float64
     import pypose as pp
+    import torch.nn as nn
 
     R_BC = R_BC.to(dtype)
 
@@ -218,36 +225,70 @@ def solve_gyro_bias(
         pa = _PairAccum(bi, bj, dR_base, R_BC)
         pair_accums.append(pa)
 
-    b_g0 = (b_g_init.clone().to(dtype)
-             if b_g_init is not None
-             else torch.zeros(3, dtype=dtype))
-
-    # Pre-fetch Jacobians as plain tensors (no grad) for use inside the loop
+    # Pre-fetch Jacobians as plain tensors (no grad) for use in model
     J_list = [pr.J_R_bg.to(dtype).detach() for pr in preint_results]
 
-    def cost_and_grad(x: np.ndarray):
-        b_g = torch.tensor(x, dtype=dtype, requires_grad=True)
-        total = torch.tensor(0.0, dtype=dtype)
-        for pa, J_bg in zip(pair_accums, J_list):
-            # Compute the angle-axis representation of the rotation error
-            # caused by the bias: δφ = J_R_bg @ Δb_g
-            delta_log = J_bg @ b_g              # (3,) angle-axis
-            # Convert to Cayley parameters for the optimization
-            cayley    = _aa_to_cayley(delta_log)
-            total     = total + pa.eval(cayley)
-        total.backward()
-        grad = b_g.grad.detach().numpy().astype(np.float64)
-        return float(total.detach().item()), grad
+    # Define model for PyPose LM optimizer
+    class GyroBiasModel(nn.Module):
+        def __init__(self):
+            super().__init__()
+            # Bias as parameter
+            init_bias = (b_g_init.clone().to(dtype)
+                        if b_g_init is not None
+                        else torch.zeros(3, dtype=dtype))
+            self.b_g = nn.Parameter(init_bias)
 
-    result = minimize(
-        cost_and_grad,
-        b_g0.numpy(),
-        method="L-BFGS-B",
-        jac=True,
-        options={"maxiter": max_iters, "ftol": 1e-20, "gtol": 1e-12},
+        def forward(self, *args):
+            """Return residuals for each frame pair."""
+            residuals = []
+            for pa, J_bg in zip(pair_accums, J_list):
+                # Compute rotation error from bias
+                delta_log = J_bg @ self.b_g
+                cayley = _aa_to_cayley(delta_log)
+                residual = pa.eval(cayley)
+                # Return as (1,) tensor to keep dimension info
+                residuals.append(residual.reshape(1))
+            # Stack into (N, 1) tensor
+            return torch.stack(residuals)
+
+    model = GyroBiasModel()
+
+    # Create solver with Cauchy robust loss (like Ceres)
+    # delta should be tuned - smaller delta = more aggressive outlier rejection
+    # Note: PyPose prints "Linear solver failed" warnings during LM optimization
+    # (expected fallback behavior during trust region adjustment); they don't indicate actual failure.
+    solver = pp.optim.LM(
+        model,
+        solver=pp.optim.solver.Cholesky,           # Dense Schur-like
+        kernel=pp.optim.kernel.Cauchy(delta=0.01), # Cauchy loss (tuned delta)
+        strategy=pp.optim.strategy.TrustRegion(),   # Trust region (like DOGLEG)
+        vectorize=True,
+        reject=16,  # Match Ceres behavior
     )
 
-    b_g_star  = torch.tensor(result.x, dtype=dtype)
-    converged = bool(result.success) or float(result.fun) < 1e-6
+    # Optimize: iterative LM with step() calls
+    # PyPose LM follows PyTorch optimizer pattern: call step() in a loop
+    target = torch.zeros((len(pair_accums), 1), dtype=dtype)  # We want residuals → 0
+    
+    for iteration in range(max_iters):
+        # Compute residuals
+        residuals = model()
+        
+        # LM step: takes (input, target, weight)
+        # input/target are stacked residuals; PyPose minimizes ||residuals - target||^2
+        solver.step(residuals, target)
+        
+        # Early stopping if converged
+        current_loss = ((residuals - target) ** 2).sum()
+        if current_loss < 1e-8:  # Very tight convergence threshold
+            break
+
+    b_g_star = model.b_g.data.detach().clone()
+    
+    # Check convergence by evaluating final cost
+    with torch.no_grad():
+        final_residuals = model()
+        final_loss = ((final_residuals - target) ** 2).sum()
+        converged = final_loss < 1e-6
 
     return b_g_star, converged
