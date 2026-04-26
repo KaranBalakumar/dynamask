@@ -4,7 +4,6 @@ from typing import cast
 import numpy as np
 import torch
 import pypose as pp
-from scipy.spatial.transform import Rotation
 
 from DataLoader.Interface import IMUData, AttitudeData
 
@@ -23,41 +22,46 @@ class TartanAirV2IMULoader:
         self.gravity = gravity
         self.T_BS = pp.identity_SE3(1)  # Body -> Sensor transformation, (1, 7)
 
-        # --- Load IMU data ------------------------------------------------
-        acc = np.load(str(imu_dir / "acc.npy")).astype(np.float64)
-        gyro = np.load(str(imu_dir / "gyro.npy")).astype(np.float64)
-        imu_time = np.load(str(imu_dir / "imu_time.npy")).astype(np.float64)
-        cam_time = np.load(str(imu_dir / "cam_time.npy")).astype(np.float64)
+        # --- Load IMU data (required) ---------------------------------------
+        for fname in ("acc.npy", "gyro.npy", "imu_time.npy", "cam_time.npy"):
+            assert (imu_dir / fname).exists(), f"Required IMU file not found: {imu_dir / fname}"
 
-        self.acc = torch.tensor(acc, dtype=torch.float).unsqueeze(0)          # (1, N, 3)
-        self.gyro = torch.tensor(gyro, dtype=torch.float).unsqueeze(0)        # (1, N, 3)
-        self.imu_time = torch.tensor(imu_time * 1e9, dtype=torch.long).unsqueeze(0).unsqueeze(-1)  # (1, N, 1) ns
-        self.cam_time = torch.tensor(cam_time * 1e9, dtype=torch.long)        # (M,) ns
+        acc = np.load(str(imu_dir / "acc.npy"))
+        gyro = np.load(str(imu_dir / "gyro.npy"))
+        imu_time = np.load(str(imu_dir / "imu_time.npy"))
+        cam_time = np.load(str(imu_dir / "cam_time.npy"))
 
-        # --- Load ground truth (optional) ----------------------------------
+        self.acc = torch.from_numpy(acc).float().unsqueeze(0)                      # (1, N, 3)
+        self.gyro = torch.from_numpy(gyro).float().unsqueeze(0)                    # (1, N, 3)
+        self.imu_time = torch.from_numpy(imu_time * 1e9).long().unsqueeze(0).unsqueeze(-1)  # (1, N, 1) ns
+        self.cam_time = torch.from_numpy(cam_time * 1e9).long()                             # (M,) ns
+
+        N = self.acc.size(1)
+        assert self.gyro.size(1) == N and self.imu_time.size(1) == N, \
+            f"IMU file length mismatch: acc={self.acc.size(1)} gyro={self.gyro.size(1)} imu_time={self.imu_time.size(1)}"
+
+        # --- Load ground truth (optional) ------------------------------------
         gt_files = ["ori_global.npy", "pos_global.npy", "vel_body.npy"]
         self.gt_available = all((imu_dir / f).exists() for f in gt_files)
 
         if self.gt_available:
-            ori_global = np.load(str(imu_dir / "ori_global.npy")).astype(np.float64)
-            pos_global = np.load(str(imu_dir / "pos_global.npy")).astype(np.float64)
-            vel_body = np.load(str(imu_dir / "vel_body.npy")).astype(np.float64)
+            ori_global = np.load(str(imu_dir / "ori_global.npy"))
+            pos_global = np.load(str(imu_dir / "pos_global.npy"))
+            vel_body = np.load(str(imu_dir / "vel_body.npy"))
 
-            # Convert Euler angles (xyz radians) to SO3 via scipy rotation
-            r = Rotation.from_euler("xyz", ori_global, degrees=False)
+            # Euler angles (xyz radians) → SO3
             self.gt_rot = pp.euler2SO3(
-                torch.from_numpy(r.as_euler("xyz", degrees=False)).float()
+                torch.from_numpy(ori_global).float()
             ).unsqueeze(0)  # (1, N, 4)
 
-            self.gt_pos = torch.tensor(pos_global, dtype=torch.float).unsqueeze(0)  # (1, N, 3)
-            self.gt_vel = torch.tensor(vel_body, dtype=torch.float).unsqueeze(0)    # (1, N, 3)
+            self.gt_pos = torch.from_numpy(pos_global).float().unsqueeze(0)  # (1, N, 3)
+            self.gt_vel = torch.from_numpy(vel_body).float().unsqueeze(0)    # (1, N, 3)
         else:
-            N = self.acc.size(1)
             self.gt_rot = pp.identity_SO3(1).repeat(1, N, 1)   # (1, N, 4)
             self.gt_pos = torch.zeros(1, N, 3, dtype=torch.float)
             self.gt_vel = torch.zeros(1, N, 3, dtype=torch.float)
 
-        # --- Align camera timestamps to IMU indices -----------------------
+        # --- Align camera timestamps to IMU indices -------------------------
         self._align_camera_time()
 
     # ------------------------------------------------------------------
@@ -74,18 +78,16 @@ class TartanAirV2IMULoader:
         """
         imu_t = self.imu_time[0, :, 0]  # (N,)  drop batch and trailing dim
         cam_t = self.cam_time            # (M,)
+        N = imu_t.size(0)
 
         # searchsorted(right=True) returns the insertion point *after* any
         # equal entries, i.e. the first index where imu_t > cam_t.
-        idx = torch.searchsorted(imu_t, cam_t, right=True)  # (M,)
+        idx = torch.searchsorted(imu_t, cam_t, right=True)  # (M,) in [0, N]
+        self.cam2imu_idx = torch.clamp(idx - 1, 0, N - 1)   # (M,) in [0, N-1]
 
-        # idx is in [0, N]; idx-1 gives the last imu index <= cam_t.
-        # Clamp to [0, N-2] so that imu idx+1 is always in bounds.
-        self.cam2imu_idx = torch.clamp(idx - 1, 0, len(imu_t) - 2)  # (M,)
-
-        # Pad with a past-the-end sentinel for clean indexing in
-        # frameRangeQuery when end_frame == len(self).
-        sentinel = torch.tensor([self.acc.size(1)], dtype=torch.long)
+        # Past-the-end sentinel so frameRangeQuery slices correctly
+        # when end_frame == len(self).
+        sentinel = torch.tensor([N], dtype=torch.long)
         self.cam2imu_idx = torch.cat([self.cam2imu_idx, sentinel])  # (M+1,)
 
     # ------------------------------------------------------------------
@@ -132,4 +134,7 @@ class TartanAirV2IMULoader:
     frameRangeQuery = frame_range_query
 
     def __getitem__(self, index: int) -> tuple[IMUData, AttitudeData]:
+        """Single-frame IMU access (used for the first keyframe)."""
+        if index < 0 or index >= len(self):
+            raise IndexError(f"Camera frame index {index} out of range [0, {len(self)})")
         return self.frame_range_query(index, index + 1)
