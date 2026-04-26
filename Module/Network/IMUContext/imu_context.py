@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 import pypose as pp
 
+from DataLoader.Interface import AttitudeData
+
 _AIRIO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Air-IO"))
 _AIRIO_EKF_DIR = os.path.join(_AIRIO_ROOT, "EKF")
 
@@ -77,6 +79,7 @@ class IMUContext(nn.Module):
             self.airio_net.load_state_dict(ckpt.get("model_state_dict", ckpt))
             
         self.airio_net.eval()
+        self._has_airio = airio_ckpt is not None
         for p in self.airio_net.parameters():
             p.requires_grad = False
 
@@ -165,6 +168,51 @@ class IMUContext(nn.Module):
         # Prime prev_cam_state so first step() delta starts from DRT state
         self._prev_cam_state = s.clone()
 
+    def seed_from_gt(self, att: "AttitudeData", gt_pose: torch.Tensor | None = None) -> None:
+        """Seed EKF from ground-truth attitude at the start of a frame pair.
+
+        Used for training on datasets (TartanAir v2) that provide GT
+        attitude (init_rot, init_vel, init_pos) and optionally GT pose.
+        The EKF is initialised at the *end* of frame k so that step()
+        over [t_k, t_{k+1}] produces deltas from a physically correct
+        starting point.
+
+        Args:
+            att:      ``AttitudeData`` from the dataloader (batched, B=1).
+            gt_pose:  optional (1, 7) SE3 LieTensor for gravity alignment.
+        """
+        dev = att.init_rot.device
+
+        s = torch.zeros(15, dtype=torch.float64, device=dev)
+
+        # Rotation: SO3 LieTensor (1, 1, 4) → so3 log (3,)
+        R0 = att.init_rot.squeeze(0).squeeze(0)          # (4,) SO3 quat
+        s[:3] = R0.Log().tensor().double()                # (3,) so3 log
+
+        # Velocity: body-frame velocity (1, 1, 3) → (3,)
+        s[3:6] = att.init_vel.squeeze(0).squeeze(0).double()
+
+        # Position: global position (1, 1, 3) → (3,)
+        s[6:9] = att.init_pos.squeeze(0).squeeze(0).double()
+
+        # Biases: zero initial (no DRT init in training)
+        s[9:12] = torch.zeros(3, dtype=torch.float64, device=dev)
+        s[12:15] = torch.zeros(3, dtype=torch.float64, device=dev)
+
+        self._state = s
+        self._P = torch.eye(15, dtype=torch.float64, device=dev)
+
+        # Align gravity to GT pose if provided, else use default world gravity
+        if gt_pose is not None:
+            import pypose as pp
+            T_WC = pp.SE3(gt_pose.squeeze(0).double()).matrix()
+            R_WC = T_WC[:3, :3]
+            self.gravity_world = (R_WC.T @ torch.tensor([0., 0., self.gravity_val],
+                                   dtype=torch.float64, device=dev))
+        # else: keep the default [0, 0, G] from __init__
+
+        self._prev_cam_state = s.clone()
+
     def step(self, corrected_imu, raw_imu):
         """Core execution loop processing one camera temporal window."""
         assert self._state is not None
@@ -181,10 +229,12 @@ class IMUContext(nn.Module):
             self._state, self._P = self.ekf.state_propogate(state=self._state, input=inp, P=self._P, dt=dt, Q=Q)
             ekf_rotations.append(self._state[:3].clone())
 
-        # Phase 2: Air-IO Vectorized Inference
-        airio_vel, airio_cov = self._run_airio(raw_imu, ekf_rotations)
+        # Phase 2: Air-IO Vectorized Inference (skipped without checkpoint)
+        airio_vel, airio_cov = None, None
+        if self._has_airio:
+            airio_vel, airio_cov = self._run_airio(raw_imu, ekf_rotations)
 
-        # Phase 3: EKF Velocity Update
+        # Phase 3: EKF Velocity Update (skipped when AirIO unavailable)
         if airio_vel is not None:
             self._apply_velocity_update(airio_vel, airio_cov)
 
