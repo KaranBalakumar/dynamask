@@ -168,7 +168,7 @@ class IMUContext(nn.Module):
         # Prime prev_cam_state so first step() delta starts from DRT state
         self._prev_cam_state = s.clone()
 
-    def seed_from_gt(self, att: "AttitudeData", gt_pose: torch.Tensor | None = None) -> None:
+    def seed_from_gt(self, att: AttitudeData, gt_pose: torch.Tensor | None = None) -> None:
         """Seed EKF from ground-truth attitude at the start of a frame pair.
 
         Used for training on datasets (TartanAir v2) that provide GT
@@ -181,6 +181,7 @@ class IMUContext(nn.Module):
             att:      ``AttitudeData`` from the dataloader (batched, B=1).
             gt_pose:  optional (1, 7) SE3 LieTensor for gravity alignment.
         """
+        assert att.init_rot.shape[0] == 1, "seed_from_gt requires batch_size=1"
         dev = att.init_rot.device
 
         s = torch.zeros(15, dtype=torch.float64, device=dev)
@@ -204,11 +205,11 @@ class IMUContext(nn.Module):
 
         # Align gravity to GT pose if provided, else use default world gravity
         if gt_pose is not None:
-            import pypose as pp
             T_WC = pp.SE3(gt_pose.squeeze(0).double()).matrix()
             R_WC = T_WC[:3, :3]
-            self.gravity_world = (R_WC.T @ torch.tensor([0., 0., self.gravity_val],
-                                   dtype=torch.float64, device=dev))
+            new_g = R_WC.T @ torch.tensor([0., 0., self.gravity_val],
+                                          dtype=torch.float64, device=dev)
+            self.gravity_world.data.copy_(new_g)
         # else: keep the default [0, 0, G] from __init__
 
         self._prev_cam_state = s.clone()
