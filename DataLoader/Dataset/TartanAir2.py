@@ -38,7 +38,20 @@ class TartanAirV2_Sequence(SequenceBase[StereoInertialFrame]):
         cfg = self.config_dict2ns(config)
         
         self.stereo_sequence = TartanAirV2_StereoSequence(cfg)
-        self.imu_sequence    = TartanAirIMUSimulator(cfg.imu_sim, Path(cfg.root, "pose_lcam_front.txt"), fps=cfg.imu_freq)
+
+        use_real_imu = getattr(cfg, "use_real_imu", False)
+        if use_real_imu:
+            from .TartanAir2_IMULoader import TartanAirV2IMULoader
+            self.imu_sequence = TartanAirV2IMULoader(
+                Path(cfg.root, "imu"),
+                gravity=getattr(cfg, "gravity", 9.81),
+            )
+        else:
+            self.imu_sequence = TartanAirIMUSimulator(
+                cfg.imu_sim,
+                Path(cfg.root, "pose_lcam_front.txt"),
+                fps=cfg.imu_freq,
+            )
         super().__init__(len(self.stereo_sequence))
 
     def __getitem__(self, local_index: int) -> StereoInertialFrame:
