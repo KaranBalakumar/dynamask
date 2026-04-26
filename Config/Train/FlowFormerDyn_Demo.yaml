@@ -79,6 +79,7 @@ Model:
   log_freq: 100
   datatype: fp32
   wandb: False
+  visual_freq: 500
 
 Train:
   data: !flatten_seq

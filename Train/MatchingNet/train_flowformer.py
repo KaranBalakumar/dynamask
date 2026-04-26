@@ -160,6 +160,13 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     else:
         imu_context = None
 
+    # --- Build logger ---
+    from Train.DynNet.dyn_logger import DynTrainLogger
+    _time = getattr(modelcfg, "time", time.strftime("%m-%d-%H-%M-%S", time.localtime()))
+    run_name = f"{modelcfg.name}_{_time}" if hasattr(modelcfg, "name") else f"dyngru_{_time}"
+    logger = DynTrainLogger(modelcfg, run_name)
+    logger.log_console(f"Training mode: {train_mode}, steps: {modelcfg.num_steps}")
+
     if modelcfg.wandb:
         wandb.init(project=modelcfg.name, config=modelcfg)
         wandb.watch(model, log=None)
@@ -171,73 +178,140 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
         for frameData in ColoredTqdm(loader):
             assert frameData.cur.stereo.gt_flow   is not None
             assert frameData.cur.stereo.flow_mask is not None
-            optimizer.zero_grad()
-            img1, img2 = frameData.cur.stereo.imageL.cuda(), frameData.nxt.stereo.imageL.cuda()
-            gt_flow = frameData.cur.stereo.gt_flow.cuda()
-            flow_mask = frameData.cur.stereo.flow_mask.cuda()
+            try:
+                optimizer.zero_grad()
+                img1, img2 = frameData.cur.stereo.imageL.cuda(), frameData.nxt.stereo.imageL.cuda()
+                gt_flow = frameData.cur.stereo.gt_flow.cuda()
+                flow_mask = frameData.cur.stereo.flow_mask.cuda()
 
-            dyn = None
-            dyn_pseudo = None
-            if train_mode == "dyn":
-                B = img1.shape[0]
+                dyn = None
+                dyn_pseudo = None
+                if train_mode == "dyn":
+                    B = img1.shape[0]
 
-                # Process IMU window through IMUContext for each batch element
-                f_imu_list, imu_tokens_list = [], []
-                for b in range(B):
-                    imu_b = _imu_data_unbatch(frameData.cur.imu, b)
-                    att_b = _attitude_unbatch(frameData.cur.gt_attitude, b)
-                    pose_b = frameData.cur.gt_pose[b] if frameData.cur.gt_pose is not None else None
-                    corrected, raw = _imu_data_to_ticks(imu_b)
-                    imu_context.seed_from_gt(att_b, pose_b)
-                    sample = imu_context.step(corrected, raw)
-                    f_imu_list.append(sample.f_imu)
-                    imu_tokens_list.append(sample.imu_tokens)
+                    # Process IMU window through IMUContext for each batch element
+                    f_imu_list, imu_tokens_list = [], []
+                    for b in range(B):
+                        imu_b = _imu_data_unbatch(frameData.cur.imu, b)
+                        att_b = _attitude_unbatch(frameData.cur.gt_attitude, b)
+                        pose_b = frameData.cur.gt_pose[b] if frameData.cur.gt_pose is not None else None
+                        corrected, raw = _imu_data_to_ticks(imu_b)
+                        imu_context.seed_from_gt(att_b, pose_b)
+                        sample = imu_context.step(corrected, raw)
+                        f_imu_list.append(sample.f_imu)
+                        imu_tokens_list.append(sample.imu_tokens)
 
-                f_imu = torch.cat(f_imu_list, dim=0).cuda()
-                imu_tokens = torch.cat(imu_tokens_list, dim=0).cuda()
-                flow, cov, dyn = model(img1, img2, f_imu, imu_tokens)
+                    f_imu = torch.cat(f_imu_list, dim=0).cuda()
+                    imu_tokens = torch.cat(imu_tokens_list, dim=0).cuda()
+                    flow, cov, dyn = model(img1, img2, f_imu, imu_tokens)
 
-                # Pseudo-label from rigid-flow residual (§4.2).
-                gt_pose = getattr(frameData.cur, "gt_pose", None)
-                gt_depth = getattr(frameData.cur.stereo, "gt_depth", None)
-                fb_flow = getattr(frameData.cur.stereo, "gt_backward_flow", None)
-                K = frameData.cur.stereo.K.unsqueeze(0).expand(B, -1, -1).cuda()
+                    # Pseudo-label from rigid-flow residual (§4.2).
+                    gt_pose = getattr(frameData.cur, "gt_pose", None)
+                    gt_depth = getattr(frameData.cur.stereo, "gt_depth", None)
+                    fb_flow = getattr(frameData.cur.stereo, "gt_backward_flow", None)
+                    K = frameData.cur.stereo.K.unsqueeze(0).expand(B, -1, -1).cuda()
 
-                if gt_pose is not None and gt_depth is not None and K is not None:
-                    M_pseudo, residual = dyn_pseudo_label(
-                        flow[-1], gt_pose.cuda(), gt_depth.cuda(), K,
-                        fb_flow=fb_flow.cuda() if fb_flow is not None else None,
-                    )
+                    if gt_pose is not None and gt_depth is not None and K is not None:
+                        M_pseudo, residual = dyn_pseudo_label(
+                            flow[-1], gt_pose.cuda(), gt_depth.cuda(), K,
+                            fb_flow=fb_flow.cuda() if fb_flow is not None else None,
+                        )
+                    else:
+                        # Placeholder: all-static, zero residual (dataloader not yet wired
+                        # with GT depth + pose — TartanAir configs have gtDepth: false).
+                        _, _, Hf, Wf = flow[-1].shape
+                        M_pseudo = torch.ones(B, 1, Hf, Wf, device=img1.device, dtype=torch.long)
+                        residual = torch.zeros(B, 1, Hf, Wf, device=img1.device)
+                    dyn_pseudo = (M_pseudo, residual)
+
+                    loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=gt_flow, flow_mask=flow_mask,
+                                            cov_preds=cov, dyn_preds=dyn, dyn_pseudo=dyn_pseudo)
                 else:
-                    # Placeholder: all-static, zero residual (dataloader not yet wired
-                    # with GT depth + pose — TartanAir configs have gtDepth: false).
-                    _, _, Hf, Wf = flow[-1].shape
-                    M_pseudo = torch.ones(B, 1, Hf, Wf, device=img1.device, dtype=torch.long)
-                    residual = torch.zeros(B, 1, Hf, Wf, device=img1.device)
-                dyn_pseudo = (M_pseudo, residual)
-
-                loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=gt_flow, flow_mask=flow_mask,
-                                        cov_preds=cov, dyn_preds=dyn, dyn_pseudo=dyn_pseudo)
-            else:
-                flow, cov = model(img1, img2)
-                loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov)
-            
-            scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), modelcfg.clip)
-            scaler.step(optimizer)
-            scheduler.step()
-            lr = optimizer.param_groups[0]["lr"]
-            scaler.update()
-            if total_steps % int(modelcfg.log_freq) == 0:
-                Logger.write("info", "Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
-                if modelcfg.wandb:
-                    _, metric = sequence_metric(modelcfg, flow, cov, gt_flow, flow_mask, dyn_preds=dyn, dyn_pseudo=dyn_pseudo)
-                    metrics = merge_matrices([metric])
-                    metrics["lr"] = lr
-                    wandb.log(metrics)
+                    flow, cov = model(img1, img2)
+                    loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov)
                 
-            total_steps += 1
+                scaler.scale(loss).backward()
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), modelcfg.clip)
+                scaler.step(optimizer)
+                scheduler.step()
+                lr = optimizer.param_groups[0]["lr"]
+                scaler.update()
+                if total_steps % int(modelcfg.log_freq) == 0:
+                    Logger.write("info", "Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
+                    if modelcfg.wandb:
+                        _, metric = sequence_metric(modelcfg, flow, cov, gt_flow, flow_mask, dyn_preds=dyn, dyn_pseudo=dyn_pseudo)
+                        metrics = merge_matrices([metric])
+                        metrics["lr"] = lr
+
+                        # --- Dyn-specific metrics ---
+                        if train_mode == "dyn" and dyn is not None:
+                            c_final = dyn[-1].sigmoid().detach()
+                            metrics["train/dyn_mean_c"] = c_final.mean().item()
+                            metrics["train/dyn_static_frac"] = (c_final > 0.5).float().mean().item()
+                            metrics["dyngru/alpha"] = model_ptr.memory_decoder.dyn_update.alpha.item()
+                            metrics["dyngru/token_weights_mean"] = model_ptr.memory_decoder.dyn_update.imu_attn.token_weights.mean().item()
+                            if f_imu is not None:
+                                metrics["imu/f_imu_mean"] = f_imu.mean().item()
+                                metrics["imu/f_imu_std"] = f_imu.std().item()
+                            if dyn_pseudo is not None:
+                                M_pseudo, _ = dyn_pseudo
+                                valid = M_pseudo >= 0
+                                if valid.sum() > 0:
+                                    metrics["pseudo/static_pct"] = (M_pseudo == 1).float().mean().item()
+                                    metrics["pseudo/dynamic_pct"] = (M_pseudo == 0).float().mean().item()
+                                    metrics["pseudo/ignore_pct"] = (M_pseudo == -1).float().mean().item()
+                            grad_info = logger.log_frozen_grad_check(model_ptr)
+                            metrics["dyngru/grad_dyn_update"] = grad_info["trainable_grad_norm"]
+                            metrics["dyngru/grad_frozen"] = grad_info["frozen_grad_norm"]
+
+                        logger.log_step(metrics, total_steps)
+                    
+                total_steps += 1
+
+                # --- Offline visual debug dump ---
+                visual_freq = getattr(modelcfg, "visual_freq", 500)
+                if train_mode == "dyn" and dyn is not None and dyn_pseudo is not None and total_steps % visual_freq == 0:
+                    with torch.no_grad():
+                        M_pseudo, residual = dyn_pseudo
+                        visuals = {
+                            "img1": img1[0].cpu().clamp(0, 1),
+                            "img2": img2[0].cpu().clamp(0, 1),
+                            "dyn_logits_final": dyn[-1][0].cpu(),
+                            "flow_est": flow[-1][0].cpu(),
+                            "flow_rigid": flow[-1][0].cpu(),
+                            "M_pseudo": M_pseudo[0].cpu(),
+                            "residual": residual[0].cpu(),
+                            "tau": torch.ones_like(residual[0].cpu()) * 0.5,
+                            "f_imu": f_imu[0].cpu(),
+                            "imu_tokens": imu_tokens[0].cpu(),
+                            "alpha": model_ptr.memory_decoder.dyn_update.alpha.detach().cpu(),
+                            "token_weights": model_ptr.memory_decoder.dyn_update.imu_attn.token_weights.detach().cpu(),
+                        }
+                        grad_info = logger.log_frozen_grad_check(model_ptr)
+                        visuals["trainable_grad_norm"] = grad_info["trainable_grad_norm"]
+                        visuals["frozen_grad_norm"] = grad_info["frozen_grad_norm"]
+                        logger.log_visuals(visuals, total_steps)
+            except Exception as e:
+                logger.log_console(f"CRASH at step {total_steps}: {e}")
+                crash_dir = logger.debug_dir / f"crash_step_{total_steps:06d}"
+                crash_dir.mkdir(parents=True, exist_ok=True)
+                crash = {
+                    "img1": img1.cpu(), "img2": img2.cpu(),
+                    "gt_flow": gt_flow.cpu(), "flow_mask": flow_mask.cpu(),
+                    "error": str(e),
+                }
+                if dyn is not None:
+                    crash["dyn"] = [d.cpu() for d in dyn]
+                if dyn_pseudo is not None:
+                    crash["M_pseudo"] = dyn_pseudo[0].cpu()
+                    crash["residual"] = dyn_pseudo[1].cpu()
+                torch.save(crash, crash_dir / "crash_dump.pt")
+                import traceback
+                with open(crash_dir / "traceback.txt", "w") as f:
+                    traceback.print_exc(file=f)
+                logger.log_console(f"Crash dump saved to {crash_dir}")
+                raise
 
             if total_steps > modelcfg.num_steps:
                 should_keep_training = False
@@ -253,6 +327,9 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 else:
                     torch.save(model.state_dict(), PATH)
                 
+    logger.log_console(f"Training complete at step {total_steps}")
+    logger.finish()
+
     PATH = "%s/%s/%d.pth" % (modelcfg.autosave_dir, modelcfg.name + modelcfg.time, total_steps)
     if isinstance(model, nn.DataParallel):
         torch.save(model.module.state_dict(), PATH)
