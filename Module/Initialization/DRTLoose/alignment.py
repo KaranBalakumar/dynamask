@@ -62,6 +62,7 @@ def linear_alignment(
     translations_up_to_scale: torch.Tensor,     # (N, 3) from LiGT (t_0 = 0)
     rotations: list[torch.Tensor],              # N list of (3,3) camera rotations
     gravity_norm: float = 9.81007,
+    t_BC: torch.Tensor | None = None,           # (3,) IMU→camera extrinsic translation
 ) -> AlignmentResult:
     """
     Assemble and solve the linear system from design doc §5.6.
@@ -76,6 +77,9 @@ def linear_alignment(
 
       Velocity constraint (3 eqs):
         ΔV_ij  =  R_i^T · v_j  -  v_i  -  R_i^T · g · dt
+
+    RHS (b vector) includes IMU→camera extrinsic translation correction when provided:
+        ΔP_corrected = ΔP + R_i^T @ R_j @ t_BC - t_BC
 
     Rearranged to place all unknowns on the LHS:
 
@@ -97,6 +101,7 @@ def linear_alignment(
     translations_up_to_scale  : (N, 3) float64 tensor; t_0 = [0, 0, 0].
     rotations                 : list of N (3,3) float64 rotation matrices.
     gravity_norm              : magnitude of gravity [m/s²].
+    t_BC                      : (3,) IMU→camera extrinsic translation; None to skip correction.
 
     Returns
     -------
@@ -146,9 +151,18 @@ def linear_alignment(
         dP = pr.dP.to(dtype=dtype, device=device)               # (3,) ΔP in body frame
         dV = pr.dV.to(dtype=dtype, device=device)               # (3,) ΔV in body frame
 
+        # Apply IMU→camera extrinsic translation correction (C++ reference does this)
+        # dP_corrected = dP + R_i^T @ R_j @ t_BC - t_BC
+        if t_BC is not None:
+            R_j = rots[j]
+            t_BC_body = t_BC.to(dtype=dtype, device=device)
+            # R_i^T @ R_j @ t_BC - t_BC  (transformation from camera to body frame)
+            dP = dP + (R_i.T @ R_j @ t_BC_body) - t_BC_body
+
         # Camera translation difference (up-to-scale, in camera/world frame)
         delta_t_cam = tpts[j] - tpts[i]                        # (3,)
-        R_i_T_delta_t = R_i.T @ delta_t_cam                    # (3,) rotate into body frame at i
+        # C++ divides by 100 for numerical normalization
+        R_i_T_delta_t = (R_i.T @ delta_t_cam) / 100.0         # (3,) rotate into body frame at i
 
         row_p = 6 * k       # position constraint rows [row_p : row_p+3]
         row_v = 6 * k + 3   # velocity constraint rows [row_v : row_v+3]
@@ -162,9 +176,10 @@ def linear_alignment(
         # ΔP = R_i^T · (s · (t_j - t_i)) - v_i · dt - 0.5 · R_i^T · g · dt²
         # Rearranged:
         #   -v_i · dt + s · R_i^T Δt - 0.5 · R_i^T · dt² · g = ΔP
+        # C++ reference multiplies gravity block by G.norm() for numerical stability
         A[row_p:row_p+3, col_vi:col_vi+3] = -I3 * dt
         A[row_p:row_p+3, col_s]           = R_i_T_delta_t      # (3,)
-        A[row_p:row_p+3, col_g:col_g+3]   = -0.5 * R_i.T * dt2
+        A[row_p:row_p+3, col_g:col_g+3]   = -0.5 * R_i.T * dt2 * gravity_norm
 
         b[row_p:row_p+3] = dP
 
@@ -174,9 +189,19 @@ def linear_alignment(
         #   -v_i + R_i^T · v_j - R_i^T · dt · g = ΔV
         A[row_v:row_v+3, col_vi:col_vi+3] = -I3
         A[row_v:row_v+3, col_vj:col_vj+3] = R_i.T
-        A[row_v:row_v+3, col_g:col_g+3]   = -R_i.T * dt
+        A[row_v:row_v+3, col_g:col_g+3]   = -R_i.T * dt * gravity_norm
 
         b[row_v:row_v+3] = dV
+
+    # ---- Matrix scaling (C++ reference does this for numerical stability) ----
+    # Extract gravity block diagonal and scale by 1/mean(diag) to improve conditioning
+    gravity_block = A[-(3 + 1):, -(3 + 1):]  # bottom-right 4x4 block (scale + gravity)
+    gravity_g_block = gravity_block[1:, 1:]  # gravity 3x3 part
+    mean_diag = (gravity_g_block[0, 0] + gravity_g_block[1, 1] + gravity_g_block[2, 2]) / 3.0
+    if mean_diag > 1e-12:
+        scale_factor = 1.0 / mean_diag
+        A = A * scale_factor
+        b = b * scale_factor
 
     # ---- Solve via least-squares ----------------------------------------
     try:
@@ -204,6 +229,8 @@ def linear_alignment(
     velocities_flat = x[:3 * N]                                # (3N,)
     velocities      = velocities_flat.reshape(N, 3)            # (N, 3)
     scale_raw       = x[3 * N].item()                          # scalar
+    # Compensate for /100 normalization in translation column (matching C++ reference)
+    scale_raw       = scale_raw / 100.0                        # undo the /100 normalization
     g_unconstrained = x[3 * N + 1 : 3 * N + 4]               # (3,)
 
     # ---- Normalize gravity -----------------------------------------------

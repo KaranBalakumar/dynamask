@@ -152,11 +152,11 @@ class DRTLooseBootstrap:
         # Try both translation signs — bearing-vector sign disambiguation is unreliable
         # for short/nearly-stationary windows. Positive scale is a hard physical constraint.
         align_result = linear_alignment(
-            preint_corrected, translations, cam_rotations, self.gravity_norm
+            preint_corrected, translations, cam_rotations, self.gravity_norm, t_BC=self.t_BC
         )
         if not align_result.success and align_result.reason and "non-positive" in align_result.reason:
             align_result = linear_alignment(
-                preint_corrected, -translations, cam_rotations, self.gravity_norm
+                preint_corrected, -translations, cam_rotations, self.gravity_norm, t_BC=self.t_BC
             )
 
         if not align_result.success:
