@@ -11,7 +11,7 @@ from pathlib import Path
 from torch.amp.grad_scaler import GradScaler
 from torch.utils.data import ConcatDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
-from Train.MatchingNet.loss import sequence_loss, sequence_metric
+from Train.MatchingNet.loss import sequence_loss, sequence_metric, dyn_pseudo_label
 from Utility.Config import load_config, namespace_to_cfgnode
 from Utility.PrettyPrint import ColoredTqdm, Logger
 
@@ -50,16 +50,16 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
 
     if train_mode == "dyn":
         from Module.Network.FlowFormerDyn import build_flowformer_dyn
-        model = build_flowformer_dyn(modlecfg, torch.float32, torch.float32)
-        if hasattr(modlecfg, "restore_ckpt") and modlecfg.restore_ckpt:
-            ckpt = torch.load(modlecfg.restore_ckpt, map_location="cpu", weights_only=True)
+        model = build_flowformer_dyn(modelcfg, torch.float32, torch.float32)
+        if hasattr(modelcfg, "restore_ckpt") and modelcfg.restore_ckpt:
+            ckpt = torch.load(modelcfg.restore_ckpt, map_location="cpu", weights_only=True)
             model.load_ddp_state_dict(ckpt)
         model = model.cuda()
     else:
         from Module.Network.FlowFormerCov import build_flowformer
-        model = build_flowformer(modlecfg, torch.float32, torch.float32)
-        if modlecfg.restore_ckpt:
-            model.load_ddp_state_dict(torch.load(modlecfg.restore_ckpt, weights_only=True))
+        model = build_flowformer(modelcfg, torch.float32, torch.float32)
+        if modelcfg.restore_ckpt:
+            model.load_ddp_state_dict(torch.load(modelcfg.restore_ckpt, weights_only=True))
 
     model = nn.DataParallel(model)
     model.cuda()
@@ -73,7 +73,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
         optimizer,
         **vars(cfg.Model.scheduler.args)
     )
-    scaler = GradScaler(enabled=modlecfg.mixed_precision)
+    scaler = GradScaler(enabled=modelcfg.mixed_precision)
     model_ptr = model.module if isinstance(model, nn.DataParallel) else model
     match train_mode:
         case "flow":
@@ -97,8 +97,8 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 for p in model_ptr.memory_decoder.cov_update.parameters()
             ), "cov_update must be frozen in dyn training mode"
 
-    if modlecfg.wandb:
-        wandb.init(project=modlecfg.name, config=modlecfg)
+    if modelcfg.wandb:
+        wandb.init(project=modelcfg.name, config=modelcfg)
         wandb.watch(model, log=None)
         
     total_steps = 0
@@ -112,27 +112,58 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
             img1, img2 = frameData.cur.stereo.imageL.cuda(), frameData.nxt.stereo.imageL.cuda()
             gt_flow = frameData.cur.stereo.gt_flow.cuda()
             flow_mask = frameData.cur.stereo.flow_mask.cuda()
-            
-            flow, cov = model(img1, img2)
-            loss, _ = sequence_loss(cfg=modlecfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov)
+
+            dyn = None
+            dyn_pseudo = None
+            if train_mode == "dyn":
+                B = img1.shape[0]
+                dummy_f_imu = torch.zeros(B, 128, device=img1.device)
+                dummy_imu_tokens = torch.zeros(B, 7, 128, device=img1.device)
+                flow, cov, dyn = model(img1, img2, dummy_f_imu, dummy_imu_tokens)
+
+                # Pseudo-label from rigid-flow residual (§4.2).
+                gt_pose = getattr(frameData.cur, "gt_pose", None)
+                gt_depth = getattr(frameData.cur.stereo, "gt_depth", None)
+                fb_flow = getattr(frameData.cur.stereo, "gt_backward_flow", None)
+                K = frameData.cur.stereo.K.unsqueeze(0).expand(B, -1, -1).cuda()
+
+                if gt_pose is not None and gt_depth is not None and K is not None:
+                    M_pseudo, residual = dyn_pseudo_label(
+                        flow[-1], gt_pose.cuda(), gt_depth.cuda(), K,
+                        fb_flow=fb_flow.cuda() if fb_flow is not None else None,
+                    )
+                else:
+                    # Placeholder: all-static, zero residual (dataloader not yet wired
+                    # with GT depth + pose — TartanAir configs have gtDepth: false).
+                    _, _, Hf, Wf = flow[-1].shape
+                    M_pseudo = torch.ones(B, 1, Hf, Wf, device=img1.device, dtype=torch.long)
+                    residual = torch.zeros(B, 1, Hf, Wf, device=img1.device)
+                dyn_pseudo = (M_pseudo, residual)
+
+                loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=gt_flow, flow_mask=flow_mask,
+                                        cov_preds=cov, dyn_preds=dyn, dyn_pseudo=dyn_pseudo)
+            else:
+                flow, cov = model(img1, img2)
+                loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov)
             
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), modlecfg.clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), modelcfg.clip)
             scaler.step(optimizer)
             scheduler.step()
             lr = optimizer.param_groups[0]["lr"]
             scaler.update()
-            if total_steps % int(modlecfg.log_freq) == 0:
+            if total_steps % int(modelcfg.log_freq) == 0:
                 Logger.write("info", "Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
-                if modlecfg.wandb:
-                    metrics = merge_matrices([sequence_metric(modelcfg, flow, cov, gt_flow, flow_mask)[1]])
+                if modelcfg.wandb:
+                    _, metric = sequence_metric(modelcfg, flow, cov, gt_flow, flow_mask, dyn_preds=dyn, dyn_pseudo=dyn_pseudo)
+                    metrics = merge_matrices([metric])
                     metrics["lr"] = lr
                     wandb.log(metrics)
                 
             total_steps += 1
 
-            if total_steps > modlecfg.num_steps:
+            if total_steps > modelcfg.num_steps:
                 should_keep_training = False
                 break
 
@@ -146,8 +177,11 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 else:
                     torch.save(model.state_dict(), PATH)
                 
-    PATH = "%s/%s/%d.pth" % (modlecfg.autosave_dir, modlecfg.name + modlecfg.time, total_steps)
-    torch.save(model.state_dict(), PATH)
+    PATH = "%s/%s/%d.pth" % (modelcfg.autosave_dir, modelcfg.name + modelcfg.time, total_steps)
+    if isinstance(model, nn.DataParallel):
+        torch.save(model.module.state_dict(), PATH)
+    else:
+        torch.save(model.state_dict(), PATH)
     
     
 if __name__ == "__main__":
@@ -172,7 +206,19 @@ if __name__ == "__main__":
                   AddImageNoise(dict(stdv=5.0)),
                   ScaleFrame(dict(scale_u=cfg.Model.image_scale, scale_v=cfg.Model.image_scale, interp='nearest'))]
     
-    traindatasets = TrainDataset[StereoFrame].mp_instantiation(datacfg.data, 0, -1, lambda cfg: cfg.type in {"TartanAir_NoIMU", "TartanAirv2_NoIMU"})
+    train_mode = modlecfg.training_mode
+    if train_mode == "dyn":
+        # DynGRU training needs IMU-bearing datasets (TartanAirv2, not _NoIMU)
+        # and GT depth + GT pose for rigid-flow pseudo-labels.
+        traindatasets = TrainDataset[StereoFrame].mp_instantiation(
+            datacfg.data, 0, -1,
+            lambda cfg: cfg.type in {"TartanAir", "TartanAirv2"}
+        )
+    else:
+        traindatasets = TrainDataset[StereoFrame].mp_instantiation(
+            datacfg.data, 0, -1,
+            lambda cfg: cfg.type in {"TartanAir_NoIMU", "TartanAirv2_NoIMU"}
+        )
     trainloader = DataLoader[DataFramePair[StereoFrame]](
         ConcatDataset([
             ds.transform_source(transforms)
