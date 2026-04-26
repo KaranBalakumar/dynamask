@@ -31,7 +31,7 @@ class TartanAirV2IMULoader:
 
         self.acc = torch.tensor(acc, dtype=torch.float).unsqueeze(0)          # (1, N, 3)
         self.gyro = torch.tensor(gyro, dtype=torch.float).unsqueeze(0)        # (1, N, 3)
-        self.imu_time = torch.tensor(imu_time * 1e9, dtype=torch.long).unsqueeze(0)  # (1, N) ns
+        self.imu_time = torch.tensor(imu_time * 1e9, dtype=torch.long).unsqueeze(0).unsqueeze(-1)  # (1, N, 1) ns
         self.cam_time = torch.tensor(cam_time * 1e9, dtype=torch.long)        # (M,) ns
 
         # --- Load ground truth (optional) ----------------------------------
@@ -72,8 +72,8 @@ class TartanAirV2IMULoader:
         The result is stored in ``self.cam2imu_idx``, padded with a
         past-the-end sentinel so that ``frameRangeQuery`` slices cleanly.
         """
-        imu_t = self.imu_time[0]    # (N,)
-        cam_t = self.cam_time       # (M,)
+        imu_t = self.imu_time[0, :, 0]  # (N,)  drop batch and trailing dim
+        cam_t = self.cam_time            # (M,)
 
         # searchsorted(right=True) returns the insertion point *after* any
         # equal entries, i.e. the first index where imu_t > cam_t.
