@@ -82,8 +82,8 @@ Model:
 
 Train:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/TartanAir_Demo.yaml
+    - !include ../Sequence/Training_Dataset/TartanAirV2_Dyn_Local.yaml
 
 Evaluate:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/TartanAir_Demo.yaml
+    - !include ../Sequence/Training_Dataset/TartanAirV2_Dyn_Local.yaml

@@ -1,0 +1,22 @@
+# Phase-A dynGRU pretrain: local TartanAir v2 sample at ~/Downloads/tartanair2.
+# Uses real IMU (use_real_imu: true), GT depth, GT pose, GT flow.
+-   type: TartanAirv2
+    name: AbandonedFactory_P001
+    args:
+        root: /home/karan/Downloads/tartanair2/AbandonedFactory/Data_easy/P001
+        compressed: true
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.02, -0.01, 0.05]
+            acc_init_bias_noise: [0.01, 0.01, 0.01]
+            acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+            acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+            gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+            gyro_init_bias_noise: [0.01, 0.01, 0.01]
+            gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+            gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
