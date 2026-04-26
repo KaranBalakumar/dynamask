@@ -72,15 +72,19 @@ class TartanAirV2_Sequence(SequenceBase[StereoInertialFrame]):
     @classmethod
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:
         assert config is not None
-        cls._enforce_config_spec(config, {
+        is_real = getattr(config, "use_real_imu", False)
+        spec = {
             "root"      : lambda s: isinstance(s, str),
             "compressed": lambda b: isinstance(b, bool),
-            "imu_freq"  : lambda f: isinstance(f, int),
             "gtFlow"    : lambda b: isinstance(b, bool),
             "gtDepth"   : lambda b: isinstance(b, bool),
             "gtPose"    : lambda b: isinstance(b, bool),
-        }, allow_excessive_cfg=True)
-        IMUNoiseGenerator.is_valid_config(config.imu_sim)
+        }
+        if not is_real:
+            spec["imu_freq"] = lambda f: isinstance(f, int)
+        cls._enforce_config_spec(config, spec, allow_excessive_cfg=True)
+        if not is_real:
+            IMUNoiseGenerator.is_valid_config(config.imu_sim)
 
 
 class TartanAirV2_StereoSequence(SequenceBase[StereoFrame]):
