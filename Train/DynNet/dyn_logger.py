@@ -13,6 +13,8 @@ import torch
 import torch.nn as nn
 import yaml
 
+from Utility.PrettyPrint import Logger
+
 
 def _get_git_hash() -> str:
     try:
@@ -45,6 +47,7 @@ class DynTrainLogger:
 
         self.visual_freq = getattr(cfg, "visual_freq", 500)
         self.use_wandb = getattr(cfg, "wandb", False)
+        self._git_hash = _get_git_hash()
 
         self._console_step = 0
 
@@ -59,10 +62,9 @@ class DynTrainLogger:
             )
 
         # Save config for reproducibility
-        git_hash = _get_git_hash()
         meta = {
             "run_name": run_name,
-            "git_hash": git_hash,
+            "git_hash": self._git_hash,
             "start_time": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
         with open(self.log_dir / "metadata.json", "w") as f:
@@ -82,7 +84,6 @@ class DynTrainLogger:
             self._wandb_run.log(metrics, step=step)
 
     def log_console(self, msg: str) -> None:
-        from Utility.PrettyPrint import Logger
         Logger.write("info", f"[step {self._console_step}] {msg}")
 
     # ------------------------------------------------------------------
@@ -121,7 +122,7 @@ class DynTrainLogger:
         meta = {
             "step": step,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "git_hash": _get_git_hash(),
+            "git_hash": self._git_hash,
         }
         with open(step_dir / "metadata.json", "w") as f:
             json.dump(meta, f, indent=2)
@@ -209,8 +210,10 @@ class DynTrainLogger:
 
         flow_est = v["flow_est"].cpu().unsqueeze(0)
         flow_rigid_t = v["flow_rigid"].cpu()
-        if flow_rigid_t.dim() == 3:
-            flow_rigid_t = flow_rigid_t.unsqueeze(0)
+        if flow_rigid_t.dim() == 2:
+            flow_rigid_t = flow_rigid_t.unsqueeze(0).unsqueeze(0)  # (H,W) -> (1,2,H,W)
+        elif flow_rigid_t.dim() == 3:
+            flow_rigid_t = flow_rigid_t.unsqueeze(0)               # (2,H,W) -> (1,2,H,W)
 
         flow_est_img = flow_to_image(flow_est)[0].permute(1, 2, 0).numpy() / 255.0
         flow_rigid_img = flow_to_image(flow_rigid_t)[0].permute(1, 2, 0).numpy() / 255.0
