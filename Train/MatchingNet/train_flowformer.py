@@ -38,10 +38,59 @@ def merge_matrices(matrices):
             continue
         for k, v in m.items():
             _matric[k] += v
-    
+
     for k, v in _matric.items():
         _matric[k] /= len(matrices)
     return _matric
+
+
+def _imu_data_to_ticks(imu) -> tuple[list[dict], list[dict]]:
+    """Convert batched IMUData (B=1 slice) to IMUContext.step() input format.
+
+    Args:
+        imu: ``IMUData`` with .acc (1, N, 3), .gyro (1, N, 3), .time_delta (1, N-1, 1).
+
+    Returns:
+        (corrected_imu, raw_imu) — lists of per-tick dicts with acc/gyro/dt keys.
+    """
+    acc = imu.acc.squeeze(0)                     # (N, 3)
+    gyro = imu.gyro.squeeze(0)                   # (N, 3)
+    dt = imu.time_delta.squeeze(0).squeeze(-1)   # (N-1,) in nanoseconds
+    N = acc.size(0)
+    corrected = [
+        {"acc": acc[t], "gyro": gyro[t], "dt": dt[t].item() * 1e-9}
+        for t in range(N - 1)
+    ]
+    raw = [{"acc": acc[t], "gyro": gyro[t]} for t in range(N)]
+    return corrected, raw
+
+
+def _imu_data_unbatch(imu, index: int):
+    """Extract a single batch element from batched IMUData."""
+    from DataLoader.Interface import IMUData as _IMUData
+    return _IMUData(
+        T_BS=imu.T_BS[index:index+1],
+        time_ns=imu.time_ns[index:index+1],
+        gravity=imu.gravity,
+        acc=imu.acc[index:index+1],
+        gyro=imu.gyro[index:index+1],
+    )
+
+
+def _attitude_unbatch(att, index: int):
+    """Extract a single batch element from batched AttitudeData."""
+    from DataLoader.Interface import AttitudeData as _AttitudeData
+    return _AttitudeData(
+        T_BS=att.T_BS[index:index+1],
+        time_ns=att.time_ns[index:index+1],
+        gravity=att.gravity,
+        gt_pos=att.gt_pos[index:index+1],
+        gt_vel=att.gt_vel[index:index+1],
+        gt_rot=att.gt_rot[index:index+1],
+        init_pos=att.init_pos[index:index+1],
+        init_vel=att.init_vel[index:index+1],
+        init_rot=att.init_rot[index:index+1],
+    )
 
 
 def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_loader=None):
@@ -97,6 +146,20 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 for p in model_ptr.memory_decoder.cov_update.parameters()
             ), "cov_update must be frozen in dyn training mode"
 
+    # --- Build IMUContext for dyn training (no AirIO checkpoint needed) ---
+    if train_mode == "dyn":
+        from types import SimpleNamespace as _SNS
+        from Module.Network.IMUContext.imu_context import IMUContext
+        _grav = getattr(modelcfg, "gravity", 9.81) if hasattr(modelcfg, "gravity") else 9.81
+        imu_context = IMUContext(
+            airio_cfg=_SNS(propcov=True),
+            airio_ckpt=None,
+            gravity=_grav,
+        )
+        imu_context.cuda()
+    else:
+        imu_context = None
+
     if modelcfg.wandb:
         wandb.init(project=modelcfg.name, config=modelcfg)
         wandb.watch(model, log=None)
@@ -117,9 +180,22 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
             dyn_pseudo = None
             if train_mode == "dyn":
                 B = img1.shape[0]
-                dummy_f_imu = torch.zeros(B, 128, device=img1.device)
-                dummy_imu_tokens = torch.zeros(B, 7, 128, device=img1.device)
-                flow, cov, dyn = model(img1, img2, dummy_f_imu, dummy_imu_tokens)
+
+                # Process IMU window through IMUContext for each batch element
+                f_imu_list, imu_tokens_list = [], []
+                for b in range(B):
+                    imu_b = _imu_data_unbatch(frameData.cur.imu, b)
+                    att_b = _attitude_unbatch(frameData.cur.gt_attitude, b)
+                    pose_b = frameData.cur.gt_pose[b] if frameData.cur.gt_pose is not None else None
+                    corrected, raw = _imu_data_to_ticks(imu_b)
+                    imu_context.seed_from_gt(att_b, pose_b)
+                    sample = imu_context.step(corrected, raw)
+                    f_imu_list.append(sample.f_imu)
+                    imu_tokens_list.append(sample.imu_tokens)
+
+                f_imu = torch.cat(f_imu_list, dim=0).cuda()
+                imu_tokens = torch.cat(imu_tokens_list, dim=0).cuda()
+                flow, cov, dyn = model(img1, img2, f_imu, imu_tokens)
 
                 # Pseudo-label from rigid-flow residual (§4.2).
                 gt_pose = getattr(frameData.cur, "gt_pose", None)
