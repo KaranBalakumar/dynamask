@@ -127,16 +127,25 @@ class DynTrainLogger:
         with open(step_dir / "metadata.json", "w") as f:
             json.dump(meta, f, indent=2)
 
-        # Render PNGs
-        try:
-            self._render_dyn_overlay(visuals, step_dir)
-            self._render_pseudo_labels(visuals, step_dir)
-            self._render_flow_comparison(visuals, step_dir)
-            if "f_imu" in visuals and "imu_tokens" in visuals:
+        # Render PNGs — each in its own try/except so one failure doesn't skip others
+        for renderer, name in [
+            (self._render_dyn_overlay, "dyn_overlay"),
+            (self._render_residual_map, "residual_map"),
+            (self._render_flow_comparison, "flow_comparison"),
+        ]:
+            try:
+                renderer(visuals, step_dir)
+            except Exception as e:
+                self.log_console(f"WARNING: {name} render failed: {e}")
+        if "f_imu" in visuals and "imu_tokens" in visuals:
+            try:
                 self._render_imu_features(visuals, step_dir)
+            except Exception as e:
+                self.log_console(f"WARNING: imu_features render failed: {e}")
+        try:
             self._render_histograms(visuals, step_dir)
         except Exception as e:
-            self.log_console(f"WARNING: Failed to render some diagnostic PNGs: {e}")
+            self.log_console(f"WARNING: histograms render failed: {e}")
 
         self.log_console(f"Saved debug artifacts to {step_dir}")
 
@@ -172,34 +181,37 @@ class DynTrainLogger:
         fig.savefig(step_dir / "dyn_overlay.png", dpi=100)
         plt.close(fig)
 
-    def _render_pseudo_labels(self, v: dict, step_dir: Path) -> None:
+    def _render_residual_map(self, v: dict, step_dir: Path) -> None:
+        """Residual ||f_est - f_rigid|| heatmap with dyn head overlay."""
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
-        M = v["M_pseudo"].cpu().squeeze()
         r = v["residual"].cpu().squeeze()
-        tau = v["tau"].cpu().squeeze()
+        img = v["img1"].cpu()
+        dyn_logits = v.get("dyn_logits_final")
+        if dyn_logits is not None:
+            c = dyn_logits.cpu().sigmoid()
+            if c.ndim == 3:
+                c = torch.nn.functional.interpolate(
+                    c.unsqueeze(0), size=img.shape[-2:], mode="bilinear", align_corners=False
+                ).squeeze(0).squeeze(0)
 
-        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-        M_rgb = torch.zeros(*M.shape, 3)
-        M_rgb[M == 1] = torch.tensor([0.2, 0.8, 0.2])
-        M_rgb[M == 0] = torch.tensor([0.8, 0.2, 0.2])
-        M_rgb[M == -1] = torch.tensor([0.6, 0.6, 0.6])
-        axes[0].imshow(M_rgb)
-        static_pct = ((M == 1).sum() / max(M.numel(), 1) * 100)
-        axes[0].set_title(f"Pseudo-labels (static={static_pct:.1f}%)")
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+        im1 = axes[0].imshow(r.numpy(), cmap="hot")
+        plt.colorbar(im1, ax=axes[0])
+        axes[0].set_title(f"Residual ||f_est - f_rigid|| (mean={r.mean():.2f} px)")
         axes[0].axis("off")
-        im1 = axes[1].imshow(r.numpy(), cmap="hot")
-        plt.colorbar(im1, ax=axes[1])
-        axes[1].set_title(f"Residual (mean={r.mean():.2f})")
+
+        if dyn_logits is not None:
+            img_np = img.permute(1, 2, 0).clamp(0, 1).numpy()
+            axes[1].imshow(img_np, alpha=0.5)
+            heat = axes[1].imshow(c.numpy(), cmap="RdYlBu_r", vmin=0, vmax=1, alpha=0.6)
+            plt.colorbar(heat, ax=axes[1], label="static confidence c")
+            axes[1].set_title(f"DynGRU c (mean={c.mean():.3f})")
         axes[1].axis("off")
-        im2 = axes[2].imshow(tau.numpy(), cmap="plasma")
-        plt.colorbar(im2, ax=axes[2])
-        axes[2].set_title(f"Threshold tau(D) (mean={tau.mean():.2f})")
-        axes[2].axis("off")
         fig.tight_layout()
-        fig.savefig(step_dir / "pseudo_labels.png", dpi=100)
+        fig.savefig(step_dir / "residual_map.png", dpi=100)
         plt.close(fig)
 
     def _render_flow_comparison(self, v: dict, step_dir: Path) -> None:
