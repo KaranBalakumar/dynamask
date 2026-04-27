@@ -280,13 +280,13 @@ class DynTrainLogger:
             c = torch.sigmoid(v["dyn_logits_final"].cpu().flatten())
             axes[0, 0].hist(c.numpy(), bins=50, range=(0, 1), color="steelblue", edgecolor="white")
             axes[0, 0].set_xlabel("static confidence c")
-            axes[0, 0].set_title(f"c histogram (mean={c.mean():.3f})")
+            axes[0, 0].set_title(f"c histogram (mean={c.mean().item():.3f})")
 
         if "residual" in v:
             r = v["residual"].cpu().flatten()
             axes[0, 1].hist(r.clamp(0, 50).numpy(), bins=50, color="coral", edgecolor="white")
             axes[0, 1].set_xlabel("||f_est - f_rigid|| [px]")
-            axes[0, 1].set_title(f"Flow residual (mean={r.mean():.2f})")
+            axes[0, 1].set_title(f"Flow residual (mean={r.mean().item():.2f})")
 
         if "token_weights" in v:
             w = v["token_weights"].cpu().numpy()

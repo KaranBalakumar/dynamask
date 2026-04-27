@@ -45,6 +45,7 @@ class TartanAirV2_Sequence(SequenceBase[StereoInertialFrame]):
             self.imu_sequence = TartanAirV2IMULoader(
                 Path(cfg.root, "imu"),
                 gravity=getattr(cfg, "gravity", 9.81),
+                fixed_imu_samples=getattr(cfg, "fixed_imu_samples", 0),
             )
         else:
             self.imu_sequence = TartanAirIMUSimulator(

@@ -15,12 +15,13 @@ class TartanAirV2IMULoader:
     IMU runs at 100 Hz, camera at 10 Hz.
     """
 
-    def __init__(self, imu_dir: Path, gravity: float = 9.81) -> None:
+    def __init__(self, imu_dir: Path, gravity: float = 9.81, fixed_imu_samples: int = 10) -> None:
         assert imu_dir.exists(), f"IMU directory does not exist: {imu_dir}"
 
         self.imu_dir = imu_dir
         self.gravity = gravity
-        self.T_BS = pp.identity_SE3(1)  # Body -> Sensor transformation, (1, 7)
+        self.fixed_imu_samples = fixed_imu_samples  # 0 = use actual window size
+        self.T_BS = pp.identity_SE3(1)
 
         # --- Load IMU data (required) ---------------------------------------
         for fname in ("acc.npy", "gyro.npy", "imu_time.npy", "cam_time.npy"):
@@ -99,32 +100,42 @@ class TartanAirV2IMULoader:
         return self.cam_time.size(0)
 
     def frame_range_query(self, start_frame: int, end_frame: int) -> tuple[IMUData, AttitudeData]:
-        """Retrieve IMU data spanning camera frames [start_frame, end_frame).
-
-        Args:
-            start_frame: start camera frame index (inclusive).
-            end_frame:   end camera frame index (exclusive).
-
-        Returns:
-            Tuple of ``(IMUData, AttitudeData)`` with the IMU window
-            between those two camera frames.
-        """
+        """Retrieve IMU data spanning camera frames [start_frame, end_frame)."""
         start_imu_idx = self.cam2imu_idx[start_frame].item()
-        end_imu_idx = self.cam2imu_idx[end_frame].item()
+
+        if self.fixed_imu_samples > 0:
+            end_imu_idx = start_imu_idx + self.fixed_imu_samples
+        else:
+            end_imu_idx = self.cam2imu_idx[end_frame].item()
+
+        # Clip to valid range, pad with zeros if needed
+        max_idx = self.acc.size(1)
+        end_clipped = min(end_imu_idx, max_idx)
+        pad = max(0, end_imu_idx - max_idx)
+
+        def _slice_or_pad(tensor, start, end, pad_len):
+            """Slice tensor[:, start:end] and zero-pad if needed."""
+            result = tensor[:, start:end]
+            if pad_len > 0:
+                shape = list(result.shape)
+                shape[1] = pad_len
+                zeros = torch.zeros(shape, dtype=result.dtype, device=result.device)
+                result = torch.cat([result, zeros], dim=1)
+            return result
 
         return IMUData(
             T_BS=self.T_BS,
             gravity=[self.gravity],
-            time_ns=self.imu_time[:, start_imu_idx:end_imu_idx],
-            acc=self.acc[:, start_imu_idx:end_imu_idx],
-            gyro=self.gyro[:, start_imu_idx:end_imu_idx],
+            time_ns=_slice_or_pad(self.imu_time, start_imu_idx, end_clipped, pad),
+            acc=_slice_or_pad(self.acc, start_imu_idx, end_clipped, pad),
+            gyro=_slice_or_pad(self.gyro, start_imu_idx, end_clipped, pad),
         ), AttitudeData(
             T_BS=self.T_BS,
             gravity=[self.gravity],
-            time_ns=self.imu_time[:, start_imu_idx:end_imu_idx],
-            gt_pos=self.gt_pos[:, start_imu_idx:end_imu_idx],
-            gt_vel=self.gt_vel[:, start_imu_idx:end_imu_idx],
-            gt_rot=cast(pp.LieTensor, self.gt_rot[:, start_imu_idx:end_imu_idx]),
+            time_ns=_slice_or_pad(self.imu_time, start_imu_idx, end_clipped, pad),
+            gt_pos=_slice_or_pad(self.gt_pos, start_imu_idx, end_clipped, pad),
+            gt_vel=_slice_or_pad(self.gt_vel, start_imu_idx, end_clipped, pad),
+            gt_rot=cast(pp.LieTensor, _slice_or_pad(self.gt_rot, start_imu_idx, end_clipped, pad)),
             init_pos=self.gt_pos[:, start_imu_idx : start_imu_idx + 1],
             init_vel=self.gt_vel[:, start_imu_idx : start_imu_idx + 1],
             init_rot=cast(pp.LieTensor, self.gt_rot[:, start_imu_idx : start_imu_idx + 1]),
