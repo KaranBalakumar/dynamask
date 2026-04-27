@@ -1,23 +1,22 @@
 Model:
-  name: "FlowFormerDynDemo"
-  stage: "tartanair"
-  suffix: "dyngru_demo"
+  name: "DynGRU_VIODE"
+  stage: "viode"
+  suffix: "dyngru_viode"
   gamma: 0.85
   max_flow: 400
   batch_size: 1
   sum_freq: 100
   val_freq: 5000000
-  image_size: [480, 640]
+  image_size: [480, 752]
   image_scale: 1
-  add_noise: True
+  add_noise: False
   cov_mask: False
 
   critical_params: []
   transformer: "latentcostformer"
   restore_ckpt: "Model/MACVO_FrontendCov.pth"
-  training_mode: "dyn"
+  training_mode: "dyn_selfsup"
 
-  # latentcostformer (same as Demo.yaml)
   latentcostformer:
     pe: "linear"
     dropout: 0.0
@@ -53,7 +52,7 @@ Model:
 
   ### TRAINER
   clip: 1.0
-  num_steps: &num_steps 5265
+  num_steps: &num_steps 37540
 
   optimizer:
     type: "AdamW"
@@ -83,8 +82,8 @@ Model:
 
 Train:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/TartanAirV2_Dyn_Local.yaml
+    - !include ../Sequence/Training_Dataset/VIODE_High.yaml
 
 Evaluate:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/TartanAirV2_Dyn_Local.yaml
+    - !include ../Sequence/Training_Dataset/VIODE_High.yaml

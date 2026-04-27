@@ -1,0 +1,51 @@
+# VIODE dataset: dynamic-scene stereo+IMU with GT odometry.
+# Uses self-supervised pseudo-labels from MAC-VO estimated depth + flow.
+# 3 environments × 4 difficulty levels = 12 sequences.
+-   type: VIODE
+    name: city_day_0_none
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/city_day/0_none.h5
+-   type: VIODE
+    name: city_day_1_low
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/city_day/1_low.h5
+-   type: VIODE
+    name: city_day_2_mid
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/city_day/2_mid.h5
+-   type: VIODE
+    name: city_day_3_high
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/city_day/3_high.h5
+-   type: VIODE
+    name: city_night_0_none
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/city_night/0_none.h5
+-   type: VIODE
+    name: city_night_1_low
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/city_night/1_low.h5
+-   type: VIODE
+    name: city_night_2_mid
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/city_night/2_mid.h5
+-   type: VIODE
+    name: city_night_3_high
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/city_night/3_high.h5
+-   type: VIODE
+    name: parking_lot_0_none
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/parking_lot/0_none.h5
+-   type: VIODE
+    name: parking_lot_1_low
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/parking_lot/1_low.h5
+-   type: VIODE
+    name: parking_lot_2_mid
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/parking_lot/2_mid.h5
+-   type: VIODE
+    name: parking_lot_3_high
+    args:
+        path: /home/karan/dynamask/dataset/viode_h5/parking_lot/3_high.h5

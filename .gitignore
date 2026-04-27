@@ -5,3 +5,17 @@ __pycache__/
 *.pyd
 references/
 .worktrees/
+wandb/
+Results/
+*.log
+*.h5
+dataset/
+*.zip
+*.bag
+Cache/
+__MACOSX/
+.DS_Store
+*.egg-info/
+build/
+dist/
+*.egg

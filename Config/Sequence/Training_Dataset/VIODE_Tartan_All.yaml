@@ -1,0 +1,240 @@
+-   type: TartanAirv2
+    name: city_day_0_none
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/city_day/0_none
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: city_day_1_low
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/city_day/1_low
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: city_day_2_mid
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/city_day/2_mid
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: city_day_3_high
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/city_day/3_high
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: city_night_0_none
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/city_night/0_none
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: city_night_1_low
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/city_night/1_low
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: city_night_2_mid
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/city_night/2_mid
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: city_night_3_high
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/city_night/3_high
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: parking_lot_0_none
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/parking_lot/0_none
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: parking_lot_1_low
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/parking_lot/1_low
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: parking_lot_2_mid
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/parking_lot/2_mid
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: parking_lot_3_high
+    args:
+        root: /home/karan/dynamask/dataset/viode_tartan/parking_lot/3_high
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false

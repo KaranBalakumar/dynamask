@@ -14,13 +14,18 @@ from Utility.Config import load_config
     [(str(f),) for f in Path("./Scripts/UnitTest/assets/test_module_config/Depth").glob("*.yaml")]
 )
 def test_matching(config: str):
+    if not torch.cuda.is_available():
+        pytest.skip("Stereo depth models require CUDA")
     cfg, _ = load_config(Path(config))
+    weight = getattr(cfg.args, "weight", None)
+    if weight is not None and not Path(weight).exists():
+        pytest.skip(f"Checkpoint not found: {weight}")
     seq    = TartanAirV2_StereoSequence(dict(
         root="./Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000",
         compressed=True,
         gtFlow=False, gtDepth=True, gtPose=True
     ))
-    
+
     frameA         = seq[0]
     stereo_depth   = IStereoDepth.instantiate(cfg.type, cfg.args)
     depth_output   = stereo_depth.estimate(frameA.stereo)

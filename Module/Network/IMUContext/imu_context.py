@@ -243,15 +243,18 @@ class IMUContext(nn.Module):
         z, slots = self._build_z_and_slots(prev_state, self._state, self._P, airio_vel, airio_cov, dt_total)
         self._prev_cam_state = self._state.clone()
 
+        # Move to the same device as the trainable MLP weights
+        mlp_device = next(self.feature_mlp.parameters()).device
+
         # FiLM input: global 34-D feature, (1, 128)
-        z_f = z.float().unsqueeze(0)
+        z_f = z.float().unsqueeze(0).to(mlp_device)
         f_imu = self.feature_mlp(z_f)
 
         # CLIP-adapter tokens: 7 semantic slots, (1, 7, 128)
         token_list = []
         for name in self._token_order:
-            slot = slots[name].float().unsqueeze(0)          # (1, D_slot)
-            token_list.append(self.token_projs[name](slot))  # (1, 128)
+            slot = slots[name].float().unsqueeze(0).to(mlp_device)  # (1, D_slot)
+            token_list.append(self.token_projs[name](slot))          # (1, 128)
         imu_tokens = torch.stack(token_list, dim=1)          # (1, 7, 128)
 
         return IMUSample(

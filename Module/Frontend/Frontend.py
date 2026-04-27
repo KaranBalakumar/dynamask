@@ -169,13 +169,14 @@ class FlowFormerCovFrontend(IFrontend):
         cfg = get_cfg()
         cfg.latentcostformer.decoder_depth = self.config.decoder_depth
         model = build_flowformer(cfg, reflect_torch_dtype(config.enc_dtype), reflect_torch_dtype(config.dec_dtype))
-        ckpt  = torch.load(self.config.weight, map_location=self.config.device, weights_only=True)
-        
+        map_loc = self.config.device if torch.cuda.is_available() else 'cpu'
+        ckpt = torch.load(self.config.weight, map_location=map_loc, weights_only=True)
+
         model.eval()
         model.to(self.config.device)
         model.load_ddp_state_dict(ckpt)
         self.model = model
-    
+
     @property
     def provide_cov(self) -> tuple[bool, bool]:
         return True, True
@@ -288,7 +289,8 @@ class FlowFormerDynFrontend(IFrontend):
             reflect_torch_dtype(config.enc_dtype),
             reflect_torch_dtype(config.dec_dtype),
         )
-        ckpt = torch.load(self.config.weight, map_location=self.config.device, weights_only=True)
+        map_loc = self.config.device if torch.cuda.is_available() else 'cpu'
+        ckpt = torch.load(self.config.weight, map_location=map_loc, weights_only=True)
         self.model.load_ddp_state_dict(ckpt)
         self.model.to(self.config.device).eval()
 

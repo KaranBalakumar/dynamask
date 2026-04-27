@@ -1,4 +1,5 @@
 import pytest
+import torch
 from pathlib import Path
 
 from Odometry.MACVO import MACVO
@@ -13,6 +14,8 @@ from Utility.Sandbox  import Sandbox
     ("./Scripts/UnitTest/assets/test_config/MACVO/MACVO.yaml", "./Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000", 0.002, 0.0025, 0.045),      # at 2024 Sept. 22
 ])
 def test_macvo_performance(file_name: str, data: str, expect_ate: float, expect_rte: float, expect_roe: float):
+    if not torch.cuda.is_available():
+        pytest.skip("MACVO performance test requires CUDA")
     seq    = TartanAirV2_StereoSequence(dict(
         root=data,
         compressed=True, gtFlow=False, gtDepth=False, gtPose=True

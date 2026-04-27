@@ -1,0 +1,180 @@
+-   type: TartanAirv2
+    name: CarWelding_P000
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P000
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: CarWelding_P001
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P001
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: CarWelding_P002
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P002
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: CarWelding_P003
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P003
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: CarWelding_P004
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P004
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: CarWelding_P005
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P005
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: CarWelding_P006
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P006
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: CarWelding_P007
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P007
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false
+-   type: TartanAirv2
+    name: CarWelding_P008
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P008
+        compressed: false
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.0, 0.0, 0.0]
+            acc_init_bias_noise: [0.0, 0.0, 0.0]
+            acc_bias_instability: [0.0, 0.0, 0.0]
+            acc_random_walk: [0.0, 0.0, 0.0]
+            gyro_bias: [0.0, 0.0, 0.0]
+            gyro_init_bias_noise: [0.0, 0.0, 0.0]
+            gyro_bias_instability: [0.0, 0.0, 0.0]
+            gyro_random_walk: [0.0, 0.0, 0.0]
+        gtDepth: false
+        gtPose: true
+        gtFlow: false

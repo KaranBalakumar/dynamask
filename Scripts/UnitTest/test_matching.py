@@ -14,13 +14,18 @@ from Utility.Config import load_config
     [(str(f),) for f in Path("./Scripts/UnitTest/assets/test_module_config/Flow").glob("*.yaml")]
 )
 def test_matching(config: str):
+    if not torch.cuda.is_available():
+        pytest.skip("Matching models require CUDA")
     cfg, _ = load_config(Path(config))
+    weight = getattr(cfg.args, "weight", None)
+    if weight is not None and not Path(weight).exists():
+        pytest.skip(f"Checkpoint not found: {weight}")
     seq    = TartanAirV2_StereoSequence(dict(
         root="./Scripts/UnitTest/assets/test_sequence/TartanAir2_abs_P000",
         compressed=True,
         gtFlow=True, gtDepth=False, gtPose=True,
     ))
-    
+
     frameA, frameB = seq[0], seq[1]
     matcher        = IMatcher.instantiate(cfg.type, cfg.args)
     flow_output    = matcher.estimate(frameA.stereo, frameB.stereo)

@@ -1,12 +1,11 @@
-# Phase-A dynGRU pretrain: local TartanAir v2 sample at ~/Downloads/tartanair2.
-# Uses real IMU (use_real_imu: true), GT depth, GT pose, GT flow.
+# Phase-A dynGRU pretrain: requires GT depth (for rigid-flow pseudo-labels),
+# GT pose (for f_rigid projection), and IMU (for IMUContext conditioning).
+# Uses the IMU-bearing TartanAir variants, not _NoIMU.
 -   type: TartanAirv2
-    name: CarWelding_P001
+    name: abandonedfactory_E001
     args:
-        root: /home/karan/Downloads/tartanair2/AbandonedFactory/Data_easy/P001
+        root: /project/learningvo/tartanair_v2/abandonedfactory/Data/P001
         compressed: true
-        use_real_imu: true
-        gravity: 9.81
         imu_freq: 100
         imu_sim:
             acc_bias: [0.02, -0.01, 0.05]

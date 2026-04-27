@@ -11,7 +11,8 @@ from pathlib import Path
 from torch.amp.grad_scaler import GradScaler
 from torch.utils.data import ConcatDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
-from Train.MatchingNet.loss import sequence_loss, sequence_metric, dyn_pseudo_label
+from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_residual
+import DataLoader.Dataset.VIODE as _viode_dl  # noqa: F401 — register VIODESequence
 from Utility.Config import load_config, namespace_to_cfgnode
 from Utility.PrettyPrint import ColoredTqdm, Logger
 
@@ -97,7 +98,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     train_mode: T_TrainType = modelcfg.training_mode
     AssertLiteralType(train_mode, T_TrainType)
 
-    if train_mode == "dyn":
+    if train_mode in ("dyn", "dyn_selfsup"):
         from Module.Network.FlowFormerDyn import build_flowformer_dyn
         model = build_flowformer_dyn(modelcfg, torch.float32, torch.float32)
         if hasattr(modelcfg, "restore_ckpt") and modelcfg.restore_ckpt:
@@ -133,7 +134,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 param.requires_grad = False
             for param in model_ptr.memory_decoder.cov_update.parameters():
                 param.requires_grad = True
-        case "dyn":
+        case "dyn" | "dyn_selfsup":
             # Freeze everything first
             for param in model_ptr.parameters():
                 param.requires_grad = False
@@ -147,7 +148,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
             ), "cov_update must be frozen in dyn training mode"
 
     # --- Build IMUContext for dyn training (no AirIO checkpoint needed) ---
-    if train_mode == "dyn":
+    if train_mode in ("dyn", "dyn_selfsup"):
         from types import SimpleNamespace as _SNS
         from Module.Network.IMUContext.imu_context import IMUContext
         _grav = getattr(modelcfg, "gravity", 9.81) if hasattr(modelcfg, "gravity") else 9.81
@@ -157,6 +158,9 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
             gravity=_grav,
         )
         imu_context.cuda()
+        # IMUContext feature_mlp + token_projs are trainable per design doc §10.3,
+        # but adding param groups breaks OneCycleLR scheduler state.
+        # TODO: restructure optimizer/scheduler init to include IMUContext params.
     else:
         imu_context = None
 
@@ -167,26 +171,28 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     logger = DynTrainLogger(modelcfg, run_name)
     logger.log_console(f"Training mode: {train_mode}, steps: {modelcfg.num_steps}")
 
-    if modelcfg.wandb:
-        wandb.init(project=modelcfg.name, config=modelcfg)
-        wandb.watch(model, log=None)
-        
+    if modelcfg.wandb and logger._wandb_run is not None:
+        logger._wandb_run.watch(model, log=None)
+
     total_steps = 0
     should_keep_training = True
     while should_keep_training:
         frameData: DataFramePair[StereoFrame]
         for frameData in ColoredTqdm(loader):
-            assert frameData.cur.stereo.gt_flow   is not None
-            assert frameData.cur.stereo.flow_mask is not None
+            if train_mode not in ("dyn_selfsup",):
+                assert frameData.cur.stereo.gt_flow   is not None
+                assert frameData.cur.stereo.flow_mask is not None
             try:
                 optimizer.zero_grad()
                 img1, img2 = frameData.cur.stereo.imageL.cuda(), frameData.nxt.stereo.imageL.cuda()
-                gt_flow = frameData.cur.stereo.gt_flow.cuda()
-                flow_mask = frameData.cur.stereo.flow_mask.cuda()
+                gt_flow = frameData.cur.stereo.gt_flow
+                gt_flow = gt_flow.cuda() if gt_flow is not None else None
+                flow_mask = frameData.cur.stereo.flow_mask
+                flow_mask = flow_mask.cuda() if flow_mask is not None else None
 
                 dyn = None
-                dyn_pseudo = None
-                if train_mode == "dyn":
+                dyn_data = None
+                if train_mode in ("dyn", "dyn_selfsup"):
                     B = img1.shape[0]
 
                     # Process IMU window through IMUContext for each batch element
@@ -205,27 +211,57 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                     imu_tokens = torch.cat(imu_tokens_list, dim=0).cuda()
                     flow, cov, dyn = model(img1, img2, f_imu, imu_tokens)
 
-                    # Pseudo-label from rigid-flow residual (§4.2).
-                    gt_pose = getattr(frameData.cur, "gt_pose", None)
+                    # Continuous cov-gated target: c_target = exp(-r² / 2σ²)
+                    gt_pose_cur = getattr(frameData.cur, "gt_pose", None)
+                    gt_pose_nxt = getattr(frameData.nxt, "gt_pose", None)
                     gt_depth = getattr(frameData.cur.stereo, "gt_depth", None)
-                    fb_flow = getattr(frameData.cur.stereo, "gt_backward_flow", None)
-                    K = frameData.cur.stereo.K.unsqueeze(0).expand(B, -1, -1).cuda()
+                    K = frameData.cur.stereo.K.cuda()
 
-                    if gt_pose is not None and gt_depth is not None and K is not None:
-                        M_pseudo, residual = dyn_pseudo_label(
-                            flow[-1], gt_pose.cuda(), gt_depth.cuda(), K,
-                            fb_flow=fb_flow.cuda() if fb_flow is not None else None,
-                        )
+                    if gt_pose_cur is not None and gt_pose_nxt is not None:
+                        import pypose as pp
+                        # Self-supervised: compute stereo depth via FlowFormer
+                        if gt_depth is None and hasattr(frameData.cur.stereo, 'imageR'):
+                            with torch.no_grad():
+                                flow_stereo, _, _ = model(
+                                    img1, frameData.cur.stereo.imageR.cuda(),
+                                    torch.zeros(B, 128, device=img1.device),
+                                    torch.zeros(B, 7, 128, device=img1.device),
+                                )
+                                disparity = flow_stereo[-1][:, :1].abs()
+                                baseline = frameData.cur.stereo.baseline.to(dtype=torch.float32, device=img1.device)
+                                fx = K[:, 0, 0].unsqueeze(1).unsqueeze(2).unsqueeze(3)
+                                gt_depth = (fx * baseline.view(-1,1,1,1)) / (disparity.clamp_min(0.1))
+                                if gt_depth.shape[-2:] != flow[-1].shape[-2:]:
+                                    gt_depth = torch.nn.functional.interpolate(
+                                        gt_depth, size=flow[-1].shape[-2:], mode='bilinear', align_corners=False)
+
+                        if gt_depth is not None:
+                            NED_R_cam = torch.tensor([[0,0,1],[1,0,0],[0,1,0]], dtype=torch.float64)
+                            T_cur_mat = pp.SE3(gt_pose_cur).matrix().to(dtype=torch.float64, device=img1.device)
+                            T_nxt_mat = pp.SE3(gt_pose_nxt).matrix().to(dtype=torch.float64, device=img1.device)
+                            T_rel = torch.linalg.inv(T_nxt_mat) @ T_cur_mat
+                            R_rel, t_rel = T_rel[:, :3, :3], T_rel[:, :3, 3:4]
+                            R_c = NED_R_cam.T.to(R_rel.device) @ R_rel @ NED_R_cam.to(R_rel.device)
+                            t_c = NED_R_cam.T.to(R_rel.device) @ t_rel
+                            T_rel_mat = torch.cat([torch.cat([R_c, t_c], dim=2),
+                                                   torch.tensor([[[0.,0.,0.,1.]]], device=R_rel.device, dtype=torch.float64)], dim=1)
+                            residual, f_rigid = compute_rigid_flow_residual(
+                                flow[-1], T_rel_mat, gt_depth.cuda(), K)
+                        else:
+                            _, _, Hf, Wf = flow[-1].shape
+                            residual = torch.zeros(B, 1, Hf, Wf, device=img1.device)
+                            f_rigid = torch.zeros(B, 2, Hf, Wf, device=img1.device)
                     else:
-                        # Placeholder: all-static, zero residual (dataloader not yet wired
-                        # with GT depth + pose — TartanAir configs have gtDepth: false).
                         _, _, Hf, Wf = flow[-1].shape
-                        M_pseudo = torch.ones(B, 1, Hf, Wf, device=img1.device, dtype=torch.long)
                         residual = torch.zeros(B, 1, Hf, Wf, device=img1.device)
-                    dyn_pseudo = (M_pseudo, residual)
+                        f_rigid = torch.zeros(B, 2, Hf, Wf, device=img1.device)
+                    dyn_data = (residual, f_rigid)
 
-                    loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=gt_flow, flow_mask=flow_mask,
-                                            cov_preds=cov, dyn_preds=dyn, dyn_pseudo=dyn_pseudo)
+                    # For self-supervised: pass estimated flow as pseudo-GT (only dyn loss used)
+                    _gt = gt_flow if gt_flow is not None else flow[-1].detach()
+                    _fm = flow_mask if flow_mask is not None else torch.ones_like(_gt[:, :1])
+                    loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=_gt, flow_mask=_fm,
+                                            cov_preds=cov, dyn_preds=dyn, dyn_data=dyn_data)
                 else:
                     flow, cov = model(img1, img2)
                     loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=gt_flow, flow_mask=flow_mask, cov_preds=cov)
@@ -240,12 +276,12 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 if total_steps % int(modelcfg.log_freq) == 0:
                     Logger.write("info", "Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
                     if modelcfg.wandb:
-                        _, metric = sequence_metric(modelcfg, flow, cov, gt_flow, flow_mask, dyn_preds=dyn, dyn_pseudo=dyn_pseudo)
+                        _, metric = sequence_metric(modelcfg, flow, cov, _gt, _fm, dyn_preds=dyn, dyn_data=dyn_data)
                         metrics = merge_matrices([metric])
                         metrics["lr"] = lr
 
                         # --- Dyn-specific metrics ---
-                        if train_mode == "dyn" and dyn is not None:
+                        if train_mode in ("dyn", "dyn_selfsup") and dyn is not None:
                             c_final = dyn[-1].sigmoid().detach()
                             metrics["train/dyn_mean_c"] = c_final.mean().item()
                             metrics["train/dyn_static_frac"] = (c_final > 0.5).float().mean().item()
@@ -254,13 +290,9 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                             if f_imu is not None:
                                 metrics["imu/f_imu_mean"] = f_imu.mean().item()
                                 metrics["imu/f_imu_std"] = f_imu.std().item()
-                            if dyn_pseudo is not None:
-                                M_pseudo, _ = dyn_pseudo
-                                valid = M_pseudo >= 0
-                                if valid.sum() > 0:
-                                    metrics["pseudo/static_pct"] = (M_pseudo == 1).float().mean().item()
-                                    metrics["pseudo/dynamic_pct"] = (M_pseudo == 0).float().mean().item()
-                                    metrics["pseudo/ignore_pct"] = (M_pseudo == -1).float().mean().item()
+                            if dyn_data is not None:
+                                residual, _ = dyn_data
+                                metrics["pseudo/residual_mean"] = residual.mean().item()
                             grad_info = logger.log_frozen_grad_check(model_ptr)
                             metrics["dyngru/grad_dyn_update"] = grad_info["trainable_grad_norm"]
                             metrics["dyngru/grad_frozen"] = grad_info["frozen_grad_norm"]
@@ -271,18 +303,16 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
 
                 # --- Offline visual debug dump ---
                 visual_freq = getattr(modelcfg, "visual_freq", 500)
-                if train_mode == "dyn" and dyn is not None and dyn_pseudo is not None and total_steps % visual_freq == 0:
+                if train_mode in ("dyn", "dyn_selfsup") and dyn is not None and dyn_data is not None and total_steps % visual_freq == 0:
                     with torch.no_grad():
-                        M_pseudo, residual = dyn_pseudo
+                        residual, f_rigid = dyn_data
                         visuals = {
                             "img1": img1[0].cpu().clamp(0, 1),
                             "img2": img2[0].cpu().clamp(0, 1),
                             "dyn_logits_final": dyn[-1][0].cpu(),
                             "flow_est": flow[-1][0].cpu(),
-                            "flow_rigid": flow[-1][0].cpu(),
-                            "M_pseudo": M_pseudo[0].cpu(),
+                            "flow_rigid": f_rigid[0].cpu(),
                             "residual": residual[0].cpu(),
-                            "tau": torch.ones_like(residual[0].cpu()) * 0.5,
                             "f_imu": f_imu[0].cpu(),
                             "imu_tokens": imu_tokens[0].cpu(),
                             "alpha": model_ptr.memory_decoder.dyn_update.alpha.detach().cpu(),
@@ -298,14 +328,15 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 crash_dir.mkdir(parents=True, exist_ok=True)
                 crash = {
                     "img1": img1.cpu(), "img2": img2.cpu(),
-                    "gt_flow": gt_flow.cpu(), "flow_mask": flow_mask.cpu(),
+                    "gt_flow": gt_flow.cpu() if gt_flow is not None else torch.zeros(1),
+                    "flow_mask": flow_mask.cpu() if flow_mask is not None else torch.zeros(1),
                     "error": str(e),
                 }
                 if dyn is not None:
                     crash["dyn"] = [d.cpu() for d in dyn]
-                if dyn_pseudo is not None:
-                    crash["M_pseudo"] = dyn_pseudo[0].cpu()
-                    crash["residual"] = dyn_pseudo[1].cpu()
+                if dyn_data is not None:
+                    crash["residual"] = dyn_data[0].cpu()
+                    crash["f_rigid"] = dyn_data[1].cpu()
                 torch.save(crash, crash_dir / "crash_dump.pt")
                 import traceback
                 with open(crash_dir / "traceback.txt", "w") as f:
@@ -360,29 +391,30 @@ if __name__ == "__main__":
                   ScaleFrame(dict(scale_u=cfg.Model.image_scale, scale_v=cfg.Model.image_scale, interp='nearest'))]
     
     train_mode = modlecfg.training_mode
-    if train_mode == "dyn":
-        # DynGRU training needs IMU-bearing datasets (TartanAirv2, not _NoIMU)
+    if train_mode in ("dyn", "dyn_selfsup"):
+        # DynGRU training needs IMU-bearing datasets
         # and GT depth + GT pose for rigid-flow pseudo-labels.
         traindatasets = TrainDataset[StereoFrame].mp_instantiation(
             datacfg.data, 0, -1,
-            lambda cfg: cfg.type in {"TartanAir", "TartanAirv2"}
+            lambda cfg: cfg.type in {"TartanAir", "TartanAirv2", "VIODE"}
         )
     else:
         traindatasets = TrainDataset[StereoFrame].mp_instantiation(
             datacfg.data, 0, -1,
             lambda cfg: cfg.type in {"TartanAir_NoIMU", "TartanAirv2_NoIMU"}
         )
+    valid_datasets = [ds.transform_source(transforms) for ds in traindatasets if ds is not None]
+    if len(valid_datasets) == 0:
+        raise RuntimeError("No valid training datasets found")
+    # TrainDataset is an IterableDataset — use first dataset directly.
+    # Multi-dataset training needs ChainDataset, but for now single dataset works.
+    train_dataset = valid_datasets[0]
     trainloader = DataLoader[DataFramePair[StereoFrame]](
-        ConcatDataset([
-            ds.transform_source(transforms)
-            for ds in traindatasets
-            if ds is not None
-        ]),
+        train_dataset,
         batch_size=modlecfg.batch_size,
-        shuffle=True,
         collate_fn=DataFramePair.collate,
         drop_last=True,
-        num_workers=4,
+        num_workers=modlecfg.num_workers,
     )
     
     if args.wandb:

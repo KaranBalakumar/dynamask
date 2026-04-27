@@ -107,7 +107,7 @@ class FlowFormerDepth(IStereoDepth):
         from ..Network.FlowFormer.configs.submission import get_cfg
         from ..Network.FlowFormer.core import build_flowformer
         model = build_flowformer(get_cfg())
-        ckpt  = torch.load(self.config.weight, weights_only=True)
+        ckpt  = torch.load(self.config.weight, map_location='cpu', weights_only=True)
         model.load_ddp_state_dict(ckpt)
         model.to(self.config.device)
         
@@ -149,7 +149,7 @@ class FlowFormerCovDepth(IStereoDepth):
             reflect_torch_dtype(config.enc_dtype),
             reflect_torch_dtype(config.dec_dtype)
         )
-        ckpt  = torch.load(self.config.weight, weights_only=True)
+        ckpt  = torch.load(self.config.weight, map_location='cpu', weights_only=True)
         model.load_ddp_state_dict(ckpt)
         model.to(self.config.device)
         model.eval()
@@ -198,7 +198,7 @@ class TartanVODepth(IStereoDepth):
         
         cfg, _ = build_dynamic_config({"exp": False, "decoder": "hourglass"})
         model = StereoCovNet(cfg)
-        ckpt = torch.load(self.config.weight, weights_only=True)
+        ckpt = torch.load(self.config.weight, map_location='cpu', weights_only=True)
         model.load_ddp_state_dict(ckpt)
         model.to(self.config.device)
         model.eval()
