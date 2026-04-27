@@ -101,41 +101,29 @@ class TartanAirV2IMULoader:
 
     def frame_range_query(self, start_frame: int, end_frame: int) -> tuple[IMUData, AttitudeData]:
         """Retrieve IMU data spanning camera frames [start_frame, end_frame)."""
-        start_imu_idx = self.cam2imu_idx[start_frame].item()
-
         if self.fixed_imu_samples > 0:
-            end_imu_idx = start_imu_idx + self.fixed_imu_samples
-        else:
+            # Centered window: always exactly N ticks ending at end_frame's timestamp.
+            # No padding — just shift the start if needed.  This avoids zero-padding
+            # artifacts (negative time_delta) while keeping all windows uniform size.
             end_imu_idx = self.cam2imu_idx[end_frame].item()
-
-        # Clip to valid range, pad with zeros if needed
-        max_idx = self.acc.size(1)
-        end_clipped = min(end_imu_idx, max_idx)
-        pad = max(0, end_imu_idx - max_idx)
-
-        def _slice_or_pad(tensor, start, end, pad_len):
-            """Slice tensor[:, start:end] and zero-pad if needed."""
-            result = tensor[:, start:end]
-            if pad_len > 0:
-                shape = list(result.shape)
-                shape[1] = pad_len
-                zeros = torch.zeros(shape, dtype=result.dtype, device=result.device)
-                result = torch.cat([result, zeros], dim=1)
-            return result
+            start_imu_idx = max(0, end_imu_idx - self.fixed_imu_samples)
+        else:
+            start_imu_idx = self.cam2imu_idx[start_frame].item()
+            end_imu_idx = self.cam2imu_idx[end_frame].item()
 
         return IMUData(
             T_BS=self.T_BS,
             gravity=[self.gravity],
-            time_ns=_slice_or_pad(self.imu_time, start_imu_idx, end_clipped, pad),
-            acc=_slice_or_pad(self.acc, start_imu_idx, end_clipped, pad),
-            gyro=_slice_or_pad(self.gyro, start_imu_idx, end_clipped, pad),
+            time_ns=self.imu_time[:, start_imu_idx:end_imu_idx],
+            acc=self.acc[:, start_imu_idx:end_imu_idx],
+            gyro=self.gyro[:, start_imu_idx:end_imu_idx],
         ), AttitudeData(
             T_BS=self.T_BS,
             gravity=[self.gravity],
-            time_ns=_slice_or_pad(self.imu_time, start_imu_idx, end_clipped, pad),
-            gt_pos=_slice_or_pad(self.gt_pos, start_imu_idx, end_clipped, pad),
-            gt_vel=_slice_or_pad(self.gt_vel, start_imu_idx, end_clipped, pad),
-            gt_rot=cast(pp.LieTensor, _slice_or_pad(self.gt_rot, start_imu_idx, end_clipped, pad)),
+            time_ns=self.imu_time[:, start_imu_idx:end_imu_idx],
+            gt_pos=self.gt_pos[:, start_imu_idx:end_imu_idx],
+            gt_vel=self.gt_vel[:, start_imu_idx:end_imu_idx],
+            gt_rot=cast(pp.LieTensor, self.gt_rot[:, start_imu_idx:end_imu_idx]),
             init_pos=self.gt_pos[:, start_imu_idx : start_imu_idx + 1],
             init_vel=self.gt_vel[:, start_imu_idx : start_imu_idx + 1],
             init_rot=cast(pp.LieTensor, self.gt_rot[:, start_imu_idx : start_imu_idx + 1]),
