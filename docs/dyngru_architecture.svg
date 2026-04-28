@@ -1,0 +1,229 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" font-family="monospace" font-size="11">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#333"/>
+    </marker>
+    <linearGradient id="hdrGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/><stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="encGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f3460"/><stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="flowGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#533483"/><stop offset="100%" stop-color="#0f3460"/>
+    </linearGradient>
+    <linearGradient id="covGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e94560"/><stop offset="100%" stop-color="#533483"/>
+    </linearGradient>
+    <linearGradient id="dynGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5a623"/><stop offset="100%" stop-color="#e94560"/>
+    </linearGradient>
+    <linearGradient id="imuGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#16a085"/><stop offset="100%" stop-color="#0f3460"/>
+    </linearGradient>
+    <linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#e74c3c"/>
+    </linearGradient>
+    <filter id="shadow" x="-3%" y="-3%" width="106%" height="106%">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#0d1117" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1200" height="42" fill="url(#hdrGrad)" rx="8"/>
+  <rect x="0" y="20" width="1200" height="22" fill="url(#hdrGrad)"/>
+  <text x="600" y="27" text-anchor="middle" fill="#e6e6e6" font-size="16" font-weight="bold">DynGRU — IMU-Conditioned Dynamic-Pixel Head for MAC-VO</text>
+
+  <!-- ==================== INPUTS ==================== -->
+  <rect x="40" y="60" width="160" height="50" fill="#16213e" rx="6" stroke="#0f3460" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="120" y="80" text-anchor="middle" fill="#aaa" font-size="9">Stereo Pair (t, t+1)</text>
+  <text x="120" y="95" text-anchor="middle" fill="#e6e6e6" font-size="10">L₁, L₂  (752×480 RGB)</text>
+
+  <rect x="240" y="60" width="160" height="50" fill="#16213e" rx="6" stroke="#0f3460" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="320" y="80" text-anchor="middle" fill="#aaa" font-size="9">IMU Window [t, t+1]</text>
+  <text x="320" y="95" text-anchor="middle" fill="#e6e6e6" font-size="10">acc, gyro @ 200Hz</text>
+
+  <rect x="440" y="60" width="160" height="50" fill="#16213e" rx="6" stroke="#0f3460" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="520" y="80" text-anchor="middle" fill="#aaa" font-size="9">GT Odometry (t, t+1)</text>
+  <text x="520" y="95" text-anchor="middle" fill="#e6e6e6" font-size="10">SE(3) absolute poses</text>
+
+  <!-- ==================== IMU Pipeline ==================== -->
+  <rect x="240" y="130" width="460" height="120" fill="url(#imuGrad)" rx="8" stroke="#16a085" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="470" y="150" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">IMUContext Pipeline</text>
+
+  <rect x="255" y="160" width="135" height="40" fill="#1a3a2a" rx="4" stroke="#16a085" stroke-width="0.8"/>
+  <text x="322" y="177" text-anchor="middle" fill="#aaeebb" font-size="9">Velocity EKF Propagate</text>
+  <text x="322" y="191" text-anchor="middle" fill="#aaa" font-size="8">15-D state (R,v,p,bg,ba)</text>
+
+  <rect x="400" y="160" width="135" height="40" fill="#1a3a2a" rx="4" stroke="#16a085" stroke-width="0.8"/>
+  <text x="467" y="177" text-anchor="middle" fill="#aaeebb" font-size="9">AirIO Velocity Net</text>
+  <text x="467" y="191" text-anchor="middle" fill="#aaa" font-size="8">body-frame v̂ + Σ</text>
+
+  <rect x="545" y="160" width="140" height="40" fill="#1a3a2a" rx="4" stroke="#16a085" stroke-width="0.8"/>
+  <text x="615" y="177" text-anchor="middle" fill="#aaeebb" font-size="9">EKF Velocity Update</text>
+  <text x="615" y="191" text-anchor="middle" fill="#aaa" font-size="8">Kalman correction</text>
+
+  <!-- Feature encoding -->
+  <rect x="310" y="210" width="320" height="30" fill="#0d3320" rx="4" stroke="#16a085" stroke-width="0.8"/>
+  <text x="470" y="229" text-anchor="middle" fill="#e6e6e6" font-size="9">34-D z_imu → feature_mlp (34→128→128) → f_imu (128) │ token_projs → imu_tokens (7×128)</text>
+
+  <!-- ==================== FlowFormer Encoder ==================== -->
+  <rect x="40" y="130" width="160" height="120" fill="url(#encGrad)" rx="8" stroke="#1a5276" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="120" y="152" text-anchor="middle" fill="#e6e6e6" font-size="11" font-weight="bold">FlowFormer Encoder</text>
+  <text x="120" y="170" text-anchor="middle" fill="#aaa" font-size="9">Context Encoder</text>
+  <text x="120" y="185" text-anchor="middle" fill="#aaa" font-size="9">(Twins-SVT CNN)</text>
+  <text x="120" y="205" text-anchor="middle" fill="#aaa" font-size="9">→ context (128ch, H/8)</text>
+  <text x="120" y="225" text-anchor="middle" fill="#aaa" font-size="9">Memory Encoder</text>
+  <text x="120" y="240" text-anchor="middle" fill="#aaa" font-size="9">(cost vol + transformer)</text>
+
+  <!-- ==================== Decoder Loop ==================== -->
+  <rect x="40" y="270" width="1120" height="380" fill="#0a0f18" rx="8" stroke="#1a1a2e" stroke-width="1.5"/>
+  <text x="600" y="292" text-anchor="middle" fill="#e6e6e6" font-size="13" font-weight="bold">MemoryDynDecoder — Iterative Refinement Loop (K = 12)</text>
+
+  <!-- Iteration k box -->
+  <rect x="60" y="305" width="890" height="30" fill="#16213e" rx="4"/>
+  <text x="500" y="325" text-anchor="middle" fill="#ccc" font-size="10">for k in 0..11:   ← shared inp_cat = [flow_inp(128) | motion_feat(128) | motion_feat_global(128)] (384ch, H/8)</text>
+
+  <!-- Flow GRU -->
+  <rect x="60" y="345" width="280" height="160" fill="url(#flowGrad)" rx="6" stroke="#7b68ee" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="200" y="365" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Flow GRU  [FROZEN]</text>
+  <text x="200" y="383" text-anchor="middle" fill="#ddd" font-size="9">SepConvGRU(hidden=128, input=384)</text>
+  <text x="200" y="400" text-anchor="middle" fill="#ddd" font-size="9">→ delta_flow (2ch, H/8)</text>
+  <text x="200" y="418" text-anchor="middle" fill="#ddd" font-size="9">→ up_mask (64×9ch, H/8)</text>
+  <line x1="200" y1="430" x2="200" y2="460" stroke="#7b68ee" stroke-width="1" marker-end="url(#arrow)"/>
+  <text x="200" y="475" text-anchor="middle" fill="#e6e6e6" font-size="9">8× convex upsample</text>
+  <text x="200" y="492" text-anchor="middle" fill="#e6e6e6" font-size="9">→ flow_prediction[k] (B,2,H,W)</text>
+
+  <!-- Cov GRU -->
+  <rect x="360" y="345" width="280" height="160" fill="url(#covGrad)" rx="6" stroke="#e94560" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="500" y="365" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Cov GRU  [FROZEN]</text>
+  <text x="500" y="383" text-anchor="middle" fill="#ddd" font-size="9">CovUpdateBlock(hidden=128, input=384)</text>
+  <text x="500" y="400" text-anchor="middle" fill="#ddd" font-size="9">→ delta_cov (2ch, H/8)</text>
+  <text x="500" y="418" text-anchor="middle" fill="#ddd" font-size="9">→ cov_mask (64×9ch, H/8)</text>
+  <line x1="500" y1="430" x2="500" y2="460" stroke="#e94560" stroke-width="1" marker-end="url(#arrow)"/>
+  <text x="500" y="475" text-anchor="middle" fill="#e6e6e6" font-size="9">8× convex upsample</text>
+  <text x="500" y="492" text-anchor="middle" fill="#e6e6e6" font-size="9">→ cov_prediction[k] (B,2,H,W)</text>
+
+  <!-- Dyn GRU -->
+  <rect x="660" y="345" width="290" height="160" fill="url(#dynGrad)" rx="6" stroke="#f5a623" stroke-width="2" filter="url(#shadow)"/>
+  <text x="805" y="365" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Dyn GRU  ★ TRAINABLE ★</text>
+  <text x="805" y="383" text-anchor="middle" fill="#ddd" font-size="9">DynUpdateBlock(hidden=128)</text>
+
+  <!-- Dyn sub-blocks -->
+  <rect x="675" y="393" width="260" height="20" fill="#5a3a10" rx="3"/>
+  <text x="805" y="407" text-anchor="middle" fill="#f5d0a0" font-size="8">① SepConvGRU(dyn_net, inp_cat) → h</text>
+
+  <rect x="675" y="416" width="260" height="20" fill="#5a3a10" rx="3"/>
+  <text x="805" y="430" text-anchor="middle" fill="#f5d0a0" font-size="8">② FiLM(h, f_imu) → h'  [global IMU modulation]</text>
+
+  <rect x="675" y="439" width="260" height="28" fill="#5a3a10" rx="3"/>
+  <text x="805" y="452" text-anchor="middle" fill="#f5d0a0" font-size="8">③ h' + tanh(α)· IMUCrossAttn(h', tokens)</text>
+  <text x="805" y="464" text-anchor="middle" fill="#dda060" font-size="7">7 tokens: ΔR,Δv,Δp,Rᵀg,bias,Σ,dt  [CLIP-adapter]</text>
+
+  <rect x="675" y="470" width="260" height="18" fill="#5a3a10" rx="3"/>
+  <text x="805" y="483" text-anchor="middle" fill="#f5d0a0" font-size="8">④ DynHead: 4-conv → delta_dyn (1ch, H/8) logits</text>
+
+  <line x1="805" y1="492" x2="805" y2="475" stroke="#f5a623" stroke-width="1"/>
+  <text x="1000" y="478" text-anchor="middle" fill="#e6e6e6" font-size="8">2× convex upsample</text>
+  <text x="1000" y="492" text-anchor="middle" fill="#e6e6e6" font-size="8">→ dyn_prediction[k] (B,1,H/4,W/4)</text>
+
+  <!-- Inter-frame state warp -->
+  <rect x="60" y="520" width="890" height="40" fill="#1a1a2e" rx="4" stroke="#333" stroke-width="1"/>
+  <text x="500" y="538" text-anchor="middle" fill="#ccc" font-size="9">Inter-frame: dyn_net_init = grid_sample(prev_dyn_net_K, prev_flow)  —  warp hidden state forward by previous flow (first pair: clone flow_net)</text>
+  <text x="500" y="553" text-anchor="middle" fill="#888" font-size="8">fcov_net_init = flow_net.clone()  |  flow_net carries over naturally via flow_coords feedback</text>
+
+  <!-- Bump -->
+  <line x1="60" y1="555" x2="950" y2="555" stroke="#333" stroke-width="1"/>
+  <line x1="320" y1="555" x2="320" y2="575" stroke="#333" stroke-width="1"/>
+  <line x1="320" y1="575" x2="950" y2="575" stroke="#333" stroke-width="1"/>
+  <text x="680" y="570" text-anchor="middle" fill="#888" font-size="8">flow_coords1 = flow_coords1 + delta_flow  —  flows back into next iteration's cost-volume lookup</text>
+
+  <!-- Output arrow -->
+  <line x1="200" y1="500" x2="200" y2="570" stroke="#7b68ee" stroke-width="1.2"/>
+  <line x1="500" y1="500" x2="500" y2="570" stroke="#e94560" stroke-width="1.2"/>
+  <line x1="805" y1="500" x2="805" y2="570" stroke="#f5a623" stroke-width="1.5"/>
+
+  <rect x="200" y="580" width="810" height="60" fill="#0a0f18" rx="4"/>
+  <text x="100" y="602" text-anchor="middle" fill="#7b68ee" font-size="9">flow_predictions[0..11]</text>
+  <text x="100" y="618" text-anchor="middle" fill="#e94560" font-size="9">cov_predictions[0..11]</text>
+  <text x="100" y="634" text-anchor="middle" fill="#f5a623" font-size="9">dyn_predictions[0..11]</text>
+
+  <!-- ==================== LOSS ==================== -->
+  <rect x="40" y="665" width="1120" height="220" fill="#0a0f18" rx="8" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="600" y="688" text-anchor="middle" fill="#e74c3c" font-size="12" font-weight="bold">Continuous Cov-Gated Loss (no thresholds, no labels, no IGNORE)</text>
+
+  <!-- Step 1: Stereo depth -->
+  <rect x="60" y="700" width="250" height="75" fill="#2a1515" rx="5" stroke="#c0392b" stroke-width="1"/>
+  <text x="185" y="718" text-anchor="middle" fill="#e6e6e6" font-size="10" font-weight="bold">Step 1: Estimate Depth</text>
+  <text x="185" y="735" text-anchor="middle" fill="#ddd" font-size="9">FlowFormer(L₁, R₁) → disparity</text>
+  <text x="185" y="752" text-anchor="middle" fill="#ddd" font-size="9">depth = baseline × fx / |disparity|</text>
+  <text x="185" y="768" text-anchor="middle" fill="#888" font-size="8">(self-supervised: no GT depth needed)</text>
+
+  <!-- Step 2: Rigid flow -->
+  <rect x="330" y="700" width="260" height="75" fill="#2a1515" rx="5" stroke="#c0392b" stroke-width="1"/>
+  <text x="460" y="718" text-anchor="middle" fill="#e6e6e6" font-size="10" font-weight="bold">Step 2: Rigid Flow</text>
+  <text x="460" y="735" text-anchor="middle" fill="#ddd" font-size="9">X_cam = depth · K⁻¹ · [u,v,1]</text>
+  <text x="460" y="752" text-anchor="middle" fill="#ddd" font-size="9">f_rigid = π(K · T_rel · X_cam) − (u,v)</text>
+  <text x="460" y="768" text-anchor="middle" fill="#888" font-size="8">T_rel = T_nxt⁻¹ @ T_cur  (GT pose → exact)</text>
+
+  <!-- Step 3: Residual + target -->
+  <rect x="610" y="700" width="260" height="75" fill="#2a1515" rx="5" stroke="#c0392b" stroke-width="1"/>
+  <text x="740" y="718" text-anchor="middle" fill="#e6e6e6" font-size="10" font-weight="bold">Step 3: Continuous Target</text>
+  <text x="740" y="735" text-anchor="middle" fill="#ddd" font-size="9">r = ||flow_pred[-1] − f_rigid||</text>
+  <text x="740" y="752" text-anchor="middle" fill="#ddd" font-size="9">c_target = exp(−r² / 2·cov_head_σ²)</text>
+  <text x="740" y="768" text-anchor="middle" fill="#888" font-size="8">σ² from frozen Cov GRU (H/4)</text>
+
+  <!-- Step 4: Loss -->
+  <rect x="890" y="700" width="255" height="75" fill="url(#lossGrad)" rx="5" stroke="#e74c3c" stroke-width="1.5"/>
+  <text x="1017" y="718" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">Step 4: γ-Weighted BCE</text>
+  <text x="1017" y="738" text-anchor="middle" fill="#fff" font-size="9">for k in 0..11:</text>
+  <text x="1017" y="755" text-anchor="middle" fill="#fff" font-size="9">L += 0.85^(11−k) · BCE(σ(dyn_logit_k), c_target)</text>
+  <text x="1017" y="772" text-anchor="middle" fill="#fdd" font-size="8">deep supervision across all 12 iters</text>
+
+  <!-- Arrows between steps -->
+  <line x1="310" y1="737" x2="328" y2="737" stroke="#c0392b" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="590" y1="737" x2="608" y2="737" stroke="#c0392b" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="870" y1="737" x2="888" y2="737" stroke="#c0392b" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Arrows: IMU → Dyn GRU -->
+  <line x1="470" y1="250" x2="470" y2="280" stroke="#16a085" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <line x1="470" y1="240" x2="805" y2="358" stroke="#16a085" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="640" y="340" text-anchor="start" fill="#16a085" font-size="9">f_imu (128) + imu_tokens (7×128)</text>
+
+  <!-- Arrows: Images → Encoder -->
+  <line x1="120" y1="110" x2="120" y2="128" stroke="#0f3460" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Arrows: Encoder → Decoder -->
+  <line x1="120" y1="240" x2="120" y2="268" stroke="#0f3460" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="135" y="258" fill="#0f3460" font-size="8">context, cost_memory, cost_maps</text>
+
+  <!-- Arrows: GT Pose → Loss -->
+  <line x1="520" y1="110" x2="460" y2="698" stroke="#c0392b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="530" y="400" text-anchor="start" fill="#c0392b" font-size="8" transform="rotate(90,530,400)">GT Pose (odometry)</text>
+
+  <!-- Arrows: Flow/Cov → Loss -->
+  <line x1="200" y1="640" x2="740" y2="698" stroke="#7b68ee" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow)"/>
+  <text x="400" y="688" text-anchor="middle" fill="#7b68ee" font-size="8">flow[-1]</text>
+  <line x1="500" y1="640" x2="740" y2="698" stroke="#e94560" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow)"/>
+  <text x="600" y="688" text-anchor="middle" fill="#e94560" font-size="8">cov[-1] (σ²)</text>
+
+  <!-- Legend -->
+  <rect x="40" y="860" width="280" height="30" fill="#0d1117" rx="4"/>
+  <rect x="50" y="868" width="14" height="14" fill="#533483" rx="2"/>
+  <text x="70" y="880" fill="#ddd" font-size="9">Flow GRU (frozen)</text>
+  <rect x="180" y="868" width="14" height="14" fill="#e94560" rx="2"/>
+  <text x="200" y="880" fill="#ddd" font-size="9">Cov GRU (frozen)</text>
+  <rect x="310" y="868" width="14" height="14" fill="#f5a623" rx="2"/>
+  <text x="330" y="880" fill="#ddd" font-size="9">Dyn GRU (trainable, 2.7M)</text>
+  <rect x="470" y="868" width="14" height="14" fill="#16a085" rx="2"/>
+  <text x="490" y="880" fill="#ddd" font-size="9">IMU Pipeline (partial trainable)</text>
+  <rect x="640" y="868" width="14" height="14" fill="#e74c3c" rx="2"/>
+  <text x="660" y="880" fill="#ddd" font-size="9">Loss computation</text>
+
+  <!-- Arrows: Dyn output → Loss -->
+  <line x1="805" y1="640" x2="1017" y2="698" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arrow)"/>
+  <text x="930" y="688" text-anchor="middle" fill="#f5a623" font-size="8">dyn_predictions[0..11]</text>
+</svg>
