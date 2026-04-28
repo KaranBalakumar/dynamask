@@ -182,6 +182,8 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
             if 'scheduler_state_dict' in ckpt:
                 scheduler.load_state_dict(ckpt['scheduler_state_dict'])
             total_steps = ckpt.get('step', 0)
+            if 'imu_context_state_dict' in ckpt and imu_context is not None:
+                imu_context.load_state_dict(ckpt['imu_context_state_dict'])
         else:
             # Legacy checkpoint: just model state_dict
             model_ptr.load_state_dict(ckpt, strict=False)
@@ -306,6 +308,8 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 scaler.scale(loss).backward()
                 scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), modelcfg.clip)
+                if imu_context is not None:
+                    torch.nn.utils.clip_grad_norm_(imu_context.parameters(), modelcfg.clip)
                 scaler.step(optimizer)
                 scheduler.step()
                 lr = optimizer.param_groups[0]["lr"]
@@ -394,6 +398,8 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                     'scheduler_state_dict': scheduler.state_dict(),
                     'step': total_steps,
                 }
+                if imu_context is not None:
+                    state['imu_context_state_dict'] = imu_context.state_dict()
                 torch.save(state, PATH)
 
     logger.log_console(f"Training complete at step {total_steps}")
@@ -406,9 +412,11 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
         'scheduler_state_dict': scheduler.state_dict(),
         'step': total_steps,
     }
+    if imu_context is not None:
+        state['imu_context_state_dict'] = imu_context.state_dict()
     torch.save(state, PATH)
-    
-    
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="Config/Train/Demo.yaml")

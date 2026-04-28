@@ -167,21 +167,25 @@ def compute_rigid_flow_jacobian(
 
 def dyn_loss_phase_a(
     dyn_predictions: list[torch.Tensor],   # K logit maps at H/4
-    cov_predictions: list[torch.Tensor],   # K cov maps (read-only, frozen)
-    residual: torch.Tensor,                # (B, 1, H, W)  ‖f_est − f_rigid‖  (for viz only)
-    r_vec: torch.Tensor,                   # (B, 2, H, W)  f_est − f_rigid vector
+    cov_predictions: list[torch.Tensor],   # K cov maps (read-only, frozen) — unused in "fixed" mode
+    residual: torch.Tensor,                # (B, 1, H, W)  ‖flow_target − f_rigid‖  (for viz only)
+    r_vec: torch.Tensor,                   # (B, 2, H, W)  flow_target − f_rigid vector
     J_d: torch.Tensor,                     # (B, 2, H, W)  ∂f_rigid/∂d
     sigma_depth: torch.Tensor | None,      # (B, 1, H, W)  depth std (from stereo cov)
     gamma: float = 0.85,
-    loss_type: str = "mahalanobis",        # "mahalanobis" or "scalar"
+    loss_type: str = "mahalanobis",        # "mahalanobis" | "scalar" | "fixed"
+    dyn_sigma: float = 2.0,                # fixed σ [px] for "fixed" mode
 ) -> dict[str, torch.Tensor]:
     """γ-weighted BCE with covariance-gated target.
 
-    Two modes:
+    Three modes:
       "mahalanobis":  Σ_2D = Σ_flow + J_d·σ_d²·J_dᵀ
                       d²   = rᵀ·Σ_2D⁻¹·r
                       c    = exp(−d²/2)
-      "scalar":       σ²   = (var_u + var_v)/2  (per-pixel isotropic)
+      "scalar":       σ²   = (var_u + var_v)/2  (per-pixel isotropic from cov head)
+                      d²   = ‖r‖² / σ²
+                      c    = exp(−d²/2)
+      "fixed":        σ    = dyn_sigma  (single scalar, no cov head)
                       d²   = ‖r‖² / σ²
                       c    = exp(−d²/2)
     """
@@ -192,44 +196,57 @@ def dyn_loss_phase_a(
         i_weight = gamma ** (K - i - 1)
         logit = dyn_predictions[i]
 
-        # --- Per-pixel variance from cov head ---
-        cov = cov_predictions[i]  # (B, 2, H, W)  [var_u, var_v] channels
-        var_u = cov[:, 0:1]        # (B, 1, H, W)
-        var_v = cov[:, 1:2]        # (B, 1, H, W)
-
         # --- Resolution matching ---
         r_u = r_vec[:, 0:1]  # (B, 1, H, W)
         r_v = r_vec[:, 1:2]
-        if r_u.shape[-2:] != var_u.shape[-2:]:
-            r_u = F.interpolate(r_u, size=var_u.shape[-2:], mode="bilinear", align_corners=False)
-            r_v = F.interpolate(r_v, size=var_v.shape[-2:], mode="bilinear", align_corners=False)
-        if logit.shape[-2:] != var_u.shape[-2:]:
-            logit = F.interpolate(logit, size=var_u.shape[-2:], mode="bilinear", align_corners=False)
+        if logit.shape[-2:] != r_u.shape[-2:]:
+            logit = F.interpolate(logit, size=r_u.shape[-2:], mode="bilinear", align_corners=False)
 
-        if loss_type == "scalar":
-            # ---- Scalar isotropic: c = exp(−‖r‖² / 2σ²) ----
+        if loss_type == "fixed":
+            # ---- Fixed scalar: c = exp(−‖r‖² / 2σ²), no cov head ----
+            sigma_sq = dyn_sigma ** 2
+            r_sq = r_u * r_u + r_v * r_v
+            d_sq = r_sq / sigma_sq
+            c_target = torch.exp(-0.5 * d_sq.clamp_min(0))
+
+        elif loss_type == "scalar":
+            # ---- Scalar isotropic from cov head: c = exp(−‖r‖² / 2σ²) ----
+            cov = cov_predictions[i]  # (B, 2, H, W)
+            var_u = cov[:, 0:1]
+            var_v = cov[:, 1:2]
+            if r_u.shape[-2:] != var_u.shape[-2:]:
+                r_u = F.interpolate(r_u, size=var_u.shape[-2:], mode="bilinear", align_corners=False)
+                r_v = F.interpolate(r_v, size=var_v.shape[-2:], mode="bilinear", align_corners=False)
+            if logit.shape[-2:] != var_u.shape[-2:]:
+                logit = F.interpolate(logit, size=var_u.shape[-2:], mode="bilinear", align_corners=False)
             sigma_sq = ((var_u + var_v) / 2).clamp_min(1e-12)
             r_sq = r_u * r_u + r_v * r_v
             d_sq = r_sq / sigma_sq
             c_target = torch.exp(-0.5 * d_sq.clamp_min(0))
 
         else:  # "mahalanobis"
-            # ---- Full Mahalanobis: d² = rᵀ·Σ⁻¹·r ----
+            cov = cov_predictions[i]
+            var_u = cov[:, 0:1]
+            var_v = cov[:, 1:2]
             var_uv = torch.zeros_like(var_u)
+            if r_u.shape[-2:] != var_u.shape[-2:]:
+                r_u = F.interpolate(r_u, size=var_u.shape[-2:], mode="bilinear", align_corners=False)
+                r_v = F.interpolate(r_v, size=var_v.shape[-2:], mode="bilinear", align_corners=False)
+            if logit.shape[-2:] != var_u.shape[-2:]:
+                logit = F.interpolate(logit, size=var_u.shape[-2:], mode="bilinear", align_corners=False)
 
             if sigma_depth is not None:
-                Jd_u = J_d[:, 0:1]  # (B, 1, H, W)
+                Jd_u = J_d[:, 0:1]
                 Jd_v = J_d[:, 1:2]
                 sd_sq = sigma_depth.clamp_min(1e-6) ** 2
                 var_u = var_u + Jd_u * Jd_u * sd_sq
                 var_v = var_v + Jd_v * Jd_v * sd_sq
                 var_uv = var_uv + Jd_u * Jd_v * sd_sq
 
-            # Σ = [[a, b], [b, d]];  Σ⁻¹ = 1/det * [[d, -b], [-b, a]]
-            a, b, d = var_u.clamp_min(1e-12), var_uv, var_v.clamp_min(1e-12)
-            det = a * d - b * b
+            a, b, d_val = var_u.clamp_min(1e-12), var_uv, var_v.clamp_min(1e-12)
+            det = a * d_val - b * b
             det = det.clamp_min(1e-12)
-            d_sq = (d * r_u * r_u - 2 * b * r_u * r_v + a * r_v * r_v) / det
+            d_sq = (d_val * r_u * r_u - 2 * b * r_u * r_v + a * r_v * r_v) / det
             c_target = torch.exp(-0.5 * d_sq.clamp_min(0))
 
         L_total += i_weight * F.binary_cross_entropy_with_logits(logit, c_target)
@@ -278,13 +295,14 @@ def sequence_loss(cfg, preds: torch.Tensor, gt: torch.Tensor, flow_mask: torch.T
             J_d = dyn_data[3] if len(dyn_data) > 3 else None
             sigma_depth = dyn_data[4] if len(dyn_data) > 4 else None
             loss_type = getattr(cfg, "dyn_loss_type", "mahalanobis")
-            loss_dict = dyn_loss_phase_a(dyn_preds, cov_preds, residual, r_vec, J_d, sigma_depth, gamma=cfg.gamma, loss_type=loss_type)
+            dyn_sigma = getattr(cfg, "dyn_sigma", 2.0)
+            loss_dict = dyn_loss_phase_a(dyn_preds, cov_preds, residual, r_vec, J_d, sigma_depth, gamma=cfg.gamma, loss_type=loss_type, dyn_sigma=dyn_sigma)
             loss = loss_dict["L_total"]
             c_mean = dyn_preds[-1].sigmoid().mean().item()
             metrics["dyn_c_mean"] = c_mean
 
         case default:
-            raise ValueError(f"Unavailable training mode {default}")      
+            raise ValueError(f"Unavailable training mode {default}")
     return loss, metrics
 
 
@@ -332,7 +350,8 @@ def sequence_metric(cfg, preds: torch.Tensor, cov_preds: list[torch.Tensor] | No
             J_d = dyn_data[3] if len(dyn_data) > 3 else None
             sigma_depth = dyn_data[4] if len(dyn_data) > 4 else None
             loss_type = getattr(cfg, "dyn_loss_type", "mahalanobis")
-            loss_dict = dyn_loss_phase_a(dyn_preds, cov_preds, residual, r_vec, J_d, sigma_depth, gamma=cfg.gamma, loss_type=loss_type)
+            dyn_sigma = getattr(cfg, "dyn_sigma", 2.0)
+            loss_dict = dyn_loss_phase_a(dyn_preds, cov_preds, residual, r_vec, J_d, sigma_depth, gamma=cfg.gamma, loss_type=loss_type, dyn_sigma=dyn_sigma)
             metrics.update({"dyn_loss": loss_dict["L_total"].item()})
             metrics.update({"dyn_c_mean": dyn_preds[-1].sigmoid().mean().item()})
 

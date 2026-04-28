@@ -56,6 +56,39 @@ class TestDynLossPhaseA:
                                gamma=0.85, loss_type="mahalanobis")
         assert out["L_total"].item() > 0
 
+    def test_fixed_returns_positive_loss(self, loss_fixture):
+        f = loss_fixture
+        out = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                               f["r_vec"], None, None,
+                               gamma=0.85, loss_type="fixed", dyn_sigma=2.0)
+        assert out["L_total"].item() > 0
+
+    def test_fixed_larger_sigma_gives_smaller_loss(self, loss_fixture):
+        f = loss_fixture
+        out_sharp = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                     f["r_vec"], None, None,
+                                     gamma=0.85, loss_type="fixed", dyn_sigma=0.5)
+        out_soft = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                    f["r_vec"], None, None,
+                                    gamma=0.85, loss_type="fixed", dyn_sigma=10.0)
+        # Larger sigma → softer targets → different loss
+        assert out_sharp["L_total"].item() != out_soft["L_total"].item()
+
+    def test_fixed_ignores_cov_predictions(self, loss_fixture):
+        f = loss_fixture
+        # With zero cov_preds, fixed mode should still work
+        zero_cov = [torch.zeros_like(c) for c in f["cov_preds"]]
+        out = dyn_loss_phase_a(f["dyn_preds"], zero_cov, f["residual"],
+                               f["r_vec"], None, None,
+                               gamma=0.85, loss_type="fixed", dyn_sigma=2.0)
+        assert out["L_total"].item() > 0
+        # Cov predictions should not affect fixed mode at all
+        rand_cov = [torch.randn_like(c).abs() + 0.1 for c in f["cov_preds"]]
+        out2 = dyn_loss_phase_a(f["dyn_preds"], rand_cov, f["residual"],
+                                f["r_vec"], None, None,
+                                gamma=0.85, loss_type="fixed", dyn_sigma=2.0)
+        assert abs(out["L_total"].item() - out2["L_total"].item()) < 1e-9
+
     def test_default_is_mahalanobis(self, loss_fixture):
         f = loss_fixture
         out_default = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
@@ -130,10 +163,10 @@ class TestSequenceLossDyn:
         sigma_depth = torch.rand(B, 1, Hd, Wd).abs() + 0.01
         dyn_data = (residual, f_rigid, r_vec, J_d, sigma_depth)
 
-        for loss_type in ["mahalanobis", "scalar"]:
+        for loss_type, dyn_sigma in [("mahalanobis", 2.0), ("scalar", 2.0), ("fixed", 2.0)]:
             cfg = SimpleNamespace(
                 training_mode="dyn", gamma=0.85, max_flow=400,
-                cov_mask=False, dyn_loss_type=loss_type,
+                cov_mask=False, dyn_loss_type=loss_type, dyn_sigma=dyn_sigma,
             )
             loss, metrics = sequence_loss(
                 cfg, flow, gt, None, cov,
