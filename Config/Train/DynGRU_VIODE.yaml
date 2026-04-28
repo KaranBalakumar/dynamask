@@ -4,10 +4,10 @@ Model:
   suffix: "dyngru_viode"
   gamma: 0.85
   max_flow: 400
-  batch_size: 3
+  batch_size: 2
   sum_freq: 100
-  val_freq: 5000000
-  image_size: [480, 752]
+  val_freq: 2000
+  image_size: [480, 640]
   image_scale: 1
   add_noise: False
   cov_mask: False
@@ -15,7 +15,8 @@ Model:
   critical_params: []
   transformer: "latentcostformer"
   restore_ckpt: "Model/MACVO_FrontendCov.pth"
-  training_mode: "dyn_selfsup"
+  training_mode: "dyn"
+  dyn_loss_type: "mahalanobis"     # "mahalanobis" or "scalar"
 
   latentcostformer:
     pe: "linear"
@@ -52,7 +53,7 @@ Model:
 
   ### TRAINER
   clip: 1.0
-  num_steps: &num_steps 12514
+  num_steps: &num_steps 24000
 
   optimizer:
     type: "AdamW"
@@ -82,8 +83,8 @@ Model:
 
 Train:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/VIODE_High.yaml
+    - !include ../Sequence/Training_Dataset/CarWelding_All.yaml
 
 Evaluate:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/VIODE_High.yaml
+    - !include ../Sequence/Training_Dataset/CarWelding_All.yaml

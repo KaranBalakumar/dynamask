@@ -11,7 +11,7 @@ from pathlib import Path
 from torch.amp.grad_scaler import GradScaler
 from torch.utils.data import ConcatDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
-from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_residual
+from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_jacobian
 import DataLoader.Dataset.VIODE as _viode_dl  # noqa: F401 — register VIODESequence
 from Utility.Config import load_config, namespace_to_cfgnode
 from Utility.PrettyPrint import ColoredTqdm, Logger
@@ -23,13 +23,6 @@ from .utils import (
 )
 
 
-def write_wandb(header, objs, epoch_i):
-    if isinstance(objs, dict):
-        for k, v in objs.items():
-            if isinstance(v, float):
-                wandb.log({os.path.join(header, k): v}, epoch_i)
-    else:
-        wandb.log({header: objs}, step = epoch_i)
 
 
 def merge_matrices(matrices):
@@ -114,16 +107,6 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     model = nn.DataParallel(model)
     model.cuda()
     model.train()
-    
-    optimizer = get_optimizer(cfg.Model.optimizer.type)(
-        model.parameters(),
-        **vars(cfg.Model.optimizer.args)
-    )
-    scheduler = get_scheduler(cfg.Model.scheduler.type)(
-        optimizer,
-        **vars(cfg.Model.scheduler.args)
-    )
-    scaler = GradScaler(enabled=modelcfg.mixed_precision)
     model_ptr = model.module if isinstance(model, nn.DataParallel) else model
     match train_mode:
         case "flow":
@@ -158,11 +141,23 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
             gravity=_grav,
         )
         imu_context.cuda()
-        # IMUContext feature_mlp + token_projs are trainable per design doc §10.3,
-        # but adding param groups breaks OneCycleLR scheduler state.
-        # TODO: restructure optimizer/scheduler init to include IMUContext params.
+        imu_context.train()
     else:
         imu_context = None
+
+    # Build optimizer with all trainable parameters (model + IMUContext)
+    _trainable = list(model.parameters())
+    if imu_context is not None:
+        _trainable += list(imu_context.parameters())
+    optimizer = get_optimizer(cfg.Model.optimizer.type)(
+        _trainable,
+        **vars(cfg.Model.optimizer.args)
+    )
+    scheduler = get_scheduler(cfg.Model.scheduler.type)(
+        optimizer,
+        **vars(cfg.Model.scheduler.args)
+    )
+    scaler = GradScaler(enabled=modelcfg.mixed_precision)
 
     # --- Build logger ---
     from Train.DynNet.dyn_logger import DynTrainLogger
@@ -236,21 +231,28 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
 
                     if gt_pose_cur is not None and gt_pose_nxt is not None:
                         import pypose as pp
-                        # Self-supervised: compute stereo depth via FlowFormer
+                        # When GT depth is missing, compute stereo depth via FlowFormer
+                        sigma_depth = None  # depth uncertainty from stereo cov
                         if gt_depth is None and hasattr(frameData.cur.stereo, 'imageR'):
                             with torch.no_grad():
-                                flow_stereo, _, _ = model(
+                                flow_stereo, cov_stereo, _ = model(
                                     img1, frameData.cur.stereo.imageR.cuda(),
                                     torch.zeros(B, 128, device=img1.device),
                                     torch.zeros(B, 7, 128, device=img1.device),
                                 )
                                 disparity = flow_stereo[-1][:, :1].abs()
+                                disp_cov = cov_stereo[-1][:, :1].abs()  # disparity std from cov head
                                 baseline = frameData.cur.stereo.baseline.to(dtype=torch.float32, device=img1.device)
                                 fx = K[:, 0, 0].unsqueeze(1).unsqueeze(2).unsqueeze(3)
                                 gt_depth = (fx * baseline.view(-1,1,1,1)) / (disparity.clamp_min(0.1))
+                                # Propagate disparity uncertainty → depth uncertainty
+                                # depth = fx*baseline/disp → σ_depth ≈ (depth/disp) * σ_disp
+                                sigma_depth = gt_depth.clamp_min(0.1) / disparity.clamp_min(0.1) * disp_cov.abs()
                                 if gt_depth.shape[-2:] != flow[-1].shape[-2:]:
                                     gt_depth = torch.nn.functional.interpolate(
                                         gt_depth, size=flow[-1].shape[-2:], mode='bilinear', align_corners=False)
+                                    sigma_depth = torch.nn.functional.interpolate(
+                                        sigma_depth, size=flow[-1].shape[-2:], mode='bilinear', align_corners=False)
 
                         if gt_depth is not None:
                             NED_R_cam = torch.tensor([[0,0,1],[1,0,0],[0,1,0]], dtype=torch.float64)
@@ -263,19 +265,33 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                             B = R_c.size(0)
                             bottom_row = torch.tensor([0.,0.,0.,1.], device=R_rel.device, dtype=torch.float64).repeat(B, 1, 1)
                             T_rel_mat = torch.cat([torch.cat([R_c, t_c], dim=2), bottom_row], dim=1)
-                            residual, f_rigid = compute_rigid_flow_residual(
-                                flow[-1], T_rel_mat, gt_depth.cuda(), K)
+                            f_rigid, J_d, _ = compute_rigid_flow_jacobian(
+                                gt_depth.cuda(), K, T_rel_mat)
+                            # Use GT flow as residual target when available, fall back to estimated flow
+                            if gt_flow is not None:
+                                flow_target = gt_flow
+                            else:
+                                flow_target = flow[-1]
+                            if flow_target.shape[-2:] != f_rigid.shape[-2:]:
+                                flow_target = torch.nn.functional.interpolate(
+                                    flow_target, size=f_rigid.shape[-2:], mode="bilinear", align_corners=False)
+                            residual = (flow_target - f_rigid).norm(dim=1, keepdim=True)
+                            r_vec = flow_target - f_rigid  # (B, 2, H, W) for loss
                         else:
                             _, _, Hf, Wf = flow[-1].shape
                             residual = torch.zeros(B, 1, Hf, Wf, device=img1.device)
                             f_rigid = torch.zeros(B, 2, Hf, Wf, device=img1.device)
+                            r_vec = torch.zeros(B, 2, Hf, Wf, device=img1.device)
+                            J_d = torch.zeros(B, 2, Hf, Wf, device=img1.device)
                     else:
                         _, _, Hf, Wf = flow[-1].shape
                         residual = torch.zeros(B, 1, Hf, Wf, device=img1.device)
                         f_rigid = torch.zeros(B, 2, Hf, Wf, device=img1.device)
-                    dyn_data = (residual, f_rigid)
+                        r_vec = torch.zeros(B, 2, Hf, Wf, device=img1.device)
+                        J_d = torch.zeros(B, 2, Hf, Wf, device=img1.device)
+                    dyn_data = (residual, f_rigid, r_vec, J_d, sigma_depth)
 
-                    # For self-supervised: pass estimated flow as pseudo-GT (only dyn loss used)
+                    # GT flow for EPE metrics; dyn loss uses r_vec = flow_target - f_rigid (above)
                     _gt = gt_flow if gt_flow is not None else flow[-1].detach()
                     if flow_mask is not None:
                         _fm = flow_mask
@@ -312,8 +328,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                                 metrics["imu/f_imu_mean"] = f_imu.mean().item()
                                 metrics["imu/f_imu_std"] = f_imu.std().item()
                             if dyn_data is not None:
-                                residual, _ = dyn_data
-                                metrics["pseudo/residual_mean"] = residual.mean().item()
+                                metrics["pseudo/residual_mean"] = dyn_data[0].mean().item()
                             grad_info = logger.log_frozen_grad_check(model_ptr)
                             metrics["dyngru/grad_dyn_update"] = grad_info["trainable_grad_norm"]
                             metrics["dyngru/grad_frozen"] = grad_info["frozen_grad_norm"]
@@ -326,17 +341,18 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 visual_freq = getattr(modelcfg, "visual_freq", 500)
                 if train_mode in ("dyn", "dyn_selfsup") and dyn is not None and dyn_data is not None and total_steps % visual_freq == 0:
                     with torch.no_grad():
-                        residual, f_rigid = dyn_data
+                        residual, f_rigid, r_vec, J_d, sigma_depth = dyn_data
                         visuals = {
                             "img1": img1[0].cpu().clamp(0, 1),
                             "img2": img2[0].cpu().clamp(0, 1),
                             "dyn_logits_final": dyn[-1][0].cpu(),
                             "flow_est": flow[-1][0].cpu(),
                             "flow_rigid": f_rigid[0].cpu(),
+                            "flow_gt": gt_flow[0].cpu() if gt_flow is not None else torch.zeros_like(flow[-1][0].cpu()),
                             "residual": residual[0].cpu(),
                             "f_imu": f_imu[0].cpu(),
                             "imu_tokens": imu_tokens[0].cpu(),
-                            "alpha": model_ptr.memory_decoder.dyn_update.alpha.detach().cpu(),
+                            "alpha": model_ptr.memory_decoder.dyn_update.alpha.detach().cpu().item(),
                             "token_weights": model_ptr.memory_decoder.dyn_update.imu_attn.token_weights.detach().cpu(),
                         }
                         grad_info = logger.log_frozen_grad_check(model_ptr)

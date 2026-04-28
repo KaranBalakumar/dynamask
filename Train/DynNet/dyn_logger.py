@@ -149,6 +149,15 @@ class DynTrainLogger:
 
         self.log_console(f"Saved debug artifacts to {step_dir}")
 
+        # --- Also log rendered PNGs to wandb ---
+        if self._wandb_run is not None:
+            import wandb
+            wandb_images = {}
+            for png_file in sorted(step_dir.glob("*.png")):
+                wandb_images[png_file.stem] = wandb.Image(str(png_file))
+            if wandb_images:
+                self._wandb_run.log(wandb_images, step=step)
+
     # ------------------------------------------------------------------
     # PNG renderers (private)
     # ------------------------------------------------------------------
@@ -182,12 +191,12 @@ class DynTrainLogger:
         plt.close(fig)
 
     def _render_residual_map(self, v: dict, step_dir: Path) -> None:
-        """Residual ||f_est - f_rigid|| heatmap with dyn head overlay."""
+        """Residual heatmaps: ||f_est - f_rigid|| and ||f_gt - f_rigid|| with dyn head overlay."""
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
-        r = v["residual"].cpu().squeeze()
+        r_est = v["residual"].cpu().squeeze()  # ||f_est - f_rigid||
         img = v["img1"].cpu()
         dyn_logits = v.get("dyn_logits_final")
         if dyn_logits is not None:
@@ -197,19 +206,41 @@ class DynTrainLogger:
                     c.unsqueeze(0), size=img.shape[-2:], mode="bilinear", align_corners=False
                 ).squeeze(0).squeeze(0)
 
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-        im1 = axes[0].imshow(r.numpy(), cmap="hot")
+        has_gt = "flow_gt" in v
+        n_cols = 3 if has_gt else 2
+        fig, axes = plt.subplots(1, n_cols, figsize=(7 * n_cols, 5))
+        if n_cols == 2:
+            axes = [axes[0], axes[1], None]  # normalize indexing
+
+        im1 = axes[0].imshow(r_est.numpy(), cmap="hot")
         plt.colorbar(im1, ax=axes[0])
-        axes[0].set_title(f"Residual ||f_est - f_rigid|| (mean={r.mean():.2f} px)")
+        axes[0].set_title(f"||f_est - f_rigid|| (mean={r_est.mean():.2f} px)")
         axes[0].axis("off")
+
+        if has_gt:
+            flow_gt_t = v["flow_gt"].cpu().float()
+            flow_rigid_t = v["flow_rigid"].cpu().float()
+            if flow_gt_t.shape[-2:] != flow_rigid_t.shape[-2:]:
+                flow_gt_t = torch.nn.functional.interpolate(
+                    flow_gt_t.unsqueeze(0) if flow_gt_t.dim() == 3 else flow_gt_t.unsqueeze(0).unsqueeze(0),
+                    size=flow_rigid_t.shape[-2:], mode="bilinear", align_corners=False,
+                ).squeeze(0)
+            r_true = (flow_gt_t - flow_rigid_t).norm(dim=0)
+            im2 = axes[1].imshow(r_true.numpy(), cmap="hot")
+            plt.colorbar(im2, ax=axes[1])
+            axes[1].set_title(f"||f_gt - f_rigid|| true dynamic (mean={r_true.mean():.2f} px)")
+            axes[1].axis("off")
+            dyn_ax = axes[2]
+        else:
+            dyn_ax = axes[1]
 
         if dyn_logits is not None:
             img_np = img.permute(1, 2, 0).clamp(0, 1).numpy()
-            axes[1].imshow(img_np, alpha=0.5)
-            heat = axes[1].imshow(c.numpy(), cmap="RdYlBu_r", vmin=0, vmax=1, alpha=0.6)
-            plt.colorbar(heat, ax=axes[1], label="static confidence c")
-            axes[1].set_title(f"DynGRU c (mean={c.mean():.3f})")
-        axes[1].axis("off")
+            dyn_ax.imshow(img_np, alpha=0.5)
+            heat = dyn_ax.imshow(c.numpy(), cmap="RdYlBu_r", vmin=0, vmax=1, alpha=0.6)
+            plt.colorbar(heat, ax=dyn_ax, label="static confidence c")
+            dyn_ax.set_title(f"DynGRU c (mean={c.mean():.3f})")
+        dyn_ax.axis("off")
         fig.tight_layout()
         fig.savefig(step_dir / "residual_map.png", dpi=100)
         plt.close(fig)
@@ -220,8 +251,8 @@ class DynTrainLogger:
         import matplotlib.pyplot as plt
         from torchvision.utils import flow_to_image
 
-        flow_est = v["flow_est"].cpu().unsqueeze(0)
-        flow_rigid_t = v["flow_rigid"].cpu()
+        flow_est = v["flow_est"].cpu().float().unsqueeze(0)
+        flow_rigid_t = v["flow_rigid"].cpu().float()
         if flow_rigid_t.dim() == 2:
             flow_rigid_t = flow_rigid_t.unsqueeze(0).unsqueeze(0)  # (H,W) -> (1,2,H,W)
         elif flow_rigid_t.dim() == 3:
@@ -230,18 +261,42 @@ class DynTrainLogger:
         flow_est_img = flow_to_image(flow_est)[0].permute(1, 2, 0).numpy() / 255.0
         flow_rigid_img = flow_to_image(flow_rigid_t)[0].permute(1, 2, 0).numpy() / 255.0
 
-        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-        axes[0].imshow(flow_est_img)
-        axes[0].set_title("Estimated flow")
-        axes[0].axis("off")
-        axes[1].imshow(flow_rigid_img)
-        axes[1].set_title("Rigid flow (GT pose + depth)")
-        axes[1].axis("off")
-        diff = (v["flow_est"].cpu() - flow_rigid_t.squeeze(0)).norm(dim=0)
-        im3 = axes[2].imshow(diff.numpy(), cmap="hot")
-        plt.colorbar(im3, ax=axes[2])
-        axes[2].set_title(f"|f_est - f_rigid| (mean={diff.mean():.2f})")
-        axes[2].axis("off")
+        # GT flow (optional)
+        has_gt = "flow_gt" in v
+        if has_gt:
+            flow_gt_t = v["flow_gt"].cpu().float()
+            if flow_gt_t.dim() == 2:
+                flow_gt_t = flow_gt_t.unsqueeze(0).unsqueeze(0)
+            elif flow_gt_t.dim() == 3:
+                flow_gt_t = flow_gt_t.unsqueeze(0)
+            flow_gt_img = flow_to_image(flow_gt_t)[0].permute(1, 2, 0).numpy() / 255.0
+
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        axes[0, 0].imshow(flow_est_img)
+        axes[0, 0].set_title("Estimated flow")
+        axes[0, 0].axis("off")
+        axes[0, 1].imshow(flow_rigid_img)
+        axes[0, 1].set_title("Rigid flow (GT pose + depth)")
+        axes[0, 1].axis("off")
+
+        if has_gt:
+            axes[1, 0].imshow(flow_gt_img)
+            axes[1, 0].set_title("GT flow")
+            axes[1, 0].axis("off")
+            # True dynamic signal: where real flow deviates from rigid
+            diff_dyn = (flow_gt_t.squeeze(0) - flow_rigid_t.squeeze(0)).norm(dim=0)
+            im4 = axes[1, 1].imshow(diff_dyn.numpy(), cmap="hot")
+            plt.colorbar(im4, ax=axes[1, 1])
+            axes[1, 1].set_title(f"|f_gt - f_rigid| true dynamic (mean={diff_dyn.mean():.2f})")
+            axes[1, 1].axis("off")
+        else:
+            diff = (v["flow_est"].cpu().float() - flow_rigid_t.squeeze(0)).norm(dim=0)
+            im3 = axes[1, 0].imshow(diff.numpy(), cmap="hot")
+            plt.colorbar(im3, ax=axes[1, 0])
+            axes[1, 0].set_title(f"|f_est - f_rigid| (mean={diff.mean():.2f})")
+            axes[1, 0].axis("off")
+            axes[1, 1].axis("off")
+
         fig.tight_layout()
         fig.savefig(step_dir / "flow_comparison.png", dpi=100)
         plt.close(fig)
@@ -283,17 +338,35 @@ class DynTrainLogger:
             axes[0, 0].set_title(f"c histogram (mean={c.mean().item():.3f})")
 
         if "residual" in v:
-            r = v["residual"].cpu().flatten()
-            axes[0, 1].hist(r.clamp(0, 50).numpy(), bins=50, color="coral", edgecolor="white")
-            axes[0, 1].set_xlabel("||f_est - f_rigid|| [px]")
-            axes[0, 1].set_title(f"Flow residual (mean={r.mean().item():.2f})")
+            r_est = v["residual"].cpu().flatten()
+            axes[0, 1].hist(r_est.clamp(0, 50).numpy(), bins=50, color="coral", edgecolor="white",
+                           alpha=0.7, label="||f_est - f_rigid||")
+            if "flow_gt" in v and "flow_rigid" in v:
+                flow_gt_t = v["flow_gt"].cpu().float()
+                flow_rigid_t = v["flow_rigid"].cpu().float()
+                if flow_gt_t.shape[-2:] != flow_rigid_t.shape[-2:]:
+                    flow_gt_t = torch.nn.functional.interpolate(
+                        flow_gt_t.unsqueeze(0) if flow_gt_t.dim() == 3 else flow_gt_t,
+                        size=flow_rigid_t.shape[-2:], mode="bilinear", align_corners=False,
+                    ).squeeze(0)
+                r_true = (flow_gt_t - flow_rigid_t).norm(dim=0).flatten()
+                axes[0, 1].hist(r_true.clamp(0, 50).numpy(), bins=50, color="steelblue", edgecolor="white",
+                               alpha=0.5, label="||f_gt - f_rigid||")
+                axes[0, 1].legend(fontsize=7)
+                axes[0, 1].set_title(f"Residual (est mean={r_est.mean().item():.1f}, true mean={r_true.mean().item():.1f})")
+            else:
+                axes[0, 1].set_title(f"||f_est - f_rigid|| (mean={r_est.mean().item():.2f})")
+            axes[0, 1].set_xlabel("Residual [px]")
 
         if "token_weights" in v:
             w = v["token_weights"].cpu().numpy()
             names = ["dR", "dv", "dp", "R^Tg", "bias", "Sig", "dt"]
             axes[1, 0].bar(names, w, color="steelblue")
             axes[1, 0].axhline(y=1.0, color="gray", linestyle="--")
-            axes[1, 0].set_title(f"Token weights (alpha={v.get('alpha', 0):.4f})")
+            alpha_val = v.get("alpha", 0)
+            if isinstance(alpha_val, torch.Tensor):
+                alpha_val = alpha_val.item() if alpha_val.numel() == 1 else float(alpha_val)
+            axes[1, 0].set_title(f"Token weights (alpha={alpha_val:.4f})")
 
         if "trainable_grad_norm" in v:
             axes[1, 1].bar(

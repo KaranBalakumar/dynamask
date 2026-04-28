@@ -43,9 +43,9 @@ class TestDynTrainLogger:
         pngs = sorted(f for f in os.listdir(step_dir) if f.endswith(".png"))
         assert len(pngs) == 5
         assert "dyn_overlay.png" in pngs
-        assert "pseudo_labels.png" in pngs
         assert "flow_comparison.png" in pngs
         assert "histograms.png" in pngs
+        assert "residual_map.png" in pngs
         assert os.path.exists(os.path.join(step_dir, "tensors.pt"))
 
     def test_log_visuals_no_imu(self, logger_and_dir, dummy_visuals):
