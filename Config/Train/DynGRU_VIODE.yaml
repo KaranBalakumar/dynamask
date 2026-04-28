@@ -4,7 +4,7 @@ Model:
   suffix: "dyngru_viode"
   gamma: 0.85
   max_flow: 400
-  batch_size: 1
+  batch_size: 3
   sum_freq: 100
   val_freq: 5000000
   image_size: [480, 752]
@@ -52,7 +52,7 @@ Model:
 
   ### TRAINER
   clip: 1.0
-  num_steps: &num_steps 37540
+  num_steps: &num_steps 12514
 
   optimizer:
     type: "AdamW"

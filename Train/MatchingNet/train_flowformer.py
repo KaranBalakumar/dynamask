@@ -174,7 +174,24 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
     if modelcfg.wandb and logger._wandb_run is not None:
         logger._wandb_run.watch(model, log=None)
 
+    # --- Resume from checkpoint if requested ---
+    resume_ckpt = getattr(modelcfg, 'resume_ckpt', None)
     total_steps = 0
+    if resume_ckpt:
+        logger.log_console(f"Resuming from checkpoint: {resume_ckpt}")
+        ckpt = torch.load(resume_ckpt, map_location='cpu', weights_only=False)
+        if 'model_state_dict' in ckpt:
+            model_ptr.load_state_dict(ckpt['model_state_dict'], strict=False)
+            if 'optimizer_state_dict' in ckpt:
+                optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+            if 'scheduler_state_dict' in ckpt:
+                scheduler.load_state_dict(ckpt['scheduler_state_dict'])
+            total_steps = ckpt.get('step', 0)
+        else:
+            # Legacy checkpoint: just model state_dict
+            model_ptr.load_state_dict(ckpt, strict=False)
+        logger.log_console(f"Resumed at step {total_steps}")
+
     should_keep_training = True
     while should_keep_training:
         frameData: DataFramePair[StereoFrame]
@@ -243,8 +260,9 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                             R_rel, t_rel = T_rel[:, :3, :3], T_rel[:, :3, 3:4]
                             R_c = NED_R_cam.T.to(R_rel.device) @ R_rel @ NED_R_cam.to(R_rel.device)
                             t_c = NED_R_cam.T.to(R_rel.device) @ t_rel
-                            T_rel_mat = torch.cat([torch.cat([R_c, t_c], dim=2),
-                                                   torch.tensor([[[0.,0.,0.,1.]]], device=R_rel.device, dtype=torch.float64)], dim=1)
+                            B = R_c.size(0)
+                            bottom_row = torch.tensor([0.,0.,0.,1.], device=R_rel.device, dtype=torch.float64).repeat(B, 1, 1)
+                            T_rel_mat = torch.cat([torch.cat([R_c, t_c], dim=2), bottom_row], dim=1)
                             residual, f_rigid = compute_rigid_flow_residual(
                                 flow[-1], T_rel_mat, gt_depth.cuda(), K)
                         else:
@@ -259,7 +277,10 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
 
                     # For self-supervised: pass estimated flow as pseudo-GT (only dyn loss used)
                     _gt = gt_flow if gt_flow is not None else flow[-1].detach()
-                    _fm = flow_mask if flow_mask is not None else torch.ones_like(_gt[:, :1])
+                    if flow_mask is not None:
+                        _fm = flow_mask
+                    else:
+                        _fm = torch.ones(_gt.size(0), 1, *_gt.shape[-2:], device=_gt.device, dtype=torch.bool)
                     loss, _ = sequence_loss(cfg=modelcfg, preds=flow, gt=_gt, flow_mask=_fm,
                                             cov_preds=cov, dyn_preds=dyn, dyn_data=dyn_data)
                 else:
@@ -349,23 +370,27 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 break
 
             if modelcfg.autosave_freq and total_steps % modelcfg.autosave_freq == 0:
-                PATH = "%s/%s/%d.pth" % (modelcfg.autosave_dir, modelcfg.name + modelcfg.time, total_steps)  
-                Logger.write("info", f"Save model to {PATH}")
-                if isinstance(model, nn.DataParallel):
-                    # We don't want to have a layer of `module.` on all weights. Since we are definitely not
-                    # using DDP during inference, I will just save the "real weights" of the model.
-                    torch.save(model.module.state_dict(), PATH)
-                else:
-                    torch.save(model.state_dict(), PATH)
-                
+                PATH = "%s/%s/%d.pth" % (modelcfg.autosave_dir, modelcfg.name + modelcfg.time, total_steps)
+                Logger.write("info", f"Save checkpoint to {PATH}")
+                state = {
+                    'model_state_dict': model.module.state_dict() if isinstance(model, nn.DataParallel) else model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
+                    'step': total_steps,
+                }
+                torch.save(state, PATH)
+
     logger.log_console(f"Training complete at step {total_steps}")
     logger.finish()
 
     PATH = "%s/%s/%d.pth" % (modelcfg.autosave_dir, modelcfg.name + modelcfg.time, total_steps)
-    if isinstance(model, nn.DataParallel):
-        torch.save(model.module.state_dict(), PATH)
-    else:
-        torch.save(model.state_dict(), PATH)
+    state = {
+        'model_state_dict': model.module.state_dict() if isinstance(model, nn.DataParallel) else model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict(),
+        'step': total_steps,
+    }
+    torch.save(state, PATH)
     
     
 if __name__ == "__main__":
@@ -375,6 +400,8 @@ if __name__ == "__main__":
     parser.add_argument("--autosave_dir", type=str, default="Model")
     parser.add_argument("--training_mode", type=str, choices=get_args(T_TrainType),
                         default="cov", help=f"Training mode: {get_args(T_TrainType)}")
+    parser.add_argument("--resume_ckpt", type=str, default=None,
+                        help="Path to checkpoint to resume training from")
     args = parser.parse_args()
     cfg, _ = load_config(Path(args.config))
     modlecfg = namespace_to_cfgnode(cfg.Model)

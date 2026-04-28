@@ -191,8 +191,9 @@ def sequence_metric(cfg, preds: torch.Tensor, cov_preds: list[torch.Tensor] | No
     sqe = (preds[-1] - gt)**2
     epe = torch.sum(sqe, dim=1).sqrt()
     
-    gt_mag = gt.norm(dim=1)
+    gt_mag = gt.norm(dim=1, keepdim=True)
     mask = flow_mask.bool() & (gt_mag < cfg.max_flow) if flow_mask is not None else gt_mag < cfg.max_flow
+    mask = mask.squeeze(1)  # (B,1,H,W) → (B,H,W) for indexing
     masked_epe = epe.view(-1)[mask.view(-1)]
     
     metrics = {

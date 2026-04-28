@@ -15,7 +15,8 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: false        
+        fixed_imu_samples: 10
         gtPose: true
         gtFlow: false
 -   type: TartanAirv2
@@ -36,6 +37,7 @@
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
         gtDepth: false
+        fixed_imu_samples: 10
         gtPose: true
         gtFlow: false
 -   type: TartanAirv2
@@ -56,5 +58,6 @@
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
         gtDepth: false
+        fixed_imu_samples: 10
         gtPose: true
         gtFlow: false
