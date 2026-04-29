@@ -102,32 +102,49 @@ class TartanAirV2IMULoader:
     def frame_range_query(self, start_frame: int, end_frame: int) -> tuple[IMUData, AttitudeData]:
         """Retrieve IMU data spanning camera frames [start_frame, end_frame)."""
         if self.fixed_imu_samples > 0:
-            # Centered window: always exactly N ticks ending at end_frame's timestamp.
-            # No padding — just shift the start if needed.  This avoids zero-padding
-            # artifacts (negative time_delta) while keeping all windows uniform size.
             end_imu_idx = self.cam2imu_idx[end_frame].item()
             start_imu_idx = max(0, end_imu_idx - self.fixed_imu_samples)
+            actual = end_imu_idx - start_imu_idx
+            pad = self.fixed_imu_samples - actual
         else:
             start_imu_idx = self.cam2imu_idx[start_frame].item()
             end_imu_idx = self.cam2imu_idx[end_frame].item()
+            pad = 0
 
-        return IMUData(
+        _slice = slice(start_imu_idx, end_imu_idx)
+
+        imu = IMUData(
             T_BS=self.T_BS,
             gravity=[self.gravity],
-            time_ns=self.imu_time[:, start_imu_idx:end_imu_idx],
-            acc=self.acc[:, start_imu_idx:end_imu_idx],
-            gyro=self.gyro[:, start_imu_idx:end_imu_idx],
-        ), AttitudeData(
+            time_ns=self.imu_time[:, _slice],
+            acc=self.acc[:, _slice],
+            gyro=self.gyro[:, _slice],
+        )
+        att = AttitudeData(
             T_BS=self.T_BS,
             gravity=[self.gravity],
-            time_ns=self.imu_time[:, start_imu_idx:end_imu_idx],
-            gt_pos=self.gt_pos[:, start_imu_idx:end_imu_idx],
-            gt_vel=self.gt_vel[:, start_imu_idx:end_imu_idx],
-            gt_rot=cast(pp.LieTensor, self.gt_rot[:, start_imu_idx:end_imu_idx]),
+            time_ns=self.imu_time[:, _slice],
+            gt_pos=self.gt_pos[:, _slice],
+            gt_vel=self.gt_vel[:, _slice],
+            gt_rot=cast(pp.LieTensor, self.gt_rot[:, _slice]),
             init_pos=self.gt_pos[:, start_imu_idx : start_imu_idx + 1],
             init_vel=self.gt_vel[:, start_imu_idx : start_imu_idx + 1],
             init_rot=cast(pp.LieTensor, self.gt_rot[:, start_imu_idx : start_imu_idx + 1]),
         )
+
+        # Pad short windows (sequence starts) by repeating the first sample.
+        # This ensures all IMU windows have the same size for batch collation.
+        if pad > 0:
+            _rep_first = lambda t: torch.cat([t[:, :1].repeat(1, pad, *([1]*(t.dim()-2))), t], dim=1)
+            imu.acc = _rep_first(imu.acc)
+            imu.gyro = _rep_first(imu.gyro)
+            imu.time_ns = _rep_first(imu.time_ns)
+            att.gt_pos = _rep_first(att.gt_pos)
+            att.gt_vel = _rep_first(att.gt_vel)
+            att.gt_rot = pp.LieTensor(_rep_first(att.gt_rot.tensor()), ltype=att.gt_rot.ltype)
+            att.time_ns = _rep_first(att.time_ns)
+
+        return imu, att
 
     # Alias for API compatibility with v1's camelCase convention
     frameRangeQuery = frame_range_query

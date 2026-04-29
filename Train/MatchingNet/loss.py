@@ -223,10 +223,10 @@ def compute_rigid_flow_jacobian_3d(
     # ---- 2×3 Jacobian J_{f→X} = ∂f_rigid/∂X_3D ----
     # ∂u'/∂X = fx/Z' · R_row0 − fx·Xx'/Z'² · R_row2   (1×3 per pixel)
     # ∂v'/∂X = fy/Z' · R_row1 − fy·Xy'/Z'² · R_row2   (1×3 per pixel)
-    J_u = (fx.view(-1,1,1) / Z_clamp).unsqueeze(1) * R[:, 0:1].view(B, 1, 3, 1, 1) \
-        - (fx.view(-1,1,1) * Xx / Z_sq).unsqueeze(1) * R[:, 2:3].view(B, 1, 3, 1, 1)  # (B, 1, 3, H, W)
-    J_v = (fy.view(-1,1,1) / Z_clamp).unsqueeze(1) * R[:, 1:2].view(B, 1, 3, 1, 1) \
-        - (fy.view(-1,1,1) * Xy / Z_sq).unsqueeze(1) * R[:, 2:3].view(B, 1, 3, 1, 1)  # (B, 1, 3, H, W)
+    J_u = (fx.view(-1,1,1) / Z_clamp).reshape(B, 1, 1, H, W) * R[:, 0:1].view(B, 1, 3, 1, 1) \
+        - (fx.view(-1,1,1) * Xx / Z_sq).reshape(B, 1, 1, H, W) * R[:, 2:3].view(B, 1, 3, 1, 1)  # (B, 1, 3, H, W)
+    J_v = (fy.view(-1,1,1) / Z_clamp).reshape(B, 1, 1, H, W) * R[:, 1:2].view(B, 1, 3, 1, 1) \
+        - (fy.view(-1,1,1) * Xy / Z_sq).reshape(B, 1, 1, H, W) * R[:, 2:3].view(B, 1, 3, 1, 1)  # (B, 1, 3, H, W)
     J_3d = torch.cat([J_u, J_v], dim=1)  # (B, 2, 3, H, W)
 
     return f_rigid, J_3d, Xz.unsqueeze(1)
@@ -296,14 +296,13 @@ def _project_3d_cov_to_2x2(
     Returns (var_u_3d, var_v_3d, var_uv_3d) -- the FULL 2x2 covariance from 3D projection Σ.
     """
     B, _, H, W = var_u.shape
-    S_3d = _build_sigma_3d_dense(var_u, var_v, sigma_dd, depth, K)  # (B, 3, 3, H, W)
-
-    # J_3d @ S_3d  (2×3 @ 3×3 = 2×3 per pixel)
-    J_flat = J_3d.permute(0, 3, 4, 1, 2).reshape(-1, 2, 3)    # (B*H*W, 2, 3)
-    S_flat = S_3d.permute(0, 3, 4, 1, 2).reshape(-1, 3, 3)    # (B*H*W, 3, 3)
-    JS = torch.bmm(J_flat, S_flat)                              # (B*H*W, 2, 3)
-    S_2d_flat = torch.bmm(JS, J_flat.transpose(-2, -1))         # (B*H*W, 2, 2)
-    S_2d = S_2d_flat.reshape(B, H, W, 2, 2).permute(0, 3, 4, 1, 2)  # (B, 2, 2, H, W)
+    S_3d = _build_sigma_3d_dense(var_u, var_v, sigma_dd, depth, K)
+    N = B * H * W
+    J_flat = J_3d.permute(0, 3, 4, 1, 2).reshape(N, 2, 3)
+    S_flat = S_3d.permute(0, 3, 4, 1, 2).reshape(N, 3, 3)
+    JS = torch.bmm(J_flat, S_flat)
+    S_2d_flat = torch.bmm(JS, J_flat.transpose(-2, -1))
+    S_2d = S_2d_flat.reshape(B, H, W, 2, 2).permute(0, 3, 4, 1, 2)
 
     du  = S_2d[:, 0, 0].unsqueeze(1)  # Σ_2D[0,0] — additional u-variance
     dv  = S_2d[:, 1, 1].unsqueeze(1)  # Σ_2D[1,1] — additional v-variance
@@ -353,11 +352,11 @@ def dyn_loss_phase_a(
     _USE_3D_PROJ = loss_type in ("scalar_3d", "mahalanobis_3d")
     _IS_SCALAR   = loss_type in ("fixed", "scalar", "scalar_depth", "scalar_3d")
 
-    K = len(dyn_predictions)
+    n_iter = len(dyn_predictions)
     L_total = torch.tensor(0.0, device=residual.device)
 
-    for i in range(K):
-        i_weight = gamma ** (K - i - 1)
+    for i in range(n_iter):
+        i_weight = gamma ** (n_iter - i - 1)
         logit = dyn_predictions[i]
 
         r_u = r_vec[:, 0:1]
@@ -373,8 +372,8 @@ def dyn_loss_phase_a(
 
         elif loss_type in ("scalar", "scalar_depth", "scalar_3d"):
             cov = cov_predictions[i]
-            var_u = cov[:, 0:1]
-            var_v = cov[:, 1:2]
+            var_u = torch.exp(cov[:, 0:1] * 2)   # log-var -> var
+            var_v = torch.exp(cov[:, 1:2] * 2)
             sigma_sq = ((var_u + var_v) / 2).clamp_min(1e-12)
 
             if _USE_DEPTH and sigma_depth is not None:
@@ -398,8 +397,8 @@ def dyn_loss_phase_a(
 
         else:  # "mahalanobis" | "mahalanobis_depth" | "mahalanobis_3d"
             cov = cov_predictions[i]
-            var_u = cov[:, 0:1]
-            var_v = cov[:, 1:2]
+            var_u = torch.exp(cov[:, 0:1] * 2)   # log-var -> var
+            var_v = torch.exp(cov[:, 1:2] * 2)
             var_uv = torch.zeros_like(var_u)
 
             if _USE_DEPTH and sigma_depth is not None:

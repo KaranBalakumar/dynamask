@@ -1,9 +1,9 @@
 # Phase-A dynGRU pretrain: local TartanAir v2 sample at ~/Downloads/tartanair2.
 # Uses real IMU (use_real_imu: true), GT depth, GT pose, GT flow.
 -   type: TartanAirv2
-    name: CarWelding_P001
+    name: CarWelding_P000
     args:
-        root: /home/karan/Downloads/tartanair2/AbandonedFactory/Data_easy/P001
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P000
         compressed: true
         use_real_imu: true
         gravity: 9.81
@@ -20,3 +20,179 @@
         gtDepth: true
         gtPose: true
         gtFlow: true
+        fixed_imu_samples: 10
+-   type: TartanAirv2
+    name: CarWelding_P001
+    args:
+        root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P001
+        compressed: true
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 100
+        imu_sim:
+            acc_bias: [0.02, -0.01, 0.05]
+            acc_init_bias_noise: [0.01, 0.01, 0.01]
+            acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+            acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+            gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+            gyro_init_bias_noise: [0.01, 0.01, 0.01]
+            gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+            gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+        gtDepth: true
+        gtPose: true
+        gtFlow: true
+        fixed_imu_samples: 10
+
+-       type: TartanAirv2
+        name: CarWelding_P002
+        args:
+            root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P002
+            compressed: true
+            use_real_imu: true
+            gravity: 9.81
+            imu_freq: 100
+            imu_sim:
+                acc_bias: [0.02, -0.01, 0.05]
+                acc_init_bias_noise: [0.01, 0.01, 0.01]
+                acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+                acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+                gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+                gyro_init_bias_noise: [0.01, 0.01, 0.01]
+                gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+                gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+            gtDepth: true
+            gtPose: true
+            gtFlow: true
+        fixed_imu_samples: 10
+
+-       type: TartanAirv2
+        name: CarWelding_P003
+        args:
+            root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P003
+            compressed: true
+            use_real_imu: true
+            gravity: 9.81
+            imu_freq: 100
+            imu_sim:
+                acc_bias: [0.02, -0.01, 0.05]
+                acc_init_bias_noise: [0.01, 0.01, 0.01]
+                acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+                acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+                gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+                gyro_init_bias_noise: [0.01, 0.01, 0.01]
+                gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+                gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+            gtDepth: true
+            gtPose: true
+            gtFlow: true
+        fixed_imu_samples: 10
+
+-       type: TartanAirv2
+        name: CarWelding_P004
+        args:
+            root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P004
+            compressed: true
+            use_real_imu: true
+            gravity: 9.81
+            imu_freq: 100
+            imu_sim:
+                acc_bias: [0.02, -0.01, 0.05]
+                acc_init_bias_noise: [0.01, 0.01, 0.01]
+                acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+                acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+                gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+                gyro_init_bias_noise: [0.01, 0.01, 0.01]
+                gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+                gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+            gtDepth: true
+            gtPose: true
+            gtFlow: true
+        fixed_imu_samples: 10
+
+-       type: TartanAirv2
+        name: CarWelding_P005
+        args:
+            root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P005
+            compressed: true
+            use_real_imu: true
+            gravity: 9.81
+            imu_freq: 100
+            imu_sim:
+                acc_bias: [0.02, -0.01, 0.05]
+                acc_init_bias_noise: [0.01, 0.01, 0.01]
+                acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+                acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+                gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+                gyro_init_bias_noise: [0.01, 0.01, 0.01]
+                gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+                gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+            gtDepth: true
+            gtPose: true
+            gtFlow: true
+        fixed_imu_samples: 10
+
+-       type: TartanAirv2
+        name: CarWelding_P006
+        args:
+            root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P006
+            compressed: true
+            use_real_imu: true
+            gravity: 9.81
+            imu_freq: 100
+            imu_sim:
+                acc_bias: [0.02, -0.01, 0.05]
+                acc_init_bias_noise: [0.01, 0.01, 0.01]
+                acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+                acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+                gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+                gyro_init_bias_noise: [0.01, 0.01, 0.01]
+                gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+                gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+            gtDepth: true
+            gtPose: true
+            gtFlow: true
+        fixed_imu_samples: 10
+
+-       type: TartanAirv2
+        name: CarWelding_P007
+        args:
+            root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P007
+            compressed: true
+            use_real_imu: true
+            gravity: 9.81
+            imu_freq: 100
+            imu_sim:
+                acc_bias: [0.02, -0.01, 0.05]
+                acc_init_bias_noise: [0.01, 0.01, 0.01]
+                acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+                acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+                gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+                gyro_init_bias_noise: [0.01, 0.01, 0.01]
+                gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+                gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+            gtDepth: true
+            gtPose: true
+            gtFlow: true
+        fixed_imu_samples: 10
+
+-       type: TartanAirv2
+        name: CarWelding_P008
+        args:
+            root: /home/karan/Downloads/tartanair2/CarWelding/Data_hard/P008
+            compressed: true
+            use_real_imu: true
+            gravity: 9.81
+            imu_freq: 100
+            imu_sim:
+                acc_bias: [0.02, -0.01, 0.05]
+                acc_init_bias_noise: [0.01, 0.01, 0.01]
+                acc_bias_instability: [1.47e-4, 1.47e-4, 1.47e-4]
+                acc_random_walk: [1.96e-7, 1.96e-7, 1.96e-7]
+                gyro_bias: [5.e-3, -2.e-3, 5.e-3]
+                gyro_init_bias_noise: [0.01, 0.01, 0.01]
+                gyro_bias_instability: [5.8e-6, 5.8e-6, 5.8e-6]
+                gyro_random_walk: [3.8e-7, 3.8e-7, 3.8e-7]
+            gtDepth: true
+            gtPose: true
+            gtFlow: true
+        fixed_imu_samples: 10

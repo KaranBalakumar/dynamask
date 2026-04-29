@@ -247,7 +247,8 @@ class DynTrainLogger:
 
         if has_cov:
             cov_map = v["flow_cov"].cpu().float()
-            cov_total = (cov_map[0] + cov_map[1]).sqrt()  # sqrt(var_u + var_v) — uncertainty magnitude
+            cov_map = torch.exp(cov_map * 2)               # log-var -> var
+            cov_total = (cov_map[0] + cov_map[1]).sqrt()   # sqrt(var_u + var_v) — uncertainty magnitude
             im_cov = axes[col].imshow(cov_total.numpy(), cmap="inferno")
             plt.colorbar(im_cov, ax=axes[col])
             axes[col].set_title(f"Flow cov |Σ| (mean={cov_total.mean():.2f} px)")

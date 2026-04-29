@@ -54,7 +54,7 @@ Model:
 
   ### TRAINER
   clip: 1.0
-  num_steps: &num_steps 300000
+  num_epochs: 3
 
   optimizer:
     type: "AdamW"
@@ -66,7 +66,7 @@ Model:
   scheduler:
     type: "OneCycleLR"
     args:
-      total_steps: *num_steps
+      total_steps: 0      # placeholder, auto-computed from num_epochs
       pct_start: 0.05
       cycle_momentum: False
       max_lr: *lr

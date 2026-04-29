@@ -44,12 +44,13 @@ class TrainDataset(SequenceBase[DataFramePair[T_Data]]):
             A function to check whether to instantiate a TrainDataset for this configuration. 
             (True = include, False = exclude and corresponding list item will be None)
         """
-        num_worker = 4
-        
-        # Start loading everything
         args: list[tuple[SimpleNamespace, int, int, bool]] = [(data_cfg, from_idx, to_idx, pred(data_cfg)) for data_cfg in data_config]
-        with mp.Pool(processes=num_worker) as pool:
-            return pool.starmap(TrainDataset[T_Data]._instantiate_dataset, args, chunksize=2)
+        try:
+            num_worker = min(4, len(args))
+            with mp.Pool(processes=num_worker) as pool:
+                return pool.starmap(TrainDataset[T_Data]._instantiate_dataset, args, chunksize=1)
+        except Exception:
+            return [TrainDataset[T_Data]._instantiate_dataset(*a) for a in args]
 
     @classmethod
     def is_valid_config(cls, config: SimpleNamespace | None) -> None:

@@ -88,6 +88,13 @@ def _attitude_unbatch(att, index: int):
 
 
 def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_loader=None):
+    # Auto-compute num_steps from num_epochs if set
+    if hasattr(modelcfg, "num_epochs") and modelcfg.num_epochs:
+        frames_per_epoch = len(loader.dataset)
+        steps_per_epoch = frames_per_epoch // modelcfg.batch_size
+        modelcfg.num_steps = modelcfg.num_epochs * steps_per_epoch
+        cfg.Model.scheduler.args.total_steps = modelcfg.num_steps
+
     train_mode: T_TrainType = modelcfg.training_mode
     AssertLiteralType(train_mode, T_TrainType)
 

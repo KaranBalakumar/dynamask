@@ -65,7 +65,7 @@ class ScaleFrame(IDataTransform[StereoFrame, StereoFrame]):
         round_scale_v = raw_height / target_h
         round_scale_u = raw_width  / target_w
         
-        data.K = data.K.clone()
+        data.K = data.K.clone().float()
         data.height = target_h
         data.width  = target_w
         data.K[:, 0] /= round_scale_u
@@ -118,7 +118,7 @@ class CenterCropFrame(IDataTransform[StereoFrame, StereoFrame]):
         if data.gt_depth is not None:
             data.gt_depth  = center_crop(data.gt_depth, [target_h, target_w])
         
-        data.K = data.K.clone()
+        data.K = data.K.clone().float()
         data.height = target_h
         data.width  = target_w
         data.K[:, 0, 2] -= (orig_w - target_w) / 2.
