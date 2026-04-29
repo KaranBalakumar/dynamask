@@ -91,7 +91,7 @@ class DynTrainLogger:
     # ------------------------------------------------------------------
 
     @torch.no_grad()
-    def log_visuals(self, visuals: dict[str, Any], step: int) -> None:
+    def log_visuals(self, visuals: dict[str, Any], step: int, training_mode: str = "dyn") -> None:
         """Save debug artifacts and render diagnostic PNGs.
 
         Args:
@@ -100,9 +100,9 @@ class DynTrainLogger:
                 dyn_logits_final    -- (1, H/4, W/4)  final dyn head logits
                 flow_est            -- (2, H, W)  estimated flow
                 flow_rigid          -- (2, H, W)  rigid flow from GT
-                M_pseudo            -- (1, H, W)  pseudo labels {-1,0,1}
-                residual            -- (1, H, W)  ||f_est - f_rigid||
-                tau                 -- (1, H, W)  adaptive threshold
+                flow_gt             -- (2, H, W)  GT flow (or zeros if unavailable)
+                flow_cov            -- (2, H, W)  var_u, var_v from cov head
+                residual            -- (1, H, W)  ||flow_target - f_rigid||
                 f_imu               -- (128,)     IMU global feature
                 imu_tokens          -- (7, 128)   IMU semantic tokens
                 alpha               -- scalar     adapter gate
@@ -110,9 +110,17 @@ class DynTrainLogger:
                 frozen_grad_norm    -- scalar     gradient norm in frozen params
                 trainable_grad_norm -- scalar     gradient norm in trainable params
             step: current training step.
+            training_mode: "dyn" (GT flow used) or "dyn_selfsup" (GT flow not used, or none)
         """
         step_dir = self.debug_dir / f"step_{step:06d}"
         step_dir.mkdir(parents=True, exist_ok=True)
+
+        # Determine GT flow availability: present AND non-zero
+        visuals["_has_gt"] = (
+            "flow_gt" in visuals
+            and visuals["flow_gt"] is not None
+            and visuals["flow_gt"].abs().max().item() > 1e-6
+        )
 
         # Save raw tensors
         tensors = {k: v.cpu() for k, v in visuals.items() if isinstance(v, torch.Tensor)}
@@ -191,13 +199,16 @@ class DynTrainLogger:
         plt.close(fig)
 
     def _render_residual_map(self, v: dict, step_dir: Path) -> None:
-        """Residual heatmaps: ||f_est - f_rigid|| and ||f_gt - f_rigid|| with dyn head overlay."""
+        """Residual heatmaps with dyn head + MAC-VO covariance overlay."""
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
-        r_est = v["residual"].cpu().squeeze()  # ||f_est - f_rigid||
         img = v["img1"].cpu()
+        flow_est_t = v["flow_est"].cpu().float()
+        flow_rigid_t = v["flow_rigid"].cpu().float()
+        r_est = (flow_est_t - flow_rigid_t).norm(dim=0)
+
         dyn_logits = v.get("dyn_logits_final")
         if dyn_logits is not None:
             c = dyn_logits.cpu().sigmoid()
@@ -206,34 +217,44 @@ class DynTrainLogger:
                     c.unsqueeze(0), size=img.shape[-2:], mode="bilinear", align_corners=False
                 ).squeeze(0).squeeze(0)
 
-        has_gt = "flow_gt" in v
-        n_cols = 3 if has_gt else 2
+        has_gt = v.get("_has_gt", False)
+        has_cov = v.get("flow_cov") is not None
+        n_cols = 2 + int(has_gt) + int(has_cov)
         fig, axes = plt.subplots(1, n_cols, figsize=(7 * n_cols, 5))
         if n_cols == 2:
-            axes = [axes[0], axes[1], None]  # normalize indexing
+            axes = [axes[0], axes[1], None, None]
+        elif n_cols == 3:
+            axes = axes.tolist() + [None] if not has_cov else axes.tolist() + [None]
 
         im1 = axes[0].imshow(r_est.numpy(), cmap="hot")
         plt.colorbar(im1, ax=axes[0])
         axes[0].set_title(f"||f_est - f_rigid|| (mean={r_est.mean():.2f} px)")
         axes[0].axis("off")
 
+        col = 1
         if has_gt:
             flow_gt_t = v["flow_gt"].cpu().float()
-            flow_rigid_t = v["flow_rigid"].cpu().float()
             if flow_gt_t.shape[-2:] != flow_rigid_t.shape[-2:]:
                 flow_gt_t = torch.nn.functional.interpolate(
-                    flow_gt_t.unsqueeze(0) if flow_gt_t.dim() == 3 else flow_gt_t.unsqueeze(0).unsqueeze(0),
-                    size=flow_rigid_t.shape[-2:], mode="bilinear", align_corners=False,
+                    flow_gt_t.unsqueeze(0), size=flow_rigid_t.shape[-2:], mode="bilinear", align_corners=False,
                 ).squeeze(0)
             r_true = (flow_gt_t - flow_rigid_t).norm(dim=0)
-            im2 = axes[1].imshow(r_true.numpy(), cmap="hot")
-            plt.colorbar(im2, ax=axes[1])
-            axes[1].set_title(f"||f_gt - f_rigid|| true dynamic (mean={r_true.mean():.2f} px)")
-            axes[1].axis("off")
-            dyn_ax = axes[2]
-        else:
-            dyn_ax = axes[1]
+            im2 = axes[col].imshow(r_true.numpy(), cmap="hot")
+            plt.colorbar(im2, ax=axes[col])
+            axes[col].set_title(f"||f_gt - f_rigid|| true dynamic (mean={r_true.mean():.2f} px)")
+            axes[col].axis("off")
+            col += 1
 
+        if has_cov:
+            cov_map = v["flow_cov"].cpu().float()
+            cov_total = (cov_map[0] + cov_map[1]).sqrt()  # sqrt(var_u + var_v) — uncertainty magnitude
+            im_cov = axes[col].imshow(cov_total.numpy(), cmap="inferno")
+            plt.colorbar(im_cov, ax=axes[col])
+            axes[col].set_title(f"Flow cov |Σ| (mean={cov_total.mean():.2f} px)")
+            axes[col].axis("off")
+            col += 1
+
+        dyn_ax = axes[col]
         if dyn_logits is not None:
             img_np = img.permute(1, 2, 0).clamp(0, 1).numpy()
             dyn_ax.imshow(img_np, alpha=0.5)
@@ -261,8 +282,8 @@ class DynTrainLogger:
         flow_est_img = flow_to_image(flow_est)[0].permute(1, 2, 0).numpy() / 255.0
         flow_rigid_img = flow_to_image(flow_rigid_t)[0].permute(1, 2, 0).numpy() / 255.0
 
-        # GT flow (optional)
-        has_gt = "flow_gt" in v
+        # GT flow (optional — use _has_gt which checks for non-zero content)
+        has_gt = v.get("_has_gt", False)
         if has_gt:
             flow_gt_t = v["flow_gt"].cpu().float()
             if flow_gt_t.dim() == 2:
@@ -337,11 +358,11 @@ class DynTrainLogger:
             axes[0, 0].set_xlabel("static confidence c")
             axes[0, 0].set_title(f"c histogram (mean={c.mean().item():.3f})")
 
-        if "residual" in v:
-            r_est = v["residual"].cpu().flatten()
+        if "flow_est" in v and "flow_rigid" in v:
+            r_est = (v["flow_est"].cpu().float() - v["flow_rigid"].cpu().float()).norm(dim=0).flatten()
             axes[0, 1].hist(r_est.clamp(0, 50).numpy(), bins=50, color="coral", edgecolor="white",
                            alpha=0.7, label="||f_est - f_rigid||")
-            if "flow_gt" in v and "flow_rigid" in v:
+            if v.get("_has_gt", False):
                 flow_gt_t = v["flow_gt"].cpu().float()
                 flow_rigid_t = v["flow_rigid"].cpu().float()
                 if flow_gt_t.shape[-2:] != flow_rigid_t.shape[-2:]:

@@ -16,7 +16,7 @@ Model:
   transformer: "latentcostformer"
   restore_ckpt: "Model/MACVO_FrontendCov.pth"
   training_mode: "dyn"
-  dyn_loss_type: "fixed"       # "mahalanobis" | "scalar" | "fixed"
+  dyn_loss_type: "fixed"       # "fixed" | "scalar" | "scalar_depth" | "mahalanobis" | "mahalanobis_depth"
   dyn_sigma: 2.0              # fixed σ [px] for "fixed" mode
 
   latentcostformer:
@@ -84,8 +84,8 @@ Model:
 
 Train:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/CarWelding_All.yaml
+    - !include ../Sequence/Training_Dataset/VIODE_High.yaml
 
 Evaluate:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/CarWelding_All.yaml
+    - !include ../Sequence/Training_Dataset/VIODE_High.yaml

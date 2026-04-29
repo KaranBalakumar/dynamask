@@ -19,6 +19,8 @@
         fixed_imu_samples: 10
         gtPose: true
         gtFlow: false
+        cam_K: [[376, 0, 376], [0, 376, 240], [0, 0, 1]]
+        baseline: 0.05
 -   type: TartanAirv2
     name: city_night_3_high
     args:
@@ -40,6 +42,8 @@
         fixed_imu_samples: 10
         gtPose: true
         gtFlow: false
+        cam_K: [[376, 0, 376], [0, 376, 240], [0, 0, 1]]
+        baseline: 0.05
 -   type: TartanAirv2
     name: parking_lot_3_high
     args:
@@ -61,3 +65,5 @@
         fixed_imu_samples: 10
         gtPose: true
         gtFlow: false
+        cam_K: [[376, 0, 376], [0, 376, 240], [0, 0, 1]]
+        baseline: 0.05

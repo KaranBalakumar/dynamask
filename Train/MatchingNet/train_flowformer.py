@@ -11,7 +11,7 @@ from pathlib import Path
 from torch.amp.grad_scaler import GradScaler
 from torch.utils.data import ConcatDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
-from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_jacobian
+from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_jacobian, compute_rigid_flow_jacobian_3d
 import DataLoader.Dataset.VIODE as _viode_dl  # noqa: F401 — register VIODESequence
 from Utility.Config import load_config, namespace_to_cfgnode
 from Utility.PrettyPrint import ColoredTqdm, Logger
@@ -267,7 +267,10 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                             B = R_c.size(0)
                             bottom_row = torch.tensor([0.,0.,0.,1.], device=R_rel.device, dtype=torch.float64).repeat(B, 1, 1)
                             T_rel_mat = torch.cat([torch.cat([R_c, t_c], dim=2), bottom_row], dim=1)
+                            # 1D depth Jacobian + 2×3 3D Jacobian (for 3D loss modes)
                             f_rigid, J_d, _ = compute_rigid_flow_jacobian(
+                                gt_depth.cuda(), K, T_rel_mat)
+                            _, J_3d, _ = compute_rigid_flow_jacobian_3d(
                                 gt_depth.cuda(), K, T_rel_mat)
                             # Use GT flow as residual target when available, fall back to estimated flow
                             if gt_flow is not None:
@@ -285,13 +288,17 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                             f_rigid = torch.zeros(B, 2, Hf, Wf, device=img1.device)
                             r_vec = torch.zeros(B, 2, Hf, Wf, device=img1.device)
                             J_d = torch.zeros(B, 2, Hf, Wf, device=img1.device)
+                            J_3d = torch.zeros(B, 2, 3, Hf, Wf, device=img1.device)
                     else:
                         _, _, Hf, Wf = flow[-1].shape
                         residual = torch.zeros(B, 1, Hf, Wf, device=img1.device)
                         f_rigid = torch.zeros(B, 2, Hf, Wf, device=img1.device)
                         r_vec = torch.zeros(B, 2, Hf, Wf, device=img1.device)
                         J_d = torch.zeros(B, 2, Hf, Wf, device=img1.device)
-                    dyn_data = (residual, f_rigid, r_vec, J_d, sigma_depth)
+                        J_3d = torch.zeros(B, 2, 3, Hf, Wf, device=img1.device)
+                    # dyn_data tuple extended: (residual, f_rigid, r_vec, J_d, sigma_depth, J_3d, depth_val, K)
+                    dyn_data = (residual, f_rigid, r_vec, J_d, sigma_depth,
+                                J_3d, gt_depth, K)
 
                     # GT flow for EPE metrics; dyn loss uses r_vec = flow_target - f_rigid (above)
                     _gt = gt_flow if gt_flow is not None else flow[-1].detach()
@@ -345,7 +352,8 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 visual_freq = getattr(modelcfg, "visual_freq", 500)
                 if train_mode in ("dyn", "dyn_selfsup") and dyn is not None and dyn_data is not None and total_steps % visual_freq == 0:
                     with torch.no_grad():
-                        residual, f_rigid, r_vec, J_d, sigma_depth = dyn_data
+                        residual, f_rigid, r_vec, J_d, sigma_depth = dyn_data[:5]
+                        flow_cov = cov[-1][0].cpu() if cov is not None else None
                         visuals = {
                             "img1": img1[0].cpu().clamp(0, 1),
                             "img2": img2[0].cpu().clamp(0, 1),
@@ -353,6 +361,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                             "flow_est": flow[-1][0].cpu(),
                             "flow_rigid": f_rigid[0].cpu(),
                             "flow_gt": gt_flow[0].cpu() if gt_flow is not None else torch.zeros_like(flow[-1][0].cpu()),
+                            "flow_cov": flow_cov,  # (2, H, W) — var_u, var_v from cov head
                             "residual": residual[0].cpu(),
                             "f_imu": f_imu[0].cpu(),
                             "imu_tokens": imu_tokens[0].cpu(),
@@ -362,7 +371,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                         grad_info = logger.log_frozen_grad_check(model_ptr)
                         visuals["trainable_grad_norm"] = grad_info["trainable_grad_norm"]
                         visuals["frozen_grad_norm"] = grad_info["frozen_grad_norm"]
-                        logger.log_visuals(visuals, total_steps)
+                        logger.log_visuals(visuals, total_steps, training_mode=train_mode)
             except Exception as e:
                 logger.log_console(f"CRASH at step {total_steps}: {e}")
                 crash_dir = logger.debug_dir / f"crash_step_{total_steps:06d}"

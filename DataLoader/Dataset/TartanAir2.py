@@ -94,18 +94,23 @@ class TartanAirV2_StereoSequence(SequenceBase[StereoFrame]):
     
     def __init__(self, config: SimpleNamespace | dict[str, Any]):
         cfg = self.config_dict2ns(config)
-        
-        # Metadata
-        self.lcam_T_BS = pp.identity_SE3(1)
-        self.lcam_K    = torch.tensor([[320.0, 0.0, 320.0], [0.0, 320.0, 320.0], [0.0, 0.0, 1.0]]).unsqueeze(0)
-        self.baseline  = 0.25
-        self.width     = 640
-        self.height    = 640
-        # End
-        
+
         # Stereo Loader
         self.lcam_loader = TartanAirMonocularDataset(Path(cfg.root, "image_lcam_front"))
         self.rcam_loader = TartanAirMonocularDataset(Path(cfg.root, "image_rcam_front"))
+        first_img = self.lcam_loader[0]  # (1, 3, H, W) or (3, H, W)
+        if first_img.dim() == 4:
+            _, _, self.height, self.width = first_img.shape
+        else:
+            _, self.height, self.width = first_img.shape
+
+        # Camera intrinsics — use config overrides if provided, else TartanAir defaults
+        if hasattr(cfg, "cam_K") and cfg.cam_K is not None:
+            self.lcam_K = torch.tensor(cfg.cam_K).unsqueeze(0)
+        else:
+            self.lcam_K = torch.tensor([[320.0, 0.0, 320.0], [0.0, 320.0, 320.0], [0.0, 0.0, 1.0]]).unsqueeze(0)
+        self.baseline = getattr(cfg, "baseline", 0.25)
+        self.lcam_T_BS = pp.identity_SE3(1)
         
         cam_time_file_path = Path(cfg.root, "imu", "cam_time.txt")
         if cam_time_file_path.exists():

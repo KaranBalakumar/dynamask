@@ -20,7 +20,8 @@ class TestDynLossPhaseA:
         residual = torch.rand(B, 1, H, W)
         r_vec = torch.randn(B, 2, H, W)
         J_d = torch.randn(B, 2, H, W) * 0.01
-        sigma_depth = (torch.rand(B, 1, H, W) * 0.1).abs() + 0.01
+        sigma_depth = (torch.rand(B, 1, H, W) * 0.5).abs() + 0.1   # 0.1–0.6 px depth std
+        J_d = torch.randn(B, 2, H, W) * 5.0                          # larger Jacobian for test
         return {"dyn_preds": dyn_preds, "cov_preds": cov_preds,
                 "residual": residual, "r_vec": r_vec,
                 "J_d": J_d, "sigma_depth": sigma_depth,
@@ -88,6 +89,42 @@ class TestDynLossPhaseA:
                                 f["r_vec"], None, None,
                                 gamma=0.85, loss_type="fixed", dyn_sigma=2.0)
         assert abs(out["L_total"].item() - out2["L_total"].item()) < 1e-9
+
+    def test_depth_variants_differ_when_sigma_depth_present(self, loss_fixture):
+        f = loss_fixture
+        out_s = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                 f["r_vec"], f["J_d"], f["sigma_depth"],
+                                 gamma=0.85, loss_type="scalar")
+        out_sd = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                  f["r_vec"], f["J_d"], f["sigma_depth"],
+                                  gamma=0.85, loss_type="scalar_depth")
+        out_m = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                 f["r_vec"], f["J_d"], f["sigma_depth"],
+                                 gamma=0.85, loss_type="mahalanobis")
+        out_md = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                  f["r_vec"], f["J_d"], f["sigma_depth"],
+                                  gamma=0.85, loss_type="mahalanobis_depth")
+        # Depth variants should differ from non-depth when sigma_depth is provided
+        assert abs(out_s["L_total"].item() - out_sd["L_total"].item()) > 1e-9, "scalar vs scalar_depth should differ"
+        assert abs(out_m["L_total"].item() - out_md["L_total"].item()) > 1e-9, "mahalanobis vs mahalanobis_depth should differ"
+
+    def test_depth_variants_identical_without_depth(self, loss_fixture):
+        f = loss_fixture
+        out_s = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                 f["r_vec"], None, None,
+                                 gamma=0.85, loss_type="scalar")
+        out_sd = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                  f["r_vec"], None, None,
+                                  gamma=0.85, loss_type="scalar_depth")
+        out_m = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                 f["r_vec"], None, None,
+                                 gamma=0.85, loss_type="mahalanobis")
+        out_md = dyn_loss_phase_a(f["dyn_preds"], f["cov_preds"], f["residual"],
+                                  f["r_vec"], None, None,
+                                  gamma=0.85, loss_type="mahalanobis_depth")
+        # Without depth, variants should be identical
+        assert abs(out_s["L_total"].item() - out_sd["L_total"].item()) < 1e-9
+        assert abs(out_m["L_total"].item() - out_md["L_total"].item()) < 1e-9
 
     def test_default_is_mahalanobis(self, loss_fixture):
         f = loss_fixture
@@ -163,7 +200,7 @@ class TestSequenceLossDyn:
         sigma_depth = torch.rand(B, 1, Hd, Wd).abs() + 0.01
         dyn_data = (residual, f_rigid, r_vec, J_d, sigma_depth)
 
-        for loss_type, dyn_sigma in [("mahalanobis", 2.0), ("scalar", 2.0), ("fixed", 2.0)]:
+        for loss_type, dyn_sigma in [("fixed", 2.0), ("scalar", 2.0), ("scalar_depth", 2.0), ("mahalanobis", 2.0), ("mahalanobis_depth", 2.0)]:
             cfg = SimpleNamespace(
                 training_mode="dyn", gamma=0.85, max_flow=400,
                 cov_mask=False, dyn_loss_type=loss_type, dyn_sigma=dyn_sigma,
