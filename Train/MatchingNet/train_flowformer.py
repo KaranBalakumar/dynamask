@@ -9,7 +9,7 @@ import torch.nn as nn
 from typing import get_args
 from pathlib import Path
 from torch.amp.grad_scaler import GradScaler
-from torch.utils.data import ConcatDataset, DataLoader
+from torch.utils.data import ChainDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
 from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_jacobian, compute_rigid_flow_jacobian_3d
 import DataLoader.Dataset.VIODE as _viode_dl  # noqa: F401 — register VIODESequence
@@ -477,9 +477,10 @@ if __name__ == "__main__":
     valid_datasets = [ds.transform_source(transforms) for ds in traindatasets if ds is not None]
     if len(valid_datasets) == 0:
         raise RuntimeError("No valid training datasets found")
-    # TrainDataset is an IterableDataset — use first dataset directly.
-    # Multi-dataset training needs ChainDataset, but for now single dataset works.
-    train_dataset = valid_datasets[0]
+    total_frames = sum(len(ds) for ds in valid_datasets)
+    train_dataset = ChainDataset(valid_datasets)
+    train_dataset.__len__ = lambda: total_frames  # ChainDataset has no __len__
+    Logger.write("info", f"Training on {len(valid_datasets)} sequences ({total_frames} frame pairs total)")
     trainloader = DataLoader[DataFramePair[StereoFrame]](
         train_dataset,
         batch_size=modlecfg.batch_size,

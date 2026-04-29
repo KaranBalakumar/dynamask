@@ -1,10 +1,10 @@
 Model:
-  name: "DynGRU_VIODE"
+  name: "DynGRU_VIODE_HPC"
   stage: "viode"
-  suffix: "dyngru_viode"
+  suffix: "dyngru_viode_hpc"
   gamma: 0.85
   max_flow: 400
-  batch_size: 20
+  batch_size: 2
   sum_freq: 100
   val_freq: 2000
   image_size: [480, 752]
@@ -16,8 +16,8 @@ Model:
   transformer: "latentcostformer"
   restore_ckpt: "Model/MACVO_FrontendCov.pth"
   training_mode: "dyn_selfsup"
-  dyn_loss_type: "mahalanobis"       # "fixed"|"scalar"|"scalar_depth"|"mahalanobis"|"mahalanobis_depth"|"scalar_3d"|"mahalanobis_3d"
-  dyn_sigma: 2.0              # fixed σ [px] for "fixed" mode
+  dyn_loss_type: "mahalanobis_3d"       # "fixed"|"scalar"|"scalar_depth"|"mahalanobis"|"mahalanobis_depth"|"scalar_3d"|"mahalanobis_3d"
+  dyn_sigma: 2.0
 
   latentcostformer:
     pe: "linear"
@@ -54,7 +54,7 @@ Model:
 
   ### TRAINER
   clip: 1.0
-  num_epochs: 100
+  num_epochs: 10
 
   optimizer:
     type: "AdamW"
@@ -73,19 +73,19 @@ Model:
       anneal_strategy: "linear"
 
   folderlength: None
-  autosave_freq: 100
-  num_workers: 0
+  autosave_freq: 2000
+  num_workers: 8
   mixed_precision: True
   seed: 1234
-  log_freq: 10
+  log_freq: 100
   datatype: fp32
   wandb: True
-  visual_freq: 10
+  visual_freq: 100
 
 Train:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/VIODE_High.yaml
+    - !include ../Sequence/Training_Dataset/VIODE_HPC_SelfSup.yaml
 
 Evaluate:
   data: !flatten_seq
-    - !include ../Sequence/Training_Dataset/VIODE_High.yaml
+    - !include ../Sequence/Training_Dataset/VIODE_HPC_SelfSup.yaml

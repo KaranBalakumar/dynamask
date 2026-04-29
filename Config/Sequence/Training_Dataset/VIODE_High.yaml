@@ -1,7 +1,7 @@
 -   type: TartanAirv2
     name: city_day_3_high
     args:
-        root: /home/karan/dynamask/dataset/viode_tartan/city_day/3_high
+        root: /home/amukherjee/Workbenches/balu/viode/viode_tartan/city_day/3_high
         compressed: false
         use_real_imu: true
         gravity: 9.81
@@ -24,7 +24,7 @@
 -   type: TartanAirv2
     name: city_night_3_high
     args:
-        root: /home/karan/dynamask/dataset/viode_tartan/city_night/3_high
+        root: /home/amukherjee/Workbenches/balu/viode/viode_tartan/city_night/3_high
         compressed: false
         use_real_imu: true
         gravity: 9.81
@@ -47,7 +47,7 @@
 -   type: TartanAirv2
     name: parking_lot_3_high
     args:
-        root: /home/karan/dynamask/dataset/viode_tartan/parking_lot/3_high
+        root: /home/amukherjee/Workbenches/balu/viode/viode_tartan/parking_lot/3_high
         compressed: false
         use_real_imu: true
         gravity: 9.81

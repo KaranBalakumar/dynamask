@@ -1,5 +1,5 @@
 import typing as T
-import multiprocessing as mp
+from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
 from Utility.PrettyPrint import Logger
@@ -47,8 +47,11 @@ class TrainDataset(SequenceBase[DataFramePair[T_Data]]):
         args: list[tuple[SimpleNamespace, int, int, bool]] = [(data_cfg, from_idx, to_idx, pred(data_cfg)) for data_cfg in data_config]
         try:
             num_worker = min(4, len(args))
-            with mp.Pool(processes=num_worker) as pool:
-                return pool.starmap(TrainDataset[T_Data]._instantiate_dataset, args, chunksize=1)
+            with ThreadPoolExecutor(max_workers=num_worker) as pool:
+                return list(pool.map(
+                    lambda a: TrainDataset[T_Data]._instantiate_dataset(*a),
+                    args
+                ))
         except Exception:
             return [TrainDataset[T_Data]._instantiate_dataset(*a) for a in args]
 
