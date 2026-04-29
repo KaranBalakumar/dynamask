@@ -30,7 +30,7 @@ class FiLMLayer(nn.Module):
         # (B, cond_dim) → (B, 2·feat_dim) → (B, 2·feat_dim, 1, 1) to broadcast against (B, C, H, W).
         params = self.proj(cond).unsqueeze(-1).unsqueeze(-1)
         gamma, beta = params.chunk(2, dim=1)
-        return x * (1 + gamma) + beta
+        return x * (gamma) + beta
 
 
 class IMUCrossAttn(nn.Module):

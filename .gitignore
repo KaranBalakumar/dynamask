@@ -19,3 +19,6 @@ __MACOSX/
 build/
 dist/
 *.egg
+.vscode/
+*.db
+*.vc.db
