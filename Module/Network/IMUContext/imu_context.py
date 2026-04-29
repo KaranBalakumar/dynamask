@@ -112,6 +112,17 @@ class IMUContext(nn.Module):
         self._P = None
         self._prev_cam_state = None
 
+    def to(self, *args, **kwargs):
+        super().to(*args, **kwargs)
+        self.ekf.model.gravity = self.ekf.model.gravity.to(*args, **kwargs)
+        if self._state is not None:
+            self._state = self._state.to(*args, **kwargs)
+        if self._P is not None:
+            self._P = self._P.to(*args, **kwargs)
+        if self._prev_cam_state is not None:
+            self._prev_cam_state = self._prev_cam_state.to(*args, **kwargs)
+        return self
+
     def reset(self, init_rot, init_vel, init_pos):
         dev = init_vel.device
         s = torch.zeros(15, dtype=torch.float64, device=dev)

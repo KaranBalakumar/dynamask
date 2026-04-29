@@ -12,7 +12,13 @@ Zed:
       interp: nearest
 VBR_Stereo:
   - type: SmartResizeFrame
-    args: 
+    args:
+      height: 640
+      width : 640
+      interp: nearest
+TartanAirv2_NoIMU:
+  - type: SmartResizeFrame
+    args:
       height: 640
       width : 640
       interp: nearest

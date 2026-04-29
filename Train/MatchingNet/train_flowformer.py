@@ -137,14 +137,15 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 for p in model_ptr.memory_decoder.cov_update.parameters()
             ), "cov_update must be frozen in dyn training mode"
 
-    # --- Build IMUContext for dyn training (no AirIO checkpoint needed) ---
+    # --- Build IMUContext for dyn training ---
     if train_mode in ("dyn", "dyn_selfsup"):
         from types import SimpleNamespace as _SNS
         from Module.Network.IMUContext.imu_context import IMUContext
         _grav = getattr(modelcfg, "gravity", 9.81) if hasattr(modelcfg, "gravity") else 9.81
+        _airio_ckpt = getattr(modelcfg, "airio_ckpt", None)
         imu_context = IMUContext(
             airio_cfg=_SNS(propcov=True),
-            airio_ckpt=None,
+            airio_ckpt=_airio_ckpt,
             gravity=_grav,
         )
         imu_context.cuda()
@@ -434,6 +435,9 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
 
 
 if __name__ == "__main__":
+    import torch.backends.cuda
+    torch.backends.cuda.enable_flash_sdp(False)
+    torch.backends.cuda.enable_mem_efficient_sdp(False)
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="Config/Train/Demo.yaml")
     parser.add_argument("--wandb", action="store_true")

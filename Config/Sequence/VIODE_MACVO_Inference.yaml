@@ -1,0 +1,10 @@
+type: TartanAirv2_NoIMU
+name: city_day_3_high
+args:
+  root: /home/karan/dynamask/dataset/viode_tartan/city_day/3_high
+  compressed: false
+  gtDepth: false
+  gtPose: true
+  gtFlow: false
+  cam_K: [[376, 0, 376], [0, 376, 240], [0, 0, 1]]
+  baseline: 0.05
