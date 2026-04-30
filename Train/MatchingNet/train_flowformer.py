@@ -5,13 +5,14 @@ import time
 import torch
 import torch.distributed
 import torch.nn as nn
+import torch.nn.functional as F
 
 from typing import get_args
 from pathlib import Path
 from torch.amp.grad_scaler import GradScaler
 from torch.utils.data import ChainDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
-from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_jacobian, compute_rigid_flow_jacobian_3d
+from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_jacobian, compute_rigid_flow_jacobian_3d, dyn_residual_loss
 import DataLoader.Dataset.VIODE as _viode_dl  # noqa: F401 — register VIODESequence
 from Utility.Config import load_config, namespace_to_cfgnode
 from Utility.PrettyPrint import ColoredTqdm, Logger
@@ -338,9 +339,9 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
 
                         # --- Dyn-specific metrics ---
                         if train_mode in ("dyn", "dyn_selfsup") and dyn is not None:
-                            c_final = dyn[-1].sigmoid().detach()
-                            metrics["train/dyn_mean_c"] = c_final.mean().item()
-                            metrics["train/dyn_static_frac"] = (c_final > 0.5).float().mean().item()
+                            r_hat = F.softplus(dyn[-1]).detach()
+                            metrics["train/dyn_r_mean"] = r_hat.mean().item()
+                            metrics["train/dyn_r_max"]  = r_hat.max().item()
                             metrics["dyngru/alpha"] = model_ptr.memory_decoder.dyn_update.alpha.item()
                             metrics["dyngru/token_weights_mean"] = model_ptr.memory_decoder.dyn_update.imu_attn.token_weights.mean().item()
                             if f_imu is not None:
@@ -362,15 +363,16 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                     with torch.no_grad():
                         residual, f_rigid, r_vec, J_d, sigma_depth = dyn_data[:5]
                         flow_cov = cov[-1][0].cpu() if cov is not None else None
+                        r_hat = F.softplus(dyn[-1][0].cpu())
                         visuals = {
                             "img1": img1[0].cpu().clamp(0, 1),
                             "img2": img2[0].cpu().clamp(0, 1),
-                            "dyn_logits_final": dyn[-1][0].cpu(),
+                            "dyn_r_hat": r_hat,          # (1, H, W) predicted residual magnitude [px]
+                            "dyn_target": residual[0].cpu(),  # (1, H, W) target residual [px]
                             "flow_est": flow[-1][0].cpu(),
                             "flow_rigid": f_rigid[0].cpu(),
                             "flow_gt": gt_flow[0].cpu() if gt_flow is not None else torch.zeros_like(flow[-1][0].cpu()),
                             "flow_cov": flow_cov,  # (2, H, W) — var_u, var_v from cov head
-                            "residual": residual[0].cpu(),
                             "f_imu": f_imu[0].cpu(),
                             "imu_tokens": imu_tokens[0].cpu(),
                             "alpha": model_ptr.memory_decoder.dyn_update.alpha.detach().cpu().item(),

@@ -16,8 +16,6 @@ Model:
   transformer: "latentcostformer"
   restore_ckpt: "Model/MACVO_FrontendCov.pth"
   training_mode: "dyn"
-  dyn_loss_type: "mahalanobis_3d"
-  dyn_sigma: 2.0
 
   latentcostformer:
     pe: "linear"

@@ -320,113 +320,43 @@ def _project_3d_cov_to_scalar(
     return (du + dv) / 2
 
 
-# ---- Mahalanobis / Scalar cov-gated target -----------------------
+# ---- Residual magnitude prediction (direct regression) ----------------
 
-def dyn_loss_phase_a(
+def dyn_residual_loss(
     dyn_predictions: list[torch.Tensor],   # K logit maps at H/4
-    cov_predictions: list[torch.Tensor],   # K cov maps (read-only, frozen)
-    residual: torch.Tensor,                # (B, 1, H, W)  ‖flow_target − f_rigid‖  (for viz only)
     r_vec: torch.Tensor,                   # (B, 2, H, W)  flow_target − f_rigid vector
-    J_d: torch.Tensor,                     # (B, 2, H, W)  ∂f_rigid/∂d
-    sigma_depth: torch.Tensor | None,      # (B, 1, H, W)  depth std (from stereo cov)
     gamma: float = 0.85,
-    loss_type: str = "mahalanobis",        # "fixed"|"scalar"|"scalar_depth"|"mahalanobis"|"mahalanobis_depth"|"scalar_3d"|"mahalanobis_3d"
-    dyn_sigma: float = 2.0,               # fixed σ [px] for "fixed" mode
-    J_3d: torch.Tensor | None = None,     # (B, 2, 3, H, W)  ∂f_rigid/∂X_3D  (for 3D modes)
-    depth_val: torch.Tensor | None = None, # (B, 1, H, W)  depth values (for 3D modes)
-    K: torch.Tensor | None = None,         # (B, 3, 3)  camera intrinsics (for 3D modes)
 ) -> dict[str, torch.Tensor]:
-    """γ-weighted BCE with covariance-gated target.
+    """γ-weighted smooth-L1 loss for residual magnitude prediction.
 
-    Seven modes:
-      "fixed":              σ    = dyn_sigma  (single scalar, no cov head)
-      "scalar":             σ²   = (var_u + var_v)/2     isotropic from cov head
-      "scalar_depth":       σ²   = (var_u + var_v)/2 + (Jd_u² + Jd_v²)/2 · σ_d²
-      "mahalanobis":        Σ    = [[var_u, 0], [0, var_v]]    2x2 diagonal from cov head
-      "mahalanobis_depth":  Σ    = [[var_u, 0], [0, var_v]] + J_d·σ_d²·J_dT
-      "scalar_3d":          Σ    = Σ_flow + J_{f→X}·Σ_3D·J_{f→X}T   (MAC-VO 3D→2D projection)
-                            σ²   = trace(Σ)/2
-      "mahalanobis_3d":     Σ    = Σ_flow + J_{f→X}·Σ_3D·J_{f→X}T   (full 2×2 Mahalanobis)
+    Target:  r     = ‖f_target − f_rigid‖     (residual magnitude in pixels)
+    Pred:    r_hat = softplus(dyn_logits)     (positive residual magnitude)
+    Loss:    smooth_L1(r_hat, r)
+
+    This replaces the BCE + Mahalanobis c-target formulation.  The dyn head
+    now directly predicts how much a pixel deviates from rigid flow, which:
+      - Needs no cov head (removed from dyn loss entirely)
+      - Needs no GT dynamic masks
+      - Gives physically meaningful output (pixels)
+      - Works identically for supervised (target = |f_gt − f_rigid|) and
+        self-supervised (target = |f_est − f_rigid|) modes
     """
-    _USE_DEPTH   = loss_type in ("scalar_depth", "mahalanobis_depth")
-    _USE_3D_PROJ = loss_type in ("scalar_3d", "mahalanobis_3d")
-    _IS_SCALAR   = loss_type in ("fixed", "scalar", "scalar_depth", "scalar_3d")
-
     n_iter = len(dyn_predictions)
-    L_total = torch.tensor(0.0, device=residual.device)
+    L_total = torch.tensor(0.0, device=r_vec.device)
+
+    r_u = r_vec[:, 0:1]  # (B, 1, H, W)
+    r_v = r_vec[:, 1:2]
+    target = torch.sqrt(r_u * r_u + r_v * r_v + 1e-8)  # (B, 1, H, W)
 
     for i in range(n_iter):
         i_weight = gamma ** (n_iter - i - 1)
         logit = dyn_predictions[i]
 
-        r_u = r_vec[:, 0:1]
-        r_v = r_vec[:, 1:2]
+        if logit.shape[-2:] != target.shape[-2:]:
+            logit = F.interpolate(logit, size=target.shape[-2:], mode="bilinear", align_corners=False)
 
-        if loss_type == "fixed":
-            sigma_sq = dyn_sigma ** 2
-            if logit.shape[-2:] != r_u.shape[-2:]:
-                logit = F.interpolate(logit, size=r_u.shape[-2:], mode="bilinear", align_corners=False)
-            r_sq = r_u * r_u + r_v * r_v
-            d_sq = r_sq / sigma_sq
-            c_target = torch.exp(-0.5 * d_sq.clamp_min(0))
-
-        elif loss_type in ("scalar", "scalar_depth", "scalar_3d"):
-            cov = cov_predictions[i]
-            var_u = torch.exp(cov[:, 0:1] * 2)   # log-var -> var
-            var_v = torch.exp(cov[:, 1:2] * 2)
-            sigma_sq = ((var_u + var_v) / 2).clamp_min(1e-12)
-
-            if _USE_DEPTH and sigma_depth is not None:
-                Jd_u = J_d[:, 0:1]; Jd_v = J_d[:, 1:2]
-                sd_sq = sigma_depth.clamp_min(1e-6) ** 2
-                sigma_sq = sigma_sq + (Jd_u * Jd_u + Jd_v * Jd_v) / 2 * sd_sq
-
-            if _USE_3D_PROJ and sigma_depth is not None and J_3d is not None and depth_val is not None and K is not None:
-                sigma_sq = _project_3d_cov_to_scalar(
-                    var_u, var_v, sigma_depth.clamp_min(1e-6), depth_val, J_3d, K)
-
-            if r_u.shape[-2:] != sigma_sq.shape[-2:]:
-                r_u = F.interpolate(r_u, size=sigma_sq.shape[-2:], mode="bilinear", align_corners=False)
-                r_v = F.interpolate(r_v, size=sigma_sq.shape[-2:], mode="bilinear", align_corners=False)
-            if logit.shape[-2:] != sigma_sq.shape[-2:]:
-                logit = F.interpolate(logit, size=sigma_sq.shape[-2:], mode="bilinear", align_corners=False)
-
-            r_sq = r_u * r_u + r_v * r_v
-            d_sq = r_sq / sigma_sq
-            c_target = torch.exp(-0.5 * d_sq.clamp_min(0))
-
-        else:  # "mahalanobis" | "mahalanobis_depth" | "mahalanobis_3d"
-            cov = cov_predictions[i]
-            var_u = torch.exp(cov[:, 0:1] * 2)   # log-var -> var
-            var_v = torch.exp(cov[:, 1:2] * 2)
-            var_uv = torch.zeros_like(var_u)
-
-            if _USE_DEPTH and sigma_depth is not None:
-                Jd_u = J_d[:, 0:1]; Jd_v = J_d[:, 1:2]
-                sd_sq = sigma_depth.clamp_min(1e-6) ** 2
-                var_u  = var_u  + Jd_u * Jd_u * sd_sq
-                var_v  = var_v  + Jd_v * Jd_v * sd_sq
-                var_uv = var_uv + Jd_u * Jd_v * sd_sq
-
-            if _USE_3D_PROJ and sigma_depth is not None and J_3d is not None and depth_val is not None and K is not None:
-                du, dv, duv = _project_3d_cov_to_2x2(
-                    var_u, var_v, sigma_depth.clamp_min(1e-6), depth_val, J_3d, K)
-                var_u  = du
-                var_v  = dv
-                var_uv = duv
-
-            if r_u.shape[-2:] != var_u.shape[-2:]:
-                r_u = F.interpolate(r_u, size=var_u.shape[-2:], mode="bilinear", align_corners=False)
-                r_v = F.interpolate(r_v, size=var_v.shape[-2:], mode="bilinear", align_corners=False)
-            if logit.shape[-2:] != var_u.shape[-2:]:
-                logit = F.interpolate(logit, size=var_u.shape[-2:], mode="bilinear", align_corners=False)
-
-            a, b, d_val = var_u.clamp_min(1e-12), var_uv, var_v.clamp_min(1e-12)
-            det = (a * d_val - b * b).clamp_min(1e-12)
-            d_sq = (d_val * r_u * r_u - 2 * b * r_u * r_v + a * r_v * r_v) / det
-            c_target = torch.exp(-0.5 * d_sq.clamp_min(0))
-
-        L_total += i_weight * F.binary_cross_entropy_with_logits(logit, c_target)
+        r_hat = F.softplus(logit)  # → [0, ∞)  residual magnitude in pixels
+        L_total += i_weight * F.smooth_l1_loss(r_hat, target, reduction="mean")
 
     return {"L_total": L_total}
 
@@ -467,19 +397,12 @@ def sequence_loss(cfg, preds: torch.Tensor, gt: torch.Tensor, flow_mask: torch.T
 
         case "dyn" | "dyn_selfsup":
             assert dyn_preds is not None and dyn_data is not None
-            residual = dyn_data[0]
             r_vec = dyn_data[2] if len(dyn_data) > 2 else torch.zeros_like(dyn_data[1])
-            J_d = dyn_data[3] if len(dyn_data) > 3 else None
-            sigma_depth = dyn_data[4] if len(dyn_data) > 4 else None
-            loss_type = getattr(cfg, "dyn_loss_type", "mahalanobis")
-            dyn_sigma = getattr(cfg, "dyn_sigma", 2.0)
-            J_3d = dyn_data[5] if len(dyn_data) > 5 else None
-            depth_val = dyn_data[6] if len(dyn_data) > 6 else None
-            K_cam = dyn_data[7] if len(dyn_data) > 7 else None
-            loss_dict = dyn_loss_phase_a(dyn_preds, cov_preds, residual, r_vec, J_d, sigma_depth, gamma=cfg.gamma, loss_type=loss_type, dyn_sigma=dyn_sigma, J_3d=J_3d, depth_val=depth_val, K=K_cam)
+            loss_dict = dyn_residual_loss(dyn_preds, r_vec, gamma=cfg.gamma)
             loss = loss_dict["L_total"]
-            c_mean = dyn_preds[-1].sigmoid().mean().item()
-            metrics["dyn_c_mean"] = c_mean
+            r_hat = F.softplus(dyn_preds[-1]).detach()
+            metrics["dyn_r_mean"] = r_hat.mean().item()
+            metrics["dyn_r_max"]  = r_hat.max().item()
 
         case default:
             raise ValueError(f"Unavailable training mode {default}")
@@ -525,18 +448,11 @@ def sequence_metric(cfg, preds: torch.Tensor, cov_preds: list[torch.Tensor] | No
 
         case "dyn" | "dyn_selfsup":
             assert dyn_preds is not None and dyn_data is not None
-            residual = dyn_data[0]
             r_vec = dyn_data[2] if len(dyn_data) > 2 else torch.zeros_like(dyn_data[1])
-            J_d = dyn_data[3] if len(dyn_data) > 3 else None
-            sigma_depth = dyn_data[4] if len(dyn_data) > 4 else None
-            loss_type = getattr(cfg, "dyn_loss_type", "mahalanobis")
-            dyn_sigma = getattr(cfg, "dyn_sigma", 2.0)
-            J_3d = dyn_data[5] if len(dyn_data) > 5 else None
-            depth_val = dyn_data[6] if len(dyn_data) > 6 else None
-            K_cam = dyn_data[7] if len(dyn_data) > 7 else None
-            loss_dict = dyn_loss_phase_a(dyn_preds, cov_preds, residual, r_vec, J_d, sigma_depth, gamma=cfg.gamma, loss_type=loss_type, dyn_sigma=dyn_sigma, J_3d=J_3d, depth_val=depth_val, K=K_cam)
+            loss_dict = dyn_residual_loss(dyn_preds, r_vec, gamma=cfg.gamma)
+            r_hat = F.softplus(dyn_preds[-1]).detach()
             metrics.update({"dyn_loss": loss_dict["L_total"].item()})
-            metrics.update({"dyn_c_mean": dyn_preds[-1].sigmoid().mean().item()})
+            metrics.update({"dyn_r_mean": r_hat.mean().item()})
 
         case default:
             raise ValueError(f"Unavailable training mode {default}")

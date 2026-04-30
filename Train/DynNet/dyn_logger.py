@@ -97,12 +97,12 @@ class DynTrainLogger:
         Args:
             visuals: dict with keys:
                 img1, img2          -- (3, H, W)  input images
-                dyn_logits_final    -- (1, H/4, W/4)  final dyn head logits
+                dyn_r_hat           -- (1, H, W)  predicted residual magnitude [px]
+                dyn_target          -- (1, H, W)  target residual [px]
                 flow_est            -- (2, H, W)  estimated flow
                 flow_rigid          -- (2, H, W)  rigid flow from GT
                 flow_gt             -- (2, H, W)  GT flow (or zeros if unavailable)
-                flow_cov            -- (2, H, W)  var_u, var_v from cov head
-                residual            -- (1, H, W)  ||flow_target - f_rigid||
+                flow_cov            -- (2, H, W)  var_u, var_v from cov head (optional)
                 f_imu               -- (128,)     IMU global feature
                 imu_tokens          -- (7, 128)   IMU semantic tokens
                 alpha               -- scalar     adapter gate
@@ -176,24 +176,47 @@ class DynTrainLogger:
         import matplotlib.pyplot as plt
 
         img = v["img1"].cpu()
-        dyn_logits = v["dyn_logits_final"].cpu()
+        r_hat = v["dyn_r_hat"].cpu()       # (1, H, W) predicted residual magnitude [px]
 
-        dyn_full = torch.nn.functional.interpolate(
-            dyn_logits.unsqueeze(0), size=img.shape[-2:],
-            mode="bilinear", align_corners=False,
-        ).squeeze()
-        c = torch.sigmoid(dyn_full)
+        if r_hat.shape[-2:] != img.shape[-2:]:
+            r_hat = torch.nn.functional.interpolate(
+                r_hat.unsqueeze(0), size=img.shape[-2:],
+                mode="bilinear", align_corners=False,
+            ).squeeze(0)
+        r_hat = r_hat.squeeze(0)  # (H, W)
 
-        fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+        r_target = v.get("dyn_target")
+        if r_target is not None:
+            r_target = r_target.cpu()
+            if r_target.shape[-2:] != img.shape[-2:]:
+                r_target = torch.nn.functional.interpolate(
+                    r_target.unsqueeze(0), size=img.shape[-2:],
+                    mode="bilinear", align_corners=False,
+                ).squeeze(0)
+            r_target = r_target.squeeze(0)
+
+        fig, axes = plt.subplots(1, 3 if r_target is not None else 2, figsize=(8 * (3 if r_target is not None else 2), 6))
+        if r_target is None:
+            axes = [axes[0], axes[1], None]
         img_np = img.permute(1, 2, 0).clamp(0, 1).numpy()
+
         axes[0].imshow(img_np)
         axes[0].set_title("Input image")
         axes[0].axis("off")
+
         axes[1].imshow(img_np, alpha=0.5)
-        heat = axes[1].imshow(c.numpy(), cmap="RdYlBu_r", vmin=0, vmax=1, alpha=0.6)
-        plt.colorbar(heat, ax=axes[1], label="static confidence c")
-        axes[1].set_title("DynGRU static confidence")
+        vmax = r_hat.max().item()
+        heat = axes[1].imshow(r_hat.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 5.0), alpha=0.6)
+        plt.colorbar(heat, ax=axes[1], label="predicted residual [px]")
+        axes[1].set_title(f"DynGRU r_hat (mean={r_hat.mean().item():.2f} px)")
         axes[1].axis("off")
+
+        if r_target is not None:
+            axes[2].imshow(img_np, alpha=0.5)
+            axes[2].imshow(r_target.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 5.0), alpha=0.6)
+            axes[2].set_title(f"Target residual (mean={r_target.mean().item():.2f} px)")
+            axes[2].axis("off")
+
         fig.tight_layout()
         fig.savefig(step_dir / "dyn_overlay.png", dpi=100)
         plt.close(fig)
@@ -209,17 +232,20 @@ class DynTrainLogger:
         flow_rigid_t = v["flow_rigid"].cpu().float()
         r_est = (flow_est_t - flow_rigid_t).norm(dim=0)
 
-        dyn_logits = v.get("dyn_logits_final")
-        if dyn_logits is not None:
-            c = dyn_logits.cpu().sigmoid()
-            if c.ndim == 3:
-                c = torch.nn.functional.interpolate(
-                    c.unsqueeze(0), size=img.shape[-2:], mode="bilinear", align_corners=False
-                ).squeeze(0).squeeze(0)
+        r_hat = v.get("dyn_r_hat")
+        if r_hat is not None:
+            r_hat = r_hat.cpu()
+            if r_hat.ndim == 3:
+                r_hat = r_hat.squeeze(0)
+            if r_hat.shape[-2:] != img.shape[-2:]:
+                r_hat = torch.nn.functional.interpolate(
+                    r_hat.unsqueeze(0).unsqueeze(0) if r_hat.dim() == 2 else r_hat.unsqueeze(0),
+                    size=img.shape[-2:], mode="bilinear", align_corners=False,
+                ).squeeze()
 
         has_gt = v.get("_has_gt", False)
         has_cov = v.get("flow_cov") is not None
-        n_cols = 2 + int(has_gt) + int(has_cov)
+        n_cols = 2 + int(has_gt) + (int(has_cov) if has_cov else 0)
         fig, axes = plt.subplots(1, n_cols, figsize=(7 * n_cols, 5))
         if n_cols == 2:
             axes = [axes[0], axes[1], None, None]
@@ -255,14 +281,16 @@ class DynTrainLogger:
             axes[col].axis("off")
             col += 1
 
-        dyn_ax = axes[col]
-        if dyn_logits is not None:
+        dyn_ax = axes[col] if col < len(axes) else None
+        if dyn_ax is not None and r_hat is not None:
             img_np = img.permute(1, 2, 0).clamp(0, 1).numpy()
             dyn_ax.imshow(img_np, alpha=0.5)
-            heat = dyn_ax.imshow(c.numpy(), cmap="RdYlBu_r", vmin=0, vmax=1, alpha=0.6)
-            plt.colorbar(heat, ax=dyn_ax, label="static confidence c")
-            dyn_ax.set_title(f"DynGRU c (mean={c.mean():.3f})")
-        dyn_ax.axis("off")
+            vmax = r_hat.max().item()
+            heat = dyn_ax.imshow(r_hat.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 5.0), alpha=0.6)
+            plt.colorbar(heat, ax=dyn_ax, label="predicted residual [px]")
+            dyn_ax.set_title(f"DynGRU r_hat (mean={r_hat.mean().item():.2f} px)")
+        if dyn_ax is not None:
+            dyn_ax.axis("off")
         fig.tight_layout()
         fig.savefig(step_dir / "residual_map.png", dpi=100)
         plt.close(fig)
@@ -353,11 +381,11 @@ class DynTrainLogger:
 
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-        if "dyn_logits_final" in v:
-            c = torch.sigmoid(v["dyn_logits_final"].cpu().flatten())
-            axes[0, 0].hist(c.numpy(), bins=50, range=(0, 1), color="steelblue", edgecolor="white")
-            axes[0, 0].set_xlabel("static confidence c")
-            axes[0, 0].set_title(f"c histogram (mean={c.mean().item():.3f})")
+        if "dyn_r_hat" in v:
+            r_hat = v["dyn_r_hat"].cpu().flatten()
+            axes[0, 0].hist(r_hat.clamp(0, 20).numpy(), bins=50, color="steelblue", edgecolor="white")
+            axes[0, 0].set_xlabel("predicted residual r_hat [px]")
+            axes[0, 0].set_title(f"r_hat histogram (mean={r_hat.mean().item():.2f} px)")
 
         if "flow_est" in v and "flow_rigid" in v:
             r_est = (v["flow_est"].cpu().float() - v["flow_rigid"].cpu().float()).norm(dim=0).flatten()
