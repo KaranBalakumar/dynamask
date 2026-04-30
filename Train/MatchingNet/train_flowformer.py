@@ -404,7 +404,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                 logger.log_console(f"Crash dump saved to {crash_dir}")
                 raise
 
-            if total_steps > modelcfg.num_steps:
+            if total_steps >= modelcfg.num_steps:
                 should_keep_training = False
                 break
 

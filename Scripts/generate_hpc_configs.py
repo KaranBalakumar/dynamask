@@ -21,7 +21,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Paths (HPC-specific)
 # ---------------------------------------------------------------------------
-TARTANAIR2_ROOT = Path("/scratch/amukherjee/tartan2/tartanair2")
+TARTANAIR2_ROOT = Path("/scratch/amukherjee/karan/tartan2/tartanair2")
 VIODE_ROOT = Path("/home/amukherjee/Workbenches/balu/viode/viode_tartan")
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "Config" / "Sequence" / "Training_Dataset"
@@ -39,6 +39,8 @@ TARTANAIR_ENTRY = """\
         use_real_imu: true
         gravity: 9.81
         fixed_imu_samples: 10
+        {cam_k_line}
+        baseline: {baseline}
         imu_sim:
             acc_bias: [0.0, 0.0, 0.0]
             acc_init_bias_noise: [0.0, 0.0, 0.0]
@@ -52,6 +54,15 @@ TARTANAIR_ENTRY = """\
         gtPose: true
         gtFlow: {gt_flow}
 """
+
+# VIODE dataset: 752×480 images, specific intrinsics (verified from H5 attrs)
+VIODE_CAM_K = [[344.0, 0.0, 376.0], [0.0, 344.0, 240.0], [0.0, 0.0, 1.0]]
+VIODE_BASELINE = 0.12
+
+# TartanAir2 640×640: default K is correct for geometry (cx=W/2, cy=H/2).
+# fx=fy=320 matches the TartanAir v2 convention (90° HFOV).
+TARTANAIR2_CAM_K = [[320.0, 0.0, 320.0], [0.0, 320.0, 320.0], [0.0, 0.0, 1.0]]
+TARTANAIR2_BASELINE = 0.25
 
 
 # ---------------------------------------------------------------------------
@@ -88,6 +99,8 @@ def scan_tartanair2_scenes(root: Path) -> list[dict]:
                 entries.append({
                     "name": seq_name,
                     "root": root_path,
+                    "cam_k": TARTANAIR2_CAM_K,
+                    "baseline": TARTANAIR2_BASELINE,
                 })
 
     return entries
@@ -129,6 +142,8 @@ def scan_viode_scenes(root: Path) -> list[dict]:
             entries.append({
                 "name": seq_name,
                 "root": root_path,
+                "cam_k": VIODE_CAM_K,
+                "baseline": VIODE_BASELINE,
             })
 
     return entries
@@ -144,9 +159,16 @@ def write_yaml_config(entries: list[dict], out_path: Path, gt_depth: bool, gt_fl
         f.write("\n")
 
         for i, entry in enumerate(entries):
+            cam_k = entry.get("cam_k")
+            if cam_k is not None:
+                cam_k_line = f"cam_K: {cam_k}"
+            else:
+                cam_k_line = ""
             f.write(TARTANAIR_ENTRY.format(
                 name=entry["name"],
                 root=entry["root"],
+                cam_k_line=cam_k_line,
+                baseline=entry.get("baseline", 0.25),
                 gt_depth=str(gt_depth).lower(),
                 gt_flow=str(gt_flow).lower(),
             ))

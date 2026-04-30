@@ -233,11 +233,17 @@ class IMUContext(nn.Module):
         ekf_rotations = []
 
         # Phase 1: EKF Propagate (tick-by-tick physics update)
+        dev = self._state.device
         for tick in corrected_imu:
-            dt = self._to_f64(tick["dt"])
+            dt = self._to_f64(tick["dt"], device=dev)
             dt_total += dt.item()
             Q = self._make_Q(tick.get("gyro_cov"), tick.get("acc_cov"))
-            inp = torch.cat([tick["gyro"].double(), tick["acc"].double(), self._state[9:12], self._state[12:15]])
+            inp = torch.cat([
+                tick["gyro"].double().to(dev),
+                tick["acc"].double().to(dev),
+                self._state[9:12],
+                self._state[12:15],
+            ])
             self._state, self._P = self.ekf.state_propogate(state=self._state, input=inp, P=self._P, dt=dt, Q=Q)
             ekf_rotations.append(self._state[:3].clone())
 
@@ -284,9 +290,10 @@ class IMUContext(nn.Module):
         if not raw_imu:
             return None, None
 
-        acc = torch.stack([t["acc"] for t in raw_imu]).unsqueeze(0).double()
-        gyro = torch.stack([t["gyro"] for t in raw_imu]).unsqueeze(0).double()
-        rot = torch.stack(ekf_rotations).unsqueeze(0).double()
+        dev = self._state.device
+        acc = torch.stack([t["acc"].to(dev) for t in raw_imu]).unsqueeze(0).double()
+        gyro = torch.stack([t["gyro"].to(dev) for t in raw_imu]).unsqueeze(0).double()
+        rot = torch.stack([r.to(dev) for r in ekf_rotations]).unsqueeze(0).double()
 
         out = self.airio_net({"acc": acc, "gyro": gyro}, rot)
         return out["net_vel"][0, -1, :], (out["cov"][0, -1, :] if out["cov"] is not None else None)
@@ -385,11 +392,16 @@ class IMUContext(nn.Module):
 
     def _make_Q(self, gyro_cov, acc_cov):
         """Scales inputs covariances to robust process noise standardizations."""
-        q = torch.full((12,), self.bias_noise, dtype=torch.float64, device=self._state.device)
-        if gyro_cov is not None: q[:3] = gyro_cov.double()
-        if acc_cov is not None: q[3:6] = acc_cov.double() * self.input_scale
+        dev = self._state.device
+        q = torch.full((12,), self.bias_noise, dtype=torch.float64, device=dev)
+        if gyro_cov is not None: q[:3] = gyro_cov.double().to(dev)
+        if acc_cov is not None: q[3:6] = acc_cov.double().to(dev) * self.input_scale
         return torch.diag(q)
 
     @staticmethod
-    def _to_f64(v):
-        return v.double().squeeze() if isinstance(v, torch.Tensor) else torch.tensor(v, dtype=torch.float64)
+    def _to_f64(v, device=None):
+        if isinstance(v, torch.Tensor):
+            t = v.double().squeeze()
+            return t.to(device) if device is not None else t
+        t = torch.tensor(v, dtype=torch.float64)
+        return t.to(device) if device is not None else t

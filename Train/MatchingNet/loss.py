@@ -325,28 +325,39 @@ def _project_3d_cov_to_scalar(
 def dyn_residual_loss(
     dyn_predictions: list[torch.Tensor],   # K logit maps at H/4
     r_vec: torch.Tensor,                   # (B, 2, H, W)  flow_target − f_rigid vector
+    f_rigid: torch.Tensor | None = None,   # (B, 2, H, W)  rigid flow (for scale-invariant target)
     gamma: float = 0.85,
 ) -> dict[str, torch.Tensor]:
-    """γ-weighted smooth-L1 loss for residual magnitude prediction.
+    """γ-weighted smooth-L1 loss for scale-invariant residual prediction.
 
-    Target:  r     = ‖f_target − f_rigid‖     (residual magnitude in pixels)
-    Pred:    r_hat = softplus(dyn_logits)     (positive residual magnitude)
+    Target:  r     = ‖f_target − f_rigid‖ / (‖f_rigid‖ + 1)
+            The division by rigid-flow magnitude normalises away the geometric
+            bias: close road pixels have large rigid flow → large absolute
+            residual, but a small *relative* deviation.  Far pixels have small
+            rigid flow → even a 1-px error is a large relative deviation.
+            The +1 prevents division explosions for sky / far pixels.
+
+    Pred:    r_hat = softplus(dyn_logits)     (positive, dimensionless)
     Loss:    smooth_L1(r_hat, r)
 
-    This replaces the BCE + Mahalanobis c-target formulation.  The dyn head
-    now directly predicts how much a pixel deviates from rigid flow, which:
-      - Needs no cov head (removed from dyn loss entirely)
-      - Needs no GT dynamic masks
-      - Gives physically meaningful output (pixels)
-      - Works identically for supervised (target = |f_gt − f_rigid|) and
-        self-supervised (target = |f_est − f_rigid|) modes
+    Works for supervised (target = |f_gt − f_rigid|) and
+    self-supervised (target = |f_est − f_rigid|) modes.
+    No cov head, no uncertainty, no Mahalanobis.
     """
     n_iter = len(dyn_predictions)
     L_total = torch.tensor(0.0, device=r_vec.device)
 
     r_u = r_vec[:, 0:1]  # (B, 1, H, W)
     r_v = r_vec[:, 1:2]
-    target = torch.sqrt(r_u * r_u + r_v * r_v + 1e-8)  # (B, 1, H, W)
+    r_abs = torch.sqrt(r_u * r_u + r_v * r_v + 1e-8)  # (B, 1, H, W)
+
+    if f_rigid is not None:
+        f_mag = torch.sqrt(
+            f_rigid[:, 0:1] * f_rigid[:, 0:1] + f_rigid[:, 1:2] * f_rigid[:, 1:2]
+        )
+        target = r_abs / (f_mag + 1.0)  # scale-invariant, dimensionless
+    else:
+        target = r_abs  # fallback: absolute residual [px]
 
     for i in range(n_iter):
         i_weight = gamma ** (n_iter - i - 1)
@@ -355,7 +366,7 @@ def dyn_residual_loss(
         if logit.shape[-2:] != target.shape[-2:]:
             logit = F.interpolate(logit, size=target.shape[-2:], mode="bilinear", align_corners=False)
 
-        r_hat = F.softplus(logit)  # → [0, ∞)  residual magnitude in pixels
+        r_hat = F.softplus(logit)  # → [0, ∞)
         L_total += i_weight * F.smooth_l1_loss(r_hat, target, reduction="mean")
 
     return {"L_total": L_total}
@@ -398,7 +409,8 @@ def sequence_loss(cfg, preds: torch.Tensor, gt: torch.Tensor, flow_mask: torch.T
         case "dyn" | "dyn_selfsup":
             assert dyn_preds is not None and dyn_data is not None
             r_vec = dyn_data[2] if len(dyn_data) > 2 else torch.zeros_like(dyn_data[1])
-            loss_dict = dyn_residual_loss(dyn_preds, r_vec, gamma=cfg.gamma)
+            f_rigid = dyn_data[1] if len(dyn_data) > 1 else None
+            loss_dict = dyn_residual_loss(dyn_preds, r_vec, f_rigid=f_rigid, gamma=cfg.gamma)
             loss = loss_dict["L_total"]
             r_hat = F.softplus(dyn_preds[-1]).detach()
             metrics["dyn_r_mean"] = r_hat.mean().item()
@@ -449,7 +461,8 @@ def sequence_metric(cfg, preds: torch.Tensor, cov_preds: list[torch.Tensor] | No
         case "dyn" | "dyn_selfsup":
             assert dyn_preds is not None and dyn_data is not None
             r_vec = dyn_data[2] if len(dyn_data) > 2 else torch.zeros_like(dyn_data[1])
-            loss_dict = dyn_residual_loss(dyn_preds, r_vec, gamma=cfg.gamma)
+            f_rigid = dyn_data[1] if len(dyn_data) > 1 else None
+            loss_dict = dyn_residual_loss(dyn_preds, r_vec, f_rigid=f_rigid, gamma=cfg.gamma)
             r_hat = F.softplus(dyn_preds[-1]).detach()
             metrics.update({"dyn_loss": loss_dict["L_total"].item()})
             metrics.update({"dyn_r_mean": r_hat.mean().item()})
