@@ -1,4 +1,4 @@
-# VIODE — TartanAirv2 format, self-supervised (no GT depth/flow), real IMU, GT pose.
+# VIODE — TartanAirv2 format, self-supervised (GT depth from stereo, GT pose, real IMU).
 # 12 sequences, auto-generated from HPC directory scan
 
 -   type: TartanAirv2
@@ -20,7 +20,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -43,7 +43,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -66,7 +66,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -89,7 +89,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -112,7 +112,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -135,7 +135,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -158,7 +158,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -181,7 +181,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -204,7 +204,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -227,7 +227,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -250,7 +250,7 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
 
@@ -273,6 +273,6 @@
             gyro_init_bias_noise: [0.0, 0.0, 0.0]
             gyro_bias_instability: [0.0, 0.0, 0.0]
             gyro_random_walk: [0.0, 0.0, 0.0]
-        gtDepth: false
+        gtDepth: true
         gtPose: true
         gtFlow: false
