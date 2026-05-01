@@ -198,7 +198,7 @@ def main() -> None:
         header_comment="TartanAir2 — ALL scenes, Data_easy + Data_hard, supervised (GT depth + GT flow + GT pose), real IMU."
     )
 
-    # 2. VIODE — self-supervised (no GT depth, no GT flow)
+    # 2. VIODE — self-supervised with GT depth from stereo SGBM
     print("\n[2/2] Scanning VIODE scenes...")
     viode_entries = scan_viode_scenes(VIODE_ROOT)
     print(f"       Found {len(viode_entries)} sequences")
@@ -206,8 +206,8 @@ def main() -> None:
     viode_out = OUT_DIR / "VIODE_HPC_SelfSup.yaml"
     write_yaml_config(
         viode_entries, viode_out,
-        gt_depth=False, gt_flow=False,
-        header_comment="VIODE — TartanAirv2 format, self-supervised (no GT depth/flow), real IMU, GT pose."
+        gt_depth=True, gt_flow=False,
+        header_comment="VIODE — TartanAirv2 format, self-supervised (GT depth from stereo, GT pose, real IMU)."
     )
 
     print("\n" + "=" * 60)
