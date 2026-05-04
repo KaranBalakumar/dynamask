@@ -167,11 +167,11 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         depth  = F.interpolate(depth,  size=target_size, mode='nearest')
         flow   = F.interpolate(flow,   size=target_size, mode='bilinear', align_corners=False)
         flow_mask = F.interpolate(flow_mask, size=target_size, mode='nearest')
-        # Resize scalar residual (correct — just a heatmap)
-        r_abs_orig = r_vec_orig.norm(dim=1, keepdim=True)  # (1, 1, 375, 1242)
-        r_abs_orig = r_abs_orig.clamp(max=200.0)  # cap extreme outliers (depth edges etc.)
-        r_abs = F.interpolate(r_abs_orig, size=target_size, mode='bilinear', align_corners=False)
-        r_vec = torch.cat([r_abs, torch.zeros_like(r_abs)], dim=1)  # (1, 2, 480, 640), v=0
+        # Resize r_vec (2-channel) to target resolution with proper scaling
+        # Interpolate spatially, then scale each component to target pixels
+        r_vec = F.interpolate(r_vec_orig, size=target_size, mode='bilinear', align_corners=False)
+        r_vec[:, 0] *= self.scale_w  # u in target-width pixels
+        r_vec[:, 1] *= self.scale_h  # v in target-height pixels
         # Scale flow values
         flow[:, 0] *= self.scale_w
         flow[:, 1] *= self.scale_h
