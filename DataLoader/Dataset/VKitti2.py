@@ -49,8 +49,15 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
 
         self.baseline = float(getattr(cfg, "baseline", 0.532725))
 
-        # --- Read extrinsics (camera-to-world, Camera 0 only) ---
+        # --- Read extrinsics (world-to-camera, Camera 0 only) ---
+        # Training loop applies NED_R_cam transform unconditionally.
+        # VKitti2 extrinsics are already camera-frame, so we pre-rotate
+        # by NED^T so the training loop's NED cancels out.
+        # NED = [[0,0,1],[1,0,0],[0,1,0]]  →  NED^T @ (NED @ R @ NED^T) @ NED = R
+        NED_T = torch.tensor([[0.,1.,0.],[0.,0.,1.],[1.,0.,0.]], dtype=torch.float64)
+        NED_R = NED_T.T  # = [[0,0,1],[1,0,0],[0,1,0]]
         self.T_wc = {}
+        self.T_w2c = {}
         self.frame_indices = []
         extrinsics_path = self.variant_dir / "extrinsic.txt"
         with open(extrinsics_path) as f:
@@ -62,11 +69,22 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
                 if cam_id != 0:
                     continue
                 vals = [float(x) for x in parts[2:18]]
-                T = torch.tensor(
+                T_w2c_raw = torch.tensor(
                     [vals[0:4], vals[4:8], vals[8:12], vals[12:16]],
                     dtype=torch.float64,
                 )
-                self.T_wc[frame_idx] = T
+                self.T_w2c[frame_idx] = T_w2c_raw
+                # c2w = inv(w2c), then pre-rotate by NED^T so NED cancels in training
+                T_c2w = torch.linalg.inv(T_w2c_raw)
+                # Apply pre-rotation: R_c2w_pre = NED @ R_c2w @ NED^T
+                R = T_c2w[:3, :3]
+                t = T_c2w[:3, 3]
+                R_pre = NED_R @ R @ NED_T
+                t_pre = NED_R @ t
+                T_pre = torch.eye(4, dtype=torch.float64)
+                T_pre[:3, :3] = R_pre
+                T_pre[:3, 3] = t_pre
+                self.T_wc[frame_idx] = T_pre
                 self.frame_indices.append(frame_idx)
 
         self.frame_indices = sorted(set(self.frame_indices))
@@ -203,15 +221,16 @@ def _load_depth(path: Path) -> torch.Tensor:
 def _load_flow(path: Path) -> tuple[torch.Tensor, torch.Tensor]:
     """Load VKitti2 16-bit flow PNG.
 
-    Encoding: R=65535 for valid pixels (0 otherwise).
-    G, B encode normalized flow in [-1, 1] scaled to [0, 65535]:
-        u = (G/65535 - 0.5) * 2 * W
-        v = (B/65535 - 0.5) * 2 * H
+    Encoding (verified against WAFT reference):
+        R channel (idx 2) → u (horizontal flow)
+        G channel (idx 1) → v (vertical flow)
+        B channel (idx 0) → valid mask (>0 = valid)
+        u/v = (value/65535 * 2 - 1) * (size - 1)
     """
     raw = cv2.imread(str(path), cv2.IMREAD_UNCHANGED).astype(np.float64)
     H, W = raw.shape[:2]
-    u = (raw[..., 1] / 65535.0 - 0.5) * 2.0 * W
-    v = (raw[..., 2] / 65535.0 - 0.5) * 2.0 * H
+    u = (raw[..., 2] / 65535.0 * 2.0 - 1.0) * (W - 1)
+    v = (raw[..., 1] / 65535.0 * 2.0 - 1.0) * (H - 1)
     mask = (raw[..., 0] > 0).astype(np.float32)
     flow = np.stack([u, v], axis=0)
     return torch.from_numpy(flow).float().unsqueeze(0), torch.from_numpy(mask).unsqueeze(0).unsqueeze(0)
