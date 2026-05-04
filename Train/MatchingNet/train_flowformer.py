@@ -459,7 +459,8 @@ if __name__ == "__main__":
     os.makedirs("%s/%s" % (args.autosave_dir, modlecfg.name + modlecfg.time), exist_ok=True)
     torch.manual_seed(modlecfg.seed)
     np.random.seed(modlecfg.seed)
-    transforms = [CenterCropFrame(dict(width=640, height=480)),
+    ih, iw = cfg.Model.image_size  # [H, W]
+    transforms = [CenterCropFrame(dict(width=iw, height=ih)),
                   CastDataType(dict(dtype=cfg.Model.datatype)),
                   AddImageNoise(dict(stdv=5.0)),
                   ScaleFrame(dict(scale_u=cfg.Model.image_scale, scale_v=cfg.Model.image_scale, interp='nearest'))]

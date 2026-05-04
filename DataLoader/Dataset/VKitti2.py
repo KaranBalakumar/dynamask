@@ -110,15 +110,10 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
                 self.T_wc, self.frame_indices, self.imu_freq, self.gravity
             )
 
-        # Resize factors: 1242×375 → 640×480
-        self.target_h, self.target_w = 480, 640
-        self.scale_w = self.target_w / 1242.0
-        self.scale_h = self.target_h / 375.0
+        # Keep original resolution. CenterCropFrame handles width crop.
+        # K is updated automatically by CenterCropFrame.
         self.K = self.K_raw.clone()
-        self.K[:, 0, 0] *= self.scale_w
-        self.K[:, 1, 1] *= self.scale_h
-        self.K[:, 0, 2] *= self.scale_w
-        self.K[:, 1, 2] *= self.scale_h
+        self.img_h, self.img_w = 375, 1242
 
         super().__init__(self.num_frames)
 
@@ -134,14 +129,7 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         depth = _load_depth(self.depth_dir / f"depth_{frame_idx:05d}.png")
         flow, flow_mask = _load_flow(self.flow_dir / f"flow_{frame_idx:05d}.png")
 
-        # Resize to 640×480
-        img_l = F.interpolate(img_l, size=(self.target_h, self.target_w), mode='bilinear', align_corners=False)
-        img_r = F.interpolate(img_r, size=(self.target_h, self.target_w), mode='bilinear', align_corners=False)
-        depth = F.interpolate(depth, size=(self.target_h, self.target_w), mode='nearest')
-        flow = F.interpolate(flow, size=(self.target_h, self.target_w), mode='bilinear', align_corners=False)
-        flow_mask = F.interpolate(flow_mask, size=(self.target_h, self.target_w), mode='nearest')
-        flow[:, 0] *= self.scale_w
-        flow[:, 1] *= self.scale_h
+        # No resize — keep original 1242×375. CenterCropFrame handles width.
 
         # GT pose as LieTensor
         T_wc = self.T_wc[frame_idx]
@@ -185,8 +173,8 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
             K=self.K,
             baseline=torch.tensor([self.baseline]),
             time_ns=[0],
-            height=self.target_h,
-            width=self.target_w,
+            height=self.img_h,
+            width=self.img_w,
             imageL=img_l,
             imageR=img_r,
             gt_depth=depth,
