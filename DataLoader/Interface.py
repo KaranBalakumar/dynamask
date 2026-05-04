@@ -111,8 +111,6 @@ class StereoData(Collatable):
     collate_handlers = {
         "height": lambda batch: batch[0],
         "width" : lambda batch: batch[0],
-        "gt_dyn_r_vec": None,  # default torch.stack
-        "gt_f_rigid": None,    # default torch.stack
     }
 
 
