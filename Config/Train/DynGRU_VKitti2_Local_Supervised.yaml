@@ -7,7 +7,7 @@ Model:
   batch_size: 2
   sum_freq: 100
   val_freq: 2000
-  image_size: [375, 640]
+  image_size: [480, 640]
   image_scale: 1
   add_noise: True
   cov_mask: False
@@ -75,10 +75,10 @@ Model:
   num_workers: 0
   mixed_precision: True
   seed: 1234
-  log_freq: 50
+  log_freq: 5
   datatype: fp32
   wandb: False
-  visual_freq: 200
+  visual_freq: 5
 
 Train:
   data: !flatten_seq

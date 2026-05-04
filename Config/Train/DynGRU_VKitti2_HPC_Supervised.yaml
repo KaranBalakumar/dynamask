@@ -7,7 +7,7 @@ Model:
   batch_size: 32
   sum_freq: 100
   val_freq: 10000
-  image_size: [375, 640]
+  image_size: [480, 640]
   image_scale: 1
   add_noise: True
   cov_mask: False

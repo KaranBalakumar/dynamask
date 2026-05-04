@@ -102,9 +102,10 @@ class StereoData(Collatable):
     imageR: torch.Tensor    # torch.float32 of shape Bx3xHxW
     
     # Label & Ground Truth
-    gt_flow  : torch.Tensor | None = None    # torch.float32 of shape Bx2xHxW 
+    gt_flow  : torch.Tensor | None = None    # torch.float32 of shape Bx2xHxW
     flow_mask: torch.Tensor | None = None    # torch.bool    of shape Bx1xHxW
-    gt_depth : torch.Tensor | None = None    # torch.float32 of shape Bx1xHxW 
+    gt_depth : torch.Tensor | None = None    # torch.float32 of shape Bx1xHxW
+    gt_dyn_r_vec: torch.Tensor | None = None # torch.float32 of shape Bx2xHxW — precomputed f_gt - f_rigid
     
     collate_handlers = {
         "height": lambda batch: batch[0],

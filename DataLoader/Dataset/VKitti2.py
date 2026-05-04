@@ -110,10 +110,19 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
                 self.T_wc, self.frame_indices, self.imu_freq, self.gravity
             )
 
-        # Keep original resolution. CenterCropFrame handles width crop.
-        # K is updated automatically by CenterCropFrame.
+        # Target resolution for FlowFormer (no further cropping needed)
+        self.target_h, self.target_w = 480, 640
+        # Original resolution for correct rigid-flow geometry
+        self.orig_h, self.orig_w = 375, 1242
+        self.K_orig = self.K_raw.clone()  # original K for rigid flow
+        # K for resized images
+        self.scale_h = self.target_h / self.orig_h
+        self.scale_w = self.target_w / self.orig_w
         self.K = self.K_raw.clone()
-        self.img_h, self.img_w = 375, 1242
+        self.K[:, 0, 0] *= self.scale_w
+        self.K[:, 1, 1] *= self.scale_h
+        self.K[:, 0, 2] *= self.scale_w
+        self.K[:, 1, 2] *= self.scale_h
 
         super().__init__(self.num_frames)
 
@@ -129,7 +138,43 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         depth = _load_depth(self.depth_dir / f"depth_{frame_idx:05d}.png")
         flow, flow_mask = _load_flow(self.flow_dir / f"flow_{frame_idx:05d}.png")
 
-        # No resize — keep original 1242×375. CenterCropFrame handles width.
+        # --- Compute rigid-flow residual at ORIGINAL resolution (correct geometry) ---
+        T_wc_cur = self.T_wc[frame_idx]
+        T_wc_nxt = self.T_wc[frame_idx + 1] if frame_idx + 1 in self.T_wc else T_wc_cur
+        pose_cur = pp.mat2SE3(T_wc_cur.unsqueeze(0))
+        pose_nxt = pp.mat2SE3(T_wc_nxt.unsqueeze(0))
+
+        NED_R_cam = torch.tensor([[0,0,1],[1,0,0],[0,1,0]], dtype=torch.float64)
+        T_cur_mat = pp.SE3(pose_cur).matrix().double()
+        T_nxt_mat = pp.SE3(pose_nxt).matrix().double()
+        T_rel = torch.linalg.inv(T_nxt_mat) @ T_cur_mat
+        R_rel, t_rel = T_rel[0, :3, :3], T_rel[0, :3, 3:4]
+        R_c = NED_R_cam.T @ R_rel @ NED_R_cam
+        t_c = NED_R_cam.T @ t_rel
+        bottom = torch.tensor([[0.,0.,0.,1.]], dtype=torch.float64)
+        T_rel_mat = torch.cat([torch.cat([R_c, t_c], dim=1), bottom], dim=0).unsqueeze(0)
+
+        from Train.MatchingNet.loss import compute_rigid_flow_jacobian
+        f_rigid_orig, _, _ = compute_rigid_flow_jacobian(
+            depth.float(), self.K_orig.float(), T_rel_mat.float()
+        )
+        r_vec_orig = flow.float() - f_rigid_orig.float()  # (1, 2, 375, 1242)
+
+        # --- Resize everything to target resolution ---
+        target_size = (self.target_h, self.target_w)
+        img_l  = F.interpolate(img_l,  size=target_size, mode='bilinear', align_corners=False)
+        img_r  = F.interpolate(img_r,  size=target_size, mode='bilinear', align_corners=False)
+        depth  = F.interpolate(depth,  size=target_size, mode='nearest')
+        flow   = F.interpolate(flow,   size=target_size, mode='bilinear', align_corners=False)
+        flow_mask = F.interpolate(flow_mask, size=target_size, mode='nearest')
+        # Resize scalar residual (correct — just a heatmap)
+        r_abs_orig = r_vec_orig.norm(dim=1, keepdim=True)  # (1, 1, 375, 1242)
+        r_abs_orig = r_abs_orig.clamp(max=200.0)  # cap extreme outliers (depth edges etc.)
+        r_abs = F.interpolate(r_abs_orig, size=target_size, mode='bilinear', align_corners=False)
+        r_vec = torch.cat([r_abs, torch.zeros_like(r_abs)], dim=1)  # (1, 2, 480, 640), v=0
+        # Scale flow values
+        flow[:, 0] *= self.scale_w
+        flow[:, 1] *= self.scale_h
 
         # GT pose as LieTensor
         T_wc = self.T_wc[frame_idx]
@@ -173,13 +218,14 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
             K=self.K,
             baseline=torch.tensor([self.baseline]),
             time_ns=[0],
-            height=self.img_h,
-            width=self.img_w,
+            height=self.target_h,
+            width=self.target_w,
             imageL=img_l,
             imageR=img_r,
             gt_depth=depth,
             gt_flow=flow,
             flow_mask=flow_mask.bool(),
+            gt_dyn_r_vec=r_vec,
         )
 
         return StereoInertialFrame(

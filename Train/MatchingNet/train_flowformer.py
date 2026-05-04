@@ -241,6 +241,9 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                     gt_depth = getattr(frameData.cur.stereo, "gt_depth", None)
                     K = frameData.cur.stereo.K.cuda()
 
+                    # Use precomputed residual if available (e.g., VKitti2)
+                    precomputed_r_vec = getattr(frameData.cur.stereo, 'gt_dyn_r_vec', None)
+
                     if gt_pose_cur is not None and gt_pose_nxt is not None:
                         import pypose as pp
                         # When GT depth is missing, compute stereo depth via FlowFormer
@@ -266,7 +269,15 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                                     sigma_depth = torch.nn.functional.interpolate(
                                         sigma_depth, size=flow[-1].shape[-2:], mode='bilinear', align_corners=False)
 
-                        if gt_depth is not None:
+                        if precomputed_r_vec is not None:
+                            # Use precomputed r_vec (already at correct resolution)
+                            r_vec = precomputed_r_vec.cuda()
+                            residual = r_vec.norm(dim=1, keepdim=True)
+                            f_rigid = torch.zeros_like(r_vec)
+                            J_d = torch.zeros(B, 2, *r_vec.shape[-2:], device=img1.device)
+                            J_3d = torch.zeros(B, 2, 3, *r_vec.shape[-2:], device=img1.device)
+                            sigma_depth = None
+                        elif gt_depth is not None:
                             NED_R_cam = torch.tensor([[0,0,1],[1,0,0],[0,1,0]], dtype=torch.float64)
                             T_cur_mat = pp.SE3(gt_pose_cur).matrix().to(dtype=torch.float64, device=img1.device)
                             T_nxt_mat = pp.SE3(gt_pose_nxt).matrix().to(dtype=torch.float64, device=img1.device)
@@ -459,8 +470,7 @@ if __name__ == "__main__":
     os.makedirs("%s/%s" % (args.autosave_dir, modlecfg.name + modlecfg.time), exist_ok=True)
     torch.manual_seed(modlecfg.seed)
     np.random.seed(modlecfg.seed)
-    ih, iw = cfg.Model.image_size  # [H, W]
-    transforms = [CenterCropFrame(dict(width=iw, height=ih)),
+    transforms = [CenterCropFrame(dict(width=640, height=480)),
                   CastDataType(dict(dtype=cfg.Model.datatype)),
                   AddImageNoise(dict(stdv=5.0)),
                   ScaleFrame(dict(scale_u=cfg.Model.image_scale, scale_v=cfg.Model.image_scale, interp='nearest'))]
