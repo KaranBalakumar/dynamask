@@ -347,7 +347,14 @@ def dyn_residual_loss(
     target = torch.sqrt(r_u * r_u + r_v * r_v + 1e-8)  # (B, 1, H, W)
 
     if weight_by_target:
-        pixel_weight = target.detach() / (target.detach().mean() + 1e-8)
+        # Emphasize pixels the model currently gets WRONG
+        # weight = |r_hat - target| — once a pixel is predicted correctly, it stops dominating
+        with torch.no_grad():
+            r_hat_prelim = F.softplus(dyn_predictions[0])  # use first iteration for weight
+            if r_hat_prelim.shape[-2:] != target.shape[-2:]:
+                r_hat_prelim = F.interpolate(r_hat_prelim, size=target.shape[-2:], mode="bilinear", align_corners=False)
+            error = F.smooth_l1_loss(r_hat_prelim, target, reduction="none")
+            pixel_weight = error / (error.mean() + 1e-8)
         reduction = "none"
     else:
         pixel_weight = None
@@ -363,7 +370,7 @@ def dyn_residual_loss(
         r_hat = F.softplus(logit)  # → [0, ∞)
         if pixel_weight is not None:
             per_pixel = F.smooth_l1_loss(r_hat, target, reduction="none")
-            L_total += i_weight * (pixel_weight * per_pixel).mean()
+            L_total += i_weight * (pixel_weight.detach() * per_pixel).mean()
         else:
             L_total += i_weight * F.smooth_l1_loss(r_hat, target, reduction="mean")
 
