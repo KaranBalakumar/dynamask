@@ -28,29 +28,62 @@ Model:
     arc_type: "transformer"
     cost_heads_num: 1
     pretrain: True
+    context_concat: False
+    encoder_depth: 3
+    feat_cross_attn: False
+    patch_size: 8
+    patch_embed: "single"
+    no_pe: False
+    gma: "GMA"
+    kernel_size: 9
+    rm_res: True
+    vert_c_dim: 64
+    cost_encoder_res: True
+    cnet: "twins"
+    fnet: "twins"
+    no_sc: False
+    only_global: False
+    add_flow_token: True
+    use_mlp: False
+    vertical_conv: False
+    decoder_depth: 12
+    critical_params: ["cost_heads_num", "vert_c_dim", "cnet", "pretrain",
+                      "add_flow_token", "encoder_depth", "gma", "cost_encoder_res"]
 
-  aug:
-    color_jitter:
-      brightness: 0.2
-      contrast: 0.2
-      saturation: 0.2
-      hue: 0.1
-    eraser:
-      scale: [0.02, 0.2]
-      ratio: [0.3, 3.3]
+  ### TRAINER
+  clip: 1.0
+  num_epochs: 10
+
+  optimizer:
+    type: "AdamW"
+    args:
+      lr: &lr 2.0e-4
+      weight_decay: 1.0e-4
+      eps: 1.0e-8
 
   scheduler:
-    type: OneCycleLR
+    type: "OneCycleLR"
     args:
-      max_lr: 5e-4
       total_steps: 0
       pct_start: 0.05
       cycle_momentum: False
-      anneal_strategy: "cos"
+      max_lr: *lr
+      anneal_strategy: "linear"
 
-  num_epochs: 20
-  save_freq: 2000
+  folderlength: None
+  autosave_freq: 2000
+  num_workers: 4
+  mixed_precision: True
+  seed: 1234
   log_freq: 50
+  datatype: fp32
+  wandb: False
+  visual_freq: 200
 
 Train:
-  data: Config/Sequence/Training_Dataset/VKitti2_Local_Supervised.yaml
+  data: !flatten_seq
+    - !include ../Sequence/Training_Dataset/VKitti2_Local_Supervised.yaml
+
+Evaluate:
+  data: !flatten_seq
+    - !include ../Sequence/Training_Dataset/VKitti2_Local_Supervised.yaml
