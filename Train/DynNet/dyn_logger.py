@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 import torch.nn as nn
 import yaml
@@ -252,9 +253,12 @@ class DynTrainLogger:
         elif n_cols == 3:
             axes = axes.tolist() + [None] if not has_cov else axes.tolist() + [None]
 
-        im1 = axes[0].imshow(r_est.numpy(), cmap="hot")
+        r_est_viz = r_est.numpy().copy()
+        r_est_viz[r_est_viz < 1.0] = 0
+        r_est_viz = np.clip(r_est_viz, 0, 5.0)
+        im1 = axes[0].imshow(r_est_viz, cmap="jet", vmin=0, vmax=5.0)
         plt.colorbar(im1, ax=axes[0])
-        axes[0].set_title(f"||f_est - f_rigid|| (mean={r_est.mean():.2f} px)")
+        axes[0].set_title(f"||f_est - f_rigid|| (<1px=0, max=5px)")
         axes[0].axis("off")
 
         col = 1
@@ -265,9 +269,12 @@ class DynTrainLogger:
                     flow_gt_t.unsqueeze(0), size=flow_rigid_t.shape[-2:], mode="bilinear", align_corners=False,
                 ).squeeze(0)
             r_true = (flow_gt_t - flow_rigid_t).norm(dim=0)
-            im2 = axes[col].imshow(r_true.numpy(), cmap="hot")
+            r_true_viz = r_true.numpy().copy()
+            r_true_viz[r_true_viz < 1.0] = 0
+            r_true_viz = np.clip(r_true_viz, 0, 5.0)
+            im2 = axes[col].imshow(r_true_viz, cmap="jet", vmin=0, vmax=5.0)
             plt.colorbar(im2, ax=axes[col])
-            axes[col].set_title(f"||f_gt - f_rigid|| true dynamic (mean={r_true.mean():.2f} px)")
+            axes[col].set_title(f"||f_gt - f_rigid|| (<1px=0, max=5px)")
             axes[col].axis("off")
             col += 1
 
