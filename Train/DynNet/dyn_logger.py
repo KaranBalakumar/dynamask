@@ -263,12 +263,17 @@ class DynTrainLogger:
 
         col = 1
         if has_gt:
-            flow_gt_t = v["flow_gt"].cpu().float()
-            if flow_gt_t.shape[-2:] != flow_rigid_t.shape[-2:]:
-                flow_gt_t = torch.nn.functional.interpolate(
-                    flow_gt_t.unsqueeze(0), size=flow_rigid_t.shape[-2:], mode="bilinear", align_corners=False,
-                ).squeeze(0)
-            r_true = (flow_gt_t - flow_rigid_t).norm(dim=0)
+            # Use precomputed dyn_target if available (from precomputed r_vec)
+            dyn_target = v.get("dyn_target")
+            if dyn_target is not None:
+                r_true = dyn_target.cpu().float().squeeze()
+            else:
+                flow_gt_t = v["flow_gt"].cpu().float()
+                if flow_gt_t.shape[-2:] != flow_rigid_t.shape[-2:]:
+                    flow_gt_t = torch.nn.functional.interpolate(
+                        flow_gt_t.unsqueeze(0), size=flow_rigid_t.shape[-2:], mode="bilinear", align_corners=False,
+                    ).squeeze(0)
+                r_true = (flow_gt_t - flow_rigid_t).norm(dim=0)
             r_true_viz = r_true.numpy().copy()
             r_true_viz[r_true_viz < 1.0] = 0
             r_true_viz = np.clip(r_true_viz, 0, 5.0)
