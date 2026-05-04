@@ -70,7 +70,8 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
                 self.frame_indices.append(frame_idx)
 
         self.frame_indices = sorted(set(self.frame_indices))
-        self.num_frames = len(self.frame_indices)
+        # Use only frames that have both flow (t→t+1) and a next frame
+        self.num_frames = len(self.frame_indices) - 1  # last frame has no flow
 
         # --- Image paths ---
         self.rgb_dir = self.variant_dir / "frames" / "rgb" / "Camera_0"
@@ -128,15 +129,19 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         T_wc = self.T_wc[frame_idx]
         pose = pp.mat2SE3(T_wc.unsqueeze(0))
 
-        # IMU + Attitude data
+        # IMU + Attitude data — sliced per-frame (~20 ticks at 200Hz / 10Hz)
         imu_data = None
         att_data = None
         if self.use_real_imu and self._imu_samples is not None:
-            acc = self._imu_samples["acc"].unsqueeze(0)    # [1, N, 3]
-            gyro = self._imu_samples["gyro"].unsqueeze(0)  # [1, N, 3]
+            ticks_per_frame = self.imu_freq // 10  # 200Hz / 10Hz = 20
+            i0 = index * ticks_per_frame
+            i1 = i0 + ticks_per_frame
+            acc = self._imu_samples["acc"][i0:i1].unsqueeze(0)     # [1, T, 3]
+            gyro = self._imu_samples["gyro"][i0:i1].unsqueeze(0)   # [1, T, 3]
             n = acc.shape[1]
             dt_ns = int(1e9 / self.imu_freq)
-            times_ns = torch.arange(0, n * dt_ns, dt_ns, dtype=torch.int64).unsqueeze(0).unsqueeze(-1)
+            t0_ns = i0 * dt_ns
+            times_ns = torch.arange(t0_ns, t0_ns + n * dt_ns, dt_ns, dtype=torch.int64).unsqueeze(0).unsqueeze(-1)
             imu_data = IMUData(
                 T_BS=pp.identity_SE3(1),
                 time_ns=times_ns,
@@ -144,17 +149,17 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
                 acc=acc,
                 gyro=gyro,
             )
-            # Attitude data for EKF seeding
+            # Attitude data for EKF seeding (only first tick needed)
             att = self._att_samples
-            pos = att["pos"].unsqueeze(0)     # [1, N, 3]
-            vel = att["vel"].unsqueeze(0)     # [1, N, 3]
-            rot = att["rot"].unsqueeze(0)     # [1, N, 4] SO3 LieTensor
+            pos_0 = att["pos"][i0:i0+1].unsqueeze(0)   # [1, 1, 3]
+            vel_0 = att["vel"][i0:i0+1].unsqueeze(0)   # [1, 1, 3]
+            rot_0 = att["rot"][i0:i0+1].unsqueeze(0)   # [1, 1, 4] LieTensor
             att_data = AttitudeData(
                 T_BS=pp.identity_SE3(1),
-                time_ns=times_ns,
+                time_ns=times_ns[:, :1],
                 gravity=[self.gravity],
-                gt_pos=pos, gt_vel=vel, gt_rot=rot,
-                init_pos=pos[:, :1], init_vel=vel[:, :1], init_rot=rot[:, :1],
+                gt_pos=pos_0, gt_vel=vel_0, gt_rot=rot_0,
+                init_pos=pos_0, init_vel=vel_0, init_rot=rot_0,
             )
 
         stereo_data = StereoData(
