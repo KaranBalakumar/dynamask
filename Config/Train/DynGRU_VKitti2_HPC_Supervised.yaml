@@ -71,6 +71,8 @@ Model:
       anneal_strategy: "linear"
 
   folderlength: None
+  autosave_freq: 5000
+  autosave_dir: Model
   num_workers: 0
   mixed_precision: True
   seed: 1234
