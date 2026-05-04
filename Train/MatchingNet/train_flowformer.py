@@ -385,6 +385,7 @@ def train(modelcfg, cfg, loader: DataLoader[DataFramePair[StereoFrame]], eval_lo
                             "flow_rigid": f_rigid[0].cpu(),
                             "flow_gt": gt_flow[0].cpu() if gt_flow is not None else torch.zeros_like(flow[-1][0].cpu()),
                             "flow_cov": flow_cov,  # (2, H, W) — var_u, var_v from cov head
+                            "gt_f_rigid": getattr(frameData.cur.stereo, 'gt_f_rigid', None),
                             "f_imu": f_imu[0].cpu(),
                             "imu_tokens": imu_tokens[0].cpu(),
                             "alpha": model_ptr.memory_decoder.dyn_update.alpha.detach().cpu().item(),

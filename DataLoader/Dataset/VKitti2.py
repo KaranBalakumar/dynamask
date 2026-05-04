@@ -170,9 +170,13 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         # Resize scalar residual (just a heatmap — no geometry)
         r_abs  = F.interpolate(r_abs_orig, size=target_size, mode='bilinear', align_corners=False)
         r_vec = torch.cat([r_abs, torch.zeros_like(r_abs)], dim=1)  # (1,2,480,640)
-        # flow_gt is unused for training (precomputed r_vec used instead).
-        # Zero it out to avoid misleading debug values from non-uniform resize.
-        flow = torch.zeros_like(flow)
+        # Resize f_rigid for debug visualization. Training uses precomputed r_vec.
+        # f_rigid acts as "GT flow" for static scenes (f_gt ≈ f_rigid).
+        f_rigid_viz = F.interpolate(f_rigid_orig.float(), size=target_size,
+                                     mode='bilinear', align_corners=False)
+        f_rigid_viz[:, 0] *= self.scale_w
+        f_rigid_viz[:, 1] *= self.scale_h
+        flow = f_rigid_viz
 
         # GT pose as LieTensor
         T_wc = self.T_wc[frame_idx]
@@ -224,6 +228,7 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
             gt_flow=flow,
             flow_mask=flow_mask.bool(),
             gt_dyn_r_vec=r_vec,
+            gt_f_rigid=f_rigid_viz,
         )
 
         return StereoInertialFrame(

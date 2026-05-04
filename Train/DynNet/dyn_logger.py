@@ -314,11 +314,16 @@ class DynTrainLogger:
         from torchvision.utils import flow_to_image
 
         flow_est = v["flow_est"].cpu().float().unsqueeze(0)
-        flow_rigid_t = v["flow_rigid"].cpu().float()
+        # Use gt_f_rigid for visualization if available (precomputed path), else use flow_rigid from dyn_data
+        gt_f_rigid = v.get("gt_f_rigid")
+        if gt_f_rigid is not None:
+            flow_rigid_t = gt_f_rigid.cpu().float()
+        else:
+            flow_rigid_t = v["flow_rigid"].cpu().float()
         if flow_rigid_t.dim() == 2:
-            flow_rigid_t = flow_rigid_t.unsqueeze(0).unsqueeze(0)  # (H,W) -> (1,2,H,W)
+            flow_rigid_t = flow_rigid_t.unsqueeze(0).unsqueeze(0)
         elif flow_rigid_t.dim() == 3:
-            flow_rigid_t = flow_rigid_t.unsqueeze(0)               # (2,H,W) -> (1,2,H,W)
+            flow_rigid_t = flow_rigid_t.unsqueeze(0)
 
         flow_est_img = flow_to_image(flow_est)[0].permute(1, 2, 0).numpy() / 255.0
         flow_rigid_img = flow_to_image(flow_rigid_t)[0].permute(1, 2, 0).numpy() / 255.0
@@ -343,13 +348,20 @@ class DynTrainLogger:
 
         if has_gt:
             axes[1, 0].imshow(flow_gt_img)
-            axes[1, 0].set_title("GT flow")
+            axes[1, 0].set_title("f_rigid (GT proxy)")
             axes[1, 0].axis("off")
-            # True dynamic signal: where real flow deviates from rigid
-            diff_dyn = (flow_gt_t.squeeze(0) - flow_rigid_t.squeeze(0)).norm(dim=0)
-            im4 = axes[1, 1].imshow(diff_dyn.numpy(), cmap="hot")
+            # Precomputed residual from dyn_target (already correct)
+            dyn_target = v.get("dyn_target")
+            if dyn_target is not None:
+                r_true = dyn_target.cpu().float().squeeze()
+            else:
+                r_true = (flow_gt_t.squeeze(0) - flow_rigid_t.squeeze(0)).norm(dim=0)
+            r_true_viz = r_true.numpy().copy()
+            r_true_viz[r_true_viz < 1.0] = 0
+            r_true_viz = np.clip(r_true_viz, 0, 5.0)
+            im4 = axes[1, 1].imshow(r_true_viz, cmap="jet", vmin=0, vmax=5.0)
             plt.colorbar(im4, ax=axes[1, 1])
-            axes[1, 1].set_title(f"|f_gt - f_rigid| true dynamic (mean={diff_dyn.mean():.2f})")
+            axes[1, 1].set_title(f"|f_gt - f_rigid| (<1px=0, max=5px)")
             axes[1, 1].axis("off")
         else:
             diff = (v["flow_est"].cpu().float() - flow_rigid_t.squeeze(0)).norm(dim=0)
