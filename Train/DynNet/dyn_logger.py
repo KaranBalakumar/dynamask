@@ -207,14 +207,14 @@ class DynTrainLogger:
 
         axes[1].imshow(img_np, alpha=0.5)
         vmax = r_hat.max().item()
-        heat = axes[1].imshow(r_hat.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 5.0), alpha=0.6)
+        heat = axes[1].imshow(r_hat.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 1.0), alpha=0.6)
         plt.colorbar(heat, ax=axes[1], label="predicted residual [px]")
         axes[1].set_title(f"DynGRU r_hat (mean={r_hat.mean().item():.2f} px)")
         axes[1].axis("off")
 
         if r_target is not None:
             axes[2].imshow(img_np, alpha=0.5)
-            axes[2].imshow(r_target.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 5.0), alpha=0.6)
+            axes[2].imshow(r_target.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 1.0), alpha=0.6)
             axes[2].set_title(f"Target residual (mean={r_target.mean().item():.2f} px)")
             axes[2].axis("off")
 
@@ -255,10 +255,10 @@ class DynTrainLogger:
 
         r_est_viz = r_est.numpy().copy()
         r_est_viz[r_est_viz < 1.0] = 0
-        r_est_viz = np.clip(r_est_viz, 0, 5.0)
-        im1 = axes[0].imshow(r_est_viz, cmap="jet", vmin=0, vmax=5.0)
+        vmax = max(r_est_viz.max(), 1.0)
+        im1 = axes[0].imshow(r_est_viz, cmap="jet", vmin=0, vmax=vmax)
         plt.colorbar(im1, ax=axes[0])
-        axes[0].set_title(f"||f_est - f_rigid|| (<1px=0, max=5px)")
+        axes[0].set_title(f"||f_est - f_rigid|| (<1px=0, mean={r_est.mean():.2f}px)")
         axes[0].axis("off")
 
         col = 1
@@ -276,10 +276,10 @@ class DynTrainLogger:
                 r_true = (flow_gt_t - flow_rigid_t).norm(dim=0)
             r_true_viz = r_true.numpy().copy()
             r_true_viz[r_true_viz < 1.0] = 0
-            r_true_viz = np.clip(r_true_viz, 0, 5.0)
-            im2 = axes[col].imshow(r_true_viz, cmap="jet", vmin=0, vmax=5.0)
+            vmax2 = max(r_true_viz.max(), 1.0)
+            im2 = axes[col].imshow(r_true_viz, cmap="jet", vmin=0, vmax=vmax2)
             plt.colorbar(im2, ax=axes[col])
-            axes[col].set_title(f"||f_gt - f_rigid|| (<1px=0, max=5px)")
+            axes[col].set_title(f"||f_gt - f_rigid|| (<1px=0, mean={r_true.mean():.2f}px)")
             axes[col].axis("off")
             col += 1
 
@@ -298,7 +298,7 @@ class DynTrainLogger:
             img_np = img.permute(1, 2, 0).clamp(0, 1).numpy()
             dyn_ax.imshow(img_np, alpha=0.5)
             vmax = r_hat.max().item()
-            heat = dyn_ax.imshow(r_hat.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 5.0), alpha=0.6)
+            heat = dyn_ax.imshow(r_hat.numpy(), cmap="hot", vmin=0, vmax=max(vmax, 1.0), alpha=0.6)
             plt.colorbar(heat, ax=dyn_ax, label="predicted residual [px]")
             dyn_ax.set_title(f"DynGRU r_hat (mean={r_hat.mean().item():.2f} px)")
         if dyn_ax is not None:
@@ -358,10 +358,10 @@ class DynTrainLogger:
                 r_true = (flow_gt_t.squeeze(0) - flow_rigid_t.squeeze(0)).norm(dim=0)
             r_true_viz = r_true.numpy().copy()
             r_true_viz[r_true_viz < 1.0] = 0
-            r_true_viz = np.clip(r_true_viz, 0, 5.0)
-            im4 = axes[1, 1].imshow(r_true_viz, cmap="jet", vmin=0, vmax=5.0)
+            vmax3 = max(r_true_viz.max(), 1.0)
+            im4 = axes[1, 1].imshow(r_true_viz, cmap="jet", vmin=0, vmax=vmax3)
             plt.colorbar(im4, ax=axes[1, 1])
-            axes[1, 1].set_title(f"|f_gt - f_rigid| (<1px=0, max=5px)")
+            axes[1, 1].set_title(f"|f_gt - f_rigid| (<1px=0, mean={r_true.mean():.2f}px)")
             axes[1, 1].axis("off")
         else:
             diff = (v["flow_est"].cpu().float() - flow_rigid_t.squeeze(0)).norm(dim=0)
