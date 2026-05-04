@@ -1,0 +1,52 @@
+# Virtual KITTI 2 — Scene01 clone variant, supervised (GT depth + GT flow + GT pose + synthetic IMU).
+# All 5 scenes, clone variant only. Add more variants for multi-condition training.
+
+-   type: VKitti2
+    name: Scene01_clone
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_clone
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_clone
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_clone
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_clone
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725

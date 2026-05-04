@@ -1,0 +1,12 @@
+# Virtual KITTI 2 — Scene01 clone, supervised (GT depth + GT flow + GT pose + synthetic IMU).
+# Local single-sequence config.
+
+-   type: VKitti2
+    name: Scene01_clone_local
+    args:
+        root: /home/karan/vkitti2/Scene01
+        variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725

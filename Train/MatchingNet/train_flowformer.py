@@ -14,6 +14,7 @@ from torch.utils.data import ChainDataset, DataLoader
 from DataLoader import TrainDataset, DataFramePair, StereoFrame, CenterCropFrame, CastDataType, AddImageNoise, ScaleFrame
 from Train.MatchingNet.loss import sequence_loss, sequence_metric, compute_rigid_flow_jacobian, compute_rigid_flow_jacobian_3d, dyn_residual_loss
 import DataLoader.Dataset.VIODE as _viode_dl  # noqa: F401 — register VIODESequence
+import DataLoader.Dataset.VKitti2 as _vkitti2_dl  # noqa: F401 — register VKitti2Sequence
 from Utility.Config import load_config, namespace_to_cfgnode
 from Utility.PrettyPrint import ColoredTqdm, Logger
 
@@ -469,7 +470,7 @@ if __name__ == "__main__":
         # and GT depth + GT pose for rigid-flow pseudo-labels.
         traindatasets = TrainDataset[StereoFrame].mp_instantiation(
             datacfg.data, 0, -1,
-            lambda cfg: cfg.type in {"TartanAir", "TartanAirv2", "VIODE"}
+            lambda cfg: cfg.type in {"TartanAir", "TartanAirv2", "VIODE", "VKitti2"}
         )
     else:
         traindatasets = TrainDataset[StereoFrame].mp_instantiation(
