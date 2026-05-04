@@ -148,7 +148,7 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
             att = self._att_samples
             pos = att["pos"].unsqueeze(0)     # [1, N, 3]
             vel = att["vel"].unsqueeze(0)     # [1, N, 3]
-            rot = att["rot"].unsqueeze(0)     # [1, N, 4]  SO3 quaternion
+            rot = att["rot"].unsqueeze(0)     # [1, N, 4] SO3 LieTensor
             att_data = AttitudeData(
                 T_BS=pp.identity_SE3(1),
                 time_ns=times_ns,
@@ -262,9 +262,13 @@ def _generate_imu_from_poses(T_wc: dict, frame_indices: list, imu_freq: int,
     acc_imu += 0.001 + np.cumsum(np.random.randn(n_imu, 3) * 0.0001, axis=0)
     gyro_imu += 0.0001 + np.cumsum(np.random.randn(n_imu, 3) * 1e-5, axis=0)
 
-    # Convert rotations to SO3 quaternions (xyzw → pp.SO3 expects wxyz)
-    # scipy Rotation.as_quat() returns xyzw. pypose SO3 uses wxyz.
-    rot_quat_wxyz = rots_imu.as_quat()[:, [3, 0, 1, 2]]  # xyzw → wxyz
+    # Convert rotation matrices → euler → pypose SO3 LieTensors
+    rots_so3 = []
+    for i in range(n_imu):
+        euler = rots_imu[i].as_euler('xyz', degrees=False)
+        so3_i = pp.euler2SO3(torch.from_numpy(euler).float())  # (4,) wxyz
+        rots_so3.append(so3_i)
+    rots_so3 = torch.stack(rots_so3, dim=0)  # (N, 4)
 
     return (
         {
@@ -274,6 +278,6 @@ def _generate_imu_from_poses(T_wc: dict, frame_indices: list, imu_freq: int,
         {
             "pos": torch.tensor(pos_imu, dtype=torch.float32),
             "vel": torch.tensor(vel_w, dtype=torch.float32),
-            "rot": torch.tensor(rot_quat_wxyz, dtype=torch.float32),
+            "rot": rots_so3,
         },
     )
