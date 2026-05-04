@@ -72,7 +72,7 @@ Model:
 
   folderlength: None
   autosave_freq: 2000
-  num_workers: 4
+  num_workers: 0
   mixed_precision: True
   seed: 1234
   log_freq: 50

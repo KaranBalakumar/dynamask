@@ -71,7 +71,7 @@ Model:
       anneal_strategy: "linear"
 
   folderlength: None
-  num_workers: 200
+  num_workers: 0
   mixed_precision: True
   seed: 1234
   log_freq: 10
