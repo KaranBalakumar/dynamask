@@ -110,19 +110,20 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
                 self.T_wc, self.frame_indices, self.imu_freq, self.gravity
             )
 
-        # Target resolution for FlowFormer (no further cropping needed)
-        self.target_h, self.target_w = 480, 640
-        # Original resolution for correct rigid-flow geometry
+        # Target: 640×480. Strategy: center-crop width, pad height.
+        # Original 1242×375 → crop width to 640 (keep center), keep 375 rows,
+        # then pad 105 rows (52 top, 53 bottom) to reach 480.
+        # This preserves pixel-perfect geometry — no resize, no distortion.
         self.orig_h, self.orig_w = 375, 1242
-        self.K_orig = self.K_raw.clone()  # original K for rigid flow
-        # K for resized images
-        self.scale_h = self.target_h / self.orig_h
-        self.scale_w = self.target_w / self.orig_w
+        self.target_h, self.target_w = 480, 640
+        self.crop_left = (self.orig_w - self.target_w) // 2  # (1242-640)/2 = 301
+        self.pad_top  = (self.target_h - self.orig_h) // 2   # (480-375)/2 = 52
+        self.pad_bot  = self.target_h - self.orig_h - self.pad_top  # 53
         self.K = self.K_raw.clone()
-        self.K[:, 0, 0] *= self.scale_w
-        self.K[:, 1, 1] *= self.scale_h
-        self.K[:, 0, 2] *= self.scale_w
-        self.K[:, 1, 2] *= self.scale_h
+        # Adjust K for width crop (no height change)
+        self.K[:, 0, 2] -= self.crop_left  # cx shifted left by 301
+        # Adjust K for height padding (cy shifts down)
+        self.K[:, 1, 2] += self.pad_top
 
         super().__init__(self.num_frames)
 
@@ -156,25 +157,27 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
 
         from Train.MatchingNet.loss import compute_rigid_flow_jacobian
         f_rigid_orig, _, _ = compute_rigid_flow_jacobian(
-            depth.float(), self.K_orig.float(), T_rel_mat.float()
+            depth.float(), self.K_raw.float(), T_rel_mat.float()
         )
-        r_vec_orig = flow.float() - f_rigid_orig.float()  # (1, 2, 375, 1242)
+        r_abs_orig = (flow.float() - f_rigid_orig.float()).norm(dim=1, keepdim=True)  # (1,1,375,1242)
 
-        # --- Resize everything to target resolution ---
-        target_size = (self.target_h, self.target_w)
-        img_l  = F.interpolate(img_l,  size=target_size, mode='bilinear', align_corners=False)
-        img_r  = F.interpolate(img_r,  size=target_size, mode='bilinear', align_corners=False)
-        depth  = F.interpolate(depth,  size=target_size, mode='nearest')
-        flow   = F.interpolate(flow,   size=target_size, mode='bilinear', align_corners=False)
-        flow_mask = F.interpolate(flow_mask, size=target_size, mode='nearest')
-        # Resize r_vec (2-channel) to target resolution with proper scaling
-        # Interpolate spatially, then scale each component to target pixels
-        r_vec = F.interpolate(r_vec_orig, size=target_size, mode='bilinear', align_corners=False)
-        r_vec[:, 0] *= self.scale_w  # u in target-width pixels
-        r_vec[:, 1] *= self.scale_h  # v in target-height pixels
-        # Scale flow values
-        flow[:, 0] *= self.scale_w
-        flow[:, 1] *= self.scale_h
+        # --- Crop + pad: NO resize distortion ---
+        # 1. Center-crop width to 640 (keep columns [crop_left, crop_left+640])
+        cl = self.crop_left
+        img_l  = img_l[:, :, :, cl:cl+self.target_w]
+        img_r  = img_r[:, :, :, cl:cl+self.target_w]
+        depth  = depth[:, :, :, cl:cl+self.target_w]
+        flow   = flow[:, :, :, cl:cl+self.target_w]
+        flow_mask = flow_mask[:, :, :, cl:cl+self.target_w]
+        r_abs  = r_abs_orig[:, :, :, cl:cl+self.target_w]  # (1,1,375,640)
+        # 2. Pad height to 480 (pad_top rows above, pad_bot below)
+        r_abs  = F.pad(r_abs,  (0, 0, self.pad_top, self.pad_bot), value=0)
+        img_l  = F.pad(img_l,  (0, 0, self.pad_top, self.pad_bot), value=0)
+        img_r  = F.pad(img_r,  (0, 0, self.pad_top, self.pad_bot), value=0)
+        depth  = F.pad(depth,  (0, 0, self.pad_top, self.pad_bot), value=0)
+        flow   = F.pad(flow,   (0, 0, self.pad_top, self.pad_bot), value=0)
+        flow_mask = F.pad(flow_mask, (0, 0, self.pad_top, self.pad_bot), value=0)
+        r_vec = torch.cat([r_abs, torch.zeros_like(r_abs)], dim=1)  # (1,2,480,640)
 
         # GT pose as LieTensor
         T_wc = self.T_wc[frame_idx]
