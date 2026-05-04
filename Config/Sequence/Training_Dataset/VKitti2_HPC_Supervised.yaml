@@ -1,11 +1,141 @@
-# Virtual KITTI 2 — Scene01 clone variant, supervised (GT depth + GT flow + GT pose + synthetic IMU).
-# All 5 scenes, clone variant only. Add more variants for multi-condition training.
+# Virtual KITTI 2 — ALL scenes, ALL variants, supervised (GT depth + GT flow + GT pose + synthetic IMU).
+# 5 scenes x 10 variants = 50 sequences.
+
+-   type: VKitti2
+    name: Scene01_15-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: 15-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene01_15-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: 15-deg-right
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene01_30-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: 30-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene01_30-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: 30-deg-right
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
 
 -   type: VKitti2
     name: Scene01_clone
     args:
         root: /scratch/amukherjee/karan/vkitti2/Scene01
         variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene01_fog
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: fog
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene01_morning
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: morning
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene01_overcast
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: overcast
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene01_rain
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: rain
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene01_sunset
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene01
+        variant: sunset
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_15-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: 15-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_15-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: 15-deg-right
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_30-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: 30-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_30-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: 30-deg-right
         use_real_imu: true
         gravity: 9.81
         imu_freq: 200
@@ -22,10 +152,190 @@
         baseline: 0.532725
 
 -   type: VKitti2
+    name: Scene02_fog
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: fog
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_morning
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: morning
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_overcast
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: overcast
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_rain
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: rain
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene02_sunset
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene02
+        variant: sunset
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_15-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: 15-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_15-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: 15-deg-right
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_30-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: 30-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_30-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: 30-deg-right
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
     name: Scene06_clone
     args:
         root: /scratch/amukherjee/karan/vkitti2/Scene06
         variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_fog
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: fog
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_morning
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: morning
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_overcast
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: overcast
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_rain
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: rain
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene06_sunset
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene06
+        variant: sunset
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_15-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: 15-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_15-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: 15-deg-right
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_30-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: 30-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_30-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: 30-deg-right
         use_real_imu: true
         gravity: 9.81
         imu_freq: 200
@@ -42,10 +352,150 @@
         baseline: 0.532725
 
 -   type: VKitti2
+    name: Scene18_fog
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: fog
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_morning
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: morning
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_overcast
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: overcast
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_rain
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: rain
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene18_sunset
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene18
+        variant: sunset
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_15-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: 15-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_15-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: 15-deg-right
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_30-deg-left
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: 30-deg-left
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_30-deg-right
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: 30-deg-right
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
     name: Scene20_clone
     args:
         root: /scratch/amukherjee/karan/vkitti2/Scene20
         variant: clone
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_fog
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: fog
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_morning
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: morning
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_overcast
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: overcast
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_rain
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: rain
+        use_real_imu: true
+        gravity: 9.81
+        imu_freq: 200
+        baseline: 0.532725
+
+-   type: VKitti2
+    name: Scene20_sunset
+    args:
+        root: /scratch/amukherjee/karan/vkitti2/Scene20
+        variant: sunset
         use_real_imu: true
         gravity: 9.81
         imu_freq: 200
