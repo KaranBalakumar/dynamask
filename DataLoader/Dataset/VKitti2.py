@@ -83,10 +83,11 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         assert self.flow_dir.exists(), f"Missing: {self.flow_dir}"
         assert self.rgb_right_dir.exists(), f"Missing: {self.rgb_right_dir}"
 
-        # --- Precompute synthetic IMU if requested ---
+        # --- Precompute synthetic IMU + attitude if requested ---
         self._imu_samples = None
+        self._att_samples = None
         if self.use_real_imu:
-            self._imu_samples = _generate_imu_from_poses(
+            self._imu_samples, self._att_samples = _generate_imu_from_poses(
                 self.T_wc, self.frame_indices, self.imu_freq, self.gravity
             )
 
@@ -127,20 +128,33 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         T_wc = self.T_wc[frame_idx]
         pose = pp.mat2SE3(T_wc.unsqueeze(0))
 
-        # IMU data
+        # IMU + Attitude data
         imu_data = None
+        att_data = None
         if self.use_real_imu and self._imu_samples is not None:
             acc = self._imu_samples["acc"].unsqueeze(0)    # [1, N, 3]
             gyro = self._imu_samples["gyro"].unsqueeze(0)  # [1, N, 3]
             n = acc.shape[1]
-            dt_ns = int(1e9 / self.imu_freq)  # e.g. 5,000,000 ns for 200 Hz
-            times_ns = torch.arange(0, n * dt_ns, dt_ns, dtype=torch.int64).unsqueeze(0).unsqueeze(-1)  # [1, N, 1]
+            dt_ns = int(1e9 / self.imu_freq)
+            times_ns = torch.arange(0, n * dt_ns, dt_ns, dtype=torch.int64).unsqueeze(0).unsqueeze(-1)
             imu_data = IMUData(
                 T_BS=pp.identity_SE3(1),
                 time_ns=times_ns,
                 gravity=[self.gravity],
                 acc=acc,
                 gyro=gyro,
+            )
+            # Attitude data for EKF seeding
+            att = self._att_samples
+            pos = att["pos"].unsqueeze(0)     # [1, N, 3]
+            vel = att["vel"].unsqueeze(0)     # [1, N, 3]
+            rot = att["rot"].unsqueeze(0)     # [1, N, 4]  SO3 quaternion
+            att_data = AttitudeData(
+                T_BS=pp.identity_SE3(1),
+                time_ns=times_ns,
+                gravity=[self.gravity],
+                gt_pos=pos, gt_vel=vel, gt_rot=rot,
+                init_pos=pos[:, :1], init_vel=vel[:, :1], init_rot=rot[:, :1],
             )
 
         stereo_data = StereoData(
@@ -163,6 +177,7 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
             time_ns=[0],
             gt_pose=pose,
             imu=imu_data,
+            gt_attitude=att_data,
         )
 
 
@@ -247,7 +262,18 @@ def _generate_imu_from_poses(T_wc: dict, frame_indices: list, imu_freq: int,
     acc_imu += 0.001 + np.cumsum(np.random.randn(n_imu, 3) * 0.0001, axis=0)
     gyro_imu += 0.0001 + np.cumsum(np.random.randn(n_imu, 3) * 1e-5, axis=0)
 
-    return {
-        "acc": torch.tensor(acc_imu, dtype=torch.float32),
-        "gyro": torch.tensor(gyro_imu, dtype=torch.float32),
-    }
+    # Convert rotations to SO3 quaternions (xyzw → pp.SO3 expects wxyz)
+    # scipy Rotation.as_quat() returns xyzw. pypose SO3 uses wxyz.
+    rot_quat_wxyz = rots_imu.as_quat()[:, [3, 0, 1, 2]]  # xyzw → wxyz
+
+    return (
+        {
+            "acc": torch.tensor(acc_imu, dtype=torch.float32),
+            "gyro": torch.tensor(gyro_imu, dtype=torch.float32),
+        },
+        {
+            "pos": torch.tensor(pos_imu, dtype=torch.float32),
+            "vel": torch.tensor(vel_w, dtype=torch.float32),
+            "rot": torch.tensor(rot_quat_wxyz, dtype=torch.float32),
+        },
+    )
