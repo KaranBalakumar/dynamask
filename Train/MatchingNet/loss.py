@@ -342,8 +342,6 @@ def dyn_residual_loss(
     r_u = r_vec[:, 0:1]  # (B, 1, H, W)
     r_v = r_vec[:, 1:2]
     target = torch.sqrt(r_u * r_u + r_v * r_v + 1e-8)  # (B, 1, H, W)
-    target = torch.where(target < 1.0, torch.zeros_like(target), target)  # <1px → static noise
-    target = target.clamp(max=200.0)  # cap explosions
 
     for i in range(n_iter):
         i_weight = gamma ** (n_iter - i - 1)
