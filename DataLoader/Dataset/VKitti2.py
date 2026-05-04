@@ -161,7 +161,7 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         )
         r_abs_orig = (flow.float() - f_rigid_orig.float()).norm(dim=1, keepdim=True)  # (1,1,375,1242)
         # Mask invalid flow pixels (WAFT convention: r=0 where flow is unavailable)
-        r_abs_orig = r_abs_orig * torch.from_numpy(valid.astype(np.float32)).unsqueeze(0).unsqueeze(0)
+        r_abs_orig = r_abs_orig * flow_mask.float()
 
         # --- Crop + pad: NO resize distortion ---
         # 1. Center-crop width to 640 (keep columns [crop_left, crop_left+640])
