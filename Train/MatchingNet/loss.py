@@ -326,6 +326,7 @@ def dyn_residual_loss(
     dyn_predictions: list[torch.Tensor],   # K logit maps at H/4
     r_vec: torch.Tensor,                   # (B, 2, H, W)  flow_target − f_rigid vector
     gamma: float = 0.85,
+    weight_by_target: bool = False,
 ) -> dict[str, torch.Tensor]:
     """γ-weighted smooth-L1 loss for residual magnitude prediction.
 
@@ -333,8 +334,10 @@ def dyn_residual_loss(
     Pred:    r_hat = softplus(dyn_logits)     (positive magnitude in pixels)
     Loss:    smooth_L1(r_hat, r)
 
-    With GT depth, f_rigid is accurate → r isolates true non-rigid motion.
-    No cov head, no normalization, no Mahalanobis.
+    When weight_by_target=True, each pixel's loss is scaled by r / mean(r),
+    making dynamic pixels (large r) dominate the gradient.  This is only
+    useful on datasets with actual moving objects (KITTI, VIODE).  On
+    fully-static data (VKitti2, TartanAir2) it is a no-op since all r ≈ 0.
     """
     n_iter = len(dyn_predictions)
     L_total = torch.tensor(0.0, device=r_vec.device)
@@ -342,6 +345,13 @@ def dyn_residual_loss(
     r_u = r_vec[:, 0:1]  # (B, 1, H, W)
     r_v = r_vec[:, 1:2]
     target = torch.sqrt(r_u * r_u + r_v * r_v + 1e-8)  # (B, 1, H, W)
+
+    if weight_by_target:
+        pixel_weight = target.detach() / (target.detach().mean() + 1e-8)
+        reduction = "none"
+    else:
+        pixel_weight = None
+        reduction = "mean"
 
     for i in range(n_iter):
         i_weight = gamma ** (n_iter - i - 1)
@@ -351,7 +361,11 @@ def dyn_residual_loss(
             logit = F.interpolate(logit, size=target.shape[-2:], mode="bilinear", align_corners=False)
 
         r_hat = F.softplus(logit)  # → [0, ∞)
-        L_total += i_weight * F.smooth_l1_loss(r_hat, target, reduction="mean")
+        if pixel_weight is not None:
+            per_pixel = F.smooth_l1_loss(r_hat, target, reduction="none")
+            L_total += i_weight * (pixel_weight * per_pixel).mean()
+        else:
+            L_total += i_weight * F.smooth_l1_loss(r_hat, target, reduction="mean")
 
     return {"L_total": L_total}
 
@@ -393,7 +407,8 @@ def sequence_loss(cfg, preds: torch.Tensor, gt: torch.Tensor, flow_mask: torch.T
         case "dyn" | "dyn_selfsup":
             assert dyn_preds is not None and dyn_data is not None
             r_vec = dyn_data[2] if len(dyn_data) > 2 else torch.zeros_like(dyn_data[1])
-            loss_dict = dyn_residual_loss(dyn_preds, r_vec, gamma=cfg.gamma)
+            loss_dict = dyn_residual_loss(dyn_preds, r_vec, gamma=cfg.gamma,
+                                 weight_by_target=getattr(cfg, 'dyn_weight_by_target', False))
             loss = loss_dict["L_total"]
             r_hat = F.softplus(dyn_preds[-1]).detach()
             metrics["dyn_r_mean"] = r_hat.mean().item()
@@ -444,7 +459,8 @@ def sequence_metric(cfg, preds: torch.Tensor, cov_preds: list[torch.Tensor] | No
         case "dyn" | "dyn_selfsup":
             assert dyn_preds is not None and dyn_data is not None
             r_vec = dyn_data[2] if len(dyn_data) > 2 else torch.zeros_like(dyn_data[1])
-            loss_dict = dyn_residual_loss(dyn_preds, r_vec, gamma=cfg.gamma)
+            loss_dict = dyn_residual_loss(dyn_preds, r_vec, gamma=cfg.gamma,
+                                 weight_by_target=getattr(cfg, 'dyn_weight_by_target', False))
             r_hat = F.softplus(dyn_preds[-1]).detach()
             metrics.update({"dyn_loss": loss_dict["L_total"].item()})
             metrics.update({"dyn_r_mean": r_hat.mean().item()})
