@@ -4,7 +4,7 @@ Model:
   suffix: "dyngru_vk2_hpc"
   gamma: 0.85
   max_flow: 400
-  dyn_weight_by_target: false
+  dyn_weight_by_target: true
   batch_size: 32
   sum_freq: 100
   val_freq: 10000
