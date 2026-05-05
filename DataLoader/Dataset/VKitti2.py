@@ -191,7 +191,8 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
         if self.use_real_imu and self._imu_samples is not None:
             ticks_per_frame = self.imu_freq // 10  # 200Hz / 10Hz = 20
             i0 = index * ticks_per_frame
-            i1 = i0 + ticks_per_frame
+            total_ticks = self._imu_samples["acc"].shape[0]
+            i1 = min(i0 + ticks_per_frame + 1, total_ticks)  # +1 boundary tick
             acc = self._imu_samples["acc"][i0:i1].unsqueeze(0)     # [1, T, 3]
             gyro = self._imu_samples["gyro"][i0:i1].unsqueeze(0)   # [1, T, 3]
             n = acc.shape[1]
