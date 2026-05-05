@@ -192,9 +192,17 @@ class VKitti2Sequence(SequenceBase[StereoInertialFrame]):
             ticks_per_frame = self.imu_freq // 10  # 200Hz / 10Hz = 20
             i0 = index * ticks_per_frame
             total_ticks = self._imu_samples["acc"].shape[0]
-            i1 = min(i0 + ticks_per_frame + 1, total_ticks)  # +1 boundary tick
-            acc = self._imu_samples["acc"][i0:i1].unsqueeze(0)     # [1, T, 3]
-            gyro = self._imu_samples["gyro"][i0:i1].unsqueeze(0)   # [1, T, 3]
+            T = ticks_per_frame + 1  # target: 21 ticks per frame
+            i1 = min(i0 + T, total_ticks)
+            # Slice and pad last frame to match T ticks
+            acc  = self._imu_samples["acc"][i0:i1]   # [t, 3]
+            gyro = self._imu_samples["gyro"][i0:i1]  # [t, 3]
+            if acc.shape[0] < T:
+                pad = T - acc.shape[0]
+                acc  = torch.cat([acc,  acc[-1:].repeat(pad, 1)], dim=0)
+                gyro = torch.cat([gyro, gyro[-1:].repeat(pad, 1)], dim=0)
+            acc  = acc.unsqueeze(0)    # [1, T, 3]
+            gyro = gyro.unsqueeze(0)   # [1, T, 3]
             n = acc.shape[1]
             dt_ns = int(1e9 / self.imu_freq)
             t0_ns = i0 * dt_ns
